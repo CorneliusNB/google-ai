@@ -118,7 +118,8 @@ def warn(msg):
 
 
 # ---------- 设备 ----------
-def pick_device():
+def pick_device(preferred=None):
+    """Select exactly one online Android device; respect an explicit --serial."""
     global SERIAL
     out = sh("devices")
     lines = [l for l in out.splitlines()[1:] if "\tdevice" in l]
@@ -136,7 +137,12 @@ def pick_device():
                 break
     if not lines:
         sys.exit("❌ 没有检测到设备。MuMu 请确认已启动、开了 ADB 调试（设置里），或用 ADB_PATH 指定 adb。")
-    SERIAL = lines[0].split("\t")[0]
+    online = [l.split("\t")[0] for l in lines]
+    if preferred and preferred not in online:
+        sys.exit(f"❌ ADB device {preferred} is not online. Available: {', '.join(online)}")
+    if not preferred and len(online) != 1:
+        sys.exit(f"❌ Multiple Android devices: {', '.join(online)}. Choose one with --serial.")
+    SERIAL = preferred or online[0]
     ok(f"设备已连接：{SERIAL}")
 
 
@@ -622,9 +628,12 @@ def launch_app() -> int:
     return 0
 
 
-def build_js(plan: str = "auto", list_only: bool = False, stack: bool = False, old_token: str = "", stack_mode=None) -> str:
+def build_js(plan: str = "auto", list_only: bool = False, stack: bool = False, old_token: str = "", stack_mode=None, activity_method="auto") -> str:
     """按 plan 选择要查询的商品：5x=20TB，20x=30TB（隐藏带试用 ID）。"""
-    js = FRIDA_JS
+    if activity_method not in ("auto", "choose", "thread"):
+        raise ValueError(f"Unsupported activity method: {activity_method}")
+    js = FRIDA_JS.replace('var ACTIVITY_METHOD="auto";',
+                          f'var ACTIVITY_METHOD="{activity_method}";', 1)
     if list_only:
         js = js.replace('var PREFER="";', 'var PREFER=""; var LIST_ONLY=true;', 1)
     if stack:
@@ -649,12 +658,12 @@ def build_js(plan: str = "auto", list_only: bool = False, stack: bool = False, o
     return js
 
 
-def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_token="", stack_mode=None) -> dict:
+def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_token="", stack_mode=None, activity_method="auto") -> dict:
     import frida
     step("注入计费模块，查询免费试用")
     dev = frida.get_usb_device(timeout=10)
     sess = dev.attach(pid)
-    res = {"offers": [], "launched": None, "purchase": None, "errors": []}
+    res = {"offers": [], "launched": None, "purchase": None, "activity": None, "errors": []}
 
     def on_msg(m, _):
         if m.get("type") == "error":
@@ -670,6 +679,9 @@ def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_
             res["offers"].append(p)
             note(f"offer {p.get('id')} → {p.get('micros')} ({p.get('period','')})")
             # Offer tokens are private checkout inputs; do not print them in terminal.
+        elif ev == "activity_selected":
+            res["activity"] = {"method": p.get("method"), "class": p.get("name")}
+            note(f"Activity found via {p.get('method')}: {p.get('name')}")
         elif ev == "launched":
             res["launched"] = p
             ok(f"已拉起收银台：{p}")
@@ -678,7 +690,7 @@ def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_
         elif ev and ("err" in ev or ev.startswith("no_")):
             res["errors"].append(p)
 
-    sc = sess.create_script(build_js(plan, list_only, stack, old_token, stack_mode))
+    sc = sess.create_script(build_js(plan, list_only, stack, old_token, stack_mode, activity_method))
     sc.on("message", on_msg)
     sc.load()
     time.sleep(wait)
@@ -689,11 +701,16 @@ def diagnose_launch_failure(fr: dict) -> tuple:
     """Explain why billing UI was not opened, without retrying purchases."""
     events = fr.get("errors") or []
     ev_names = {e.get("ev") for e in events if isinstance(e, dict)}
+    if "choose_err" in ev_names and ("activity_thread_err" in ev_names or "no_activity" in ev_names):
+        return ("activity_lookup_failed",
+                "Both Java.choose and ActivityThread failed to locate a usable Activity. "
+                "Check the recorded ART errors and the Android version; no checkout was opened.")
     if "choose_err" in ev_names:
         return ("activity_lookup_failed",
-                "Frida Java.choose could not enumerate Android Activity instances. "
-                "Known ART/libart.so compatibility issue: inspect the choose_err message "
-                "and Android version; no checkout was confirmed.")
+                "Java.choose failed; rerun with --activity-method thread to test the fallback.")
+    if "activity_thread_err" in ev_names:
+        return ("activity_lookup_failed",
+                "ActivityThread lookup failed; try --activity-method choose on a compatible device.")
     if "no_activity" in ev_names:
         return ("no_activity",
                 "Google One had no usable Android Activity; reopen the app in MuMu.")
@@ -785,7 +802,7 @@ def verify() -> str:
 
 
 # ---------- 单号流程 ----------
-def process(email, password="", totp_secret="", add=True, card=None, plan="auto", no_switch=False, list_only=False, stack=False, old_token="", stack_mode=None) -> dict:
+def process(email, password="", totp_secret="", add=True, card=None, plan="auto", no_switch=False, list_only=False, stack=False, old_token="", stack_mode=None, activity_method="auto") -> dict:
     print("\n" + "=" * 56)
     print(f"  处理账号：{email}")
     print("=" * 56)
@@ -836,7 +853,8 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
     if not pid:
         rec["status"] = "app_not_started"
         return rec
-    fr = run_trial(pid, plan=plan, list_only=list_only, stack=stack, old_token=old_token, stack_mode=stack_mode)
+    fr = run_trial(pid, plan=plan, list_only=list_only, stack=stack, old_token=old_token,
+                   stack_mode=stack_mode, activity_method=activity_method)
     rec.update(fr)
     if list_only:
         rec["status"] = "listed"
@@ -852,11 +870,11 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
 
 
 # ---------- 入口 ----------
-def do_check():
+def do_check(serial=None):
     global ADB
     ADB = find_adb()
     ok(f"adb：{ADB}")
-    pick_device()
+    pick_device(serial)
     ensure_root()
     ensure_network()
     ensure_frida_server()
@@ -912,7 +930,9 @@ def main():
                     help="当前订阅的 purchaseToken（配合 --stack，直接用它做升级，跳过 queryPurchases）")
     ap.add_argument("--stack", action="store_true",
                     help="订阅升级叠加：用旧 purchaseToken + CHARGE_FULL_PRICE 拉起结算，剩余试用期会折算顺延")
-    ap.add_argument("--serial", default=None)
+    ap.add_argument("--serial", default=None, help="ADB serial; required if multiple devices are online")
+    ap.add_argument("--activity-method", choices=["auto", "choose", "thread"], default="auto",
+                    help="Android Activity lookup: auto=Java.choose then ActivityThread fallback")
     ap.add_argument("--no-add", action="store_true", help="跳过自动加号（账号已在手机上）")
     ap.add_argument("--no-switch", action="store_true",
                     help="不自动切号，只校验当前 Play 账号是否为目标号")
@@ -923,11 +943,9 @@ def main():
     ADB = find_adb()
     globals()["SKIP_ACCOUNT_CHECK"] = bool(a.force)
     if a.check:
-        return do_check()
+        return do_check(serial=a.serial)
 
-    pick_device()
-    if a.serial:
-        SERIAL = a.serial
+    pick_device(preferred=a.serial)
     ensure_root()
     ensure_network()
     ensure_frida_server()
@@ -956,7 +974,7 @@ def main():
         try:
             rec = process(email, pw, sec, add=(not a.no_add and not a.list), card=card, plan=a.plan,
                           no_switch=a.no_switch, list_only=a.list, stack=a.stack, old_token=a.old_token,
-                          stack_mode=a.mode)
+                          stack_mode=a.mode, activity_method=a.activity_method)
         except Exception as e:
             warn(f"{type(e).__name__}: {str(e)[:320]}")
             rec = {"email": email, "status": "exception", "error": str(e)[:320],
@@ -983,6 +1001,7 @@ FRIDA_JS = r'''// Ultra0 注入脚本：多商品查询 → 自动挑最长免�
 var dexLoader=null, ctxRef=null, clientRef=null;
 var PRODUCTS=["g1.play.20tb","g1.play.ai.pro","g1.30tb"];   // 5x / 20x(带试用) / 20x(另一档)
 var PREFER="";        // 空=自动挑最长；可传 "eft-12month" 等
+var ACTIVITY_METHOD="auto"; // auto=choose then ActivityThread; choose/thread force one
 function L(v){ Java.classFactory.loader=v; }
 function S(o){ send(o); }
 
@@ -990,16 +1009,60 @@ function periodRank(p){
   var m={"P1Y":12,"P12M":12,"P6M":6,"P3M":3,"P1M":1};
   return m[String(p)]||0;
 }
+function activityUsable(activity) {
+  try {
+    if (!activity || activity.isFinishing()) return false;
+    // isDestroyed() has existed since API 17; older ROMs may not expose it.
+    try { if (activity.isDestroyed()) return false; } catch (_) {}
+    return true;
+  } catch (e) { return false; }
+}
 function getActivity(){
   L(null);
   var found=null;
-  try{
-    Java.choose("android.app.Activity", {
-      onMatch:function(a){ try{ if(!found && !a.isFinishing()) found=a; }catch(e){} },
-      onComplete:function(){}
-    });
-  }catch(e){ S({ev:"choose_err", m:String(e).slice(0,80)}); }
-  return found;
+  // Always prefer the original Java.choose implementation when it works.
+  if (ACTIVITY_METHOD !== "thread") {
+    try {
+      Java.choose("android.app.Activity", {
+        onMatch:function(a){ if (!found && activityUsable(a)) found=a; },
+        onComplete:function(){}
+      });
+      if (found) {
+        S({ev:"activity_selected", method:"choose", name:String(found.getClass().getName())});
+        return found;
+      }
+    } catch (e) {
+      S({ev:"choose_err", m:String(e).slice(0,200)});
+    }
+  }
+  if (ACTIVITY_METHOD !== "choose") {
+    try {
+      // mActivities exists on many Android/ART builds, but is private and
+      // may be absent on some devices. Never guess a compatible Activity.
+      var Thread=Java.use("android.app.ActivityThread");
+      var current=Thread.currentActivityThread();
+      if (!current) throw new Error("currentActivityThread unavailable");
+      var records=current.mActivities.value;
+      if (!records) throw new Error("mActivities unavailable");
+      var Record=Java.use("android.app.ActivityThread$ActivityClientRecord");
+      var count=records.size();
+      for (var i=0;i<count;i++){
+        try {
+          var rec=Java.cast(records.valueAt(i), Record);
+          var act=rec.activity.value;
+          if (activityUsable(act)) { found=act; break; }
+        } catch (recordErr) {}
+      }
+      if (found) {
+        S({ev:"activity_selected", method:"thread", name:String(found.getClass().getName())});
+        return found;
+      }
+    } catch (e) {
+      S({ev:"activity_thread_err", m:String(e).slice(0,200)});
+    }
+  }
+  S({ev:"no_activity", method:ACTIVITY_METHOD});
+  return null;
 }
 function boot(){
  Java.perform(function(){

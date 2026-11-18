@@ -322,6 +322,33 @@ See also [AOSP Android 15 ActivityThread source](https://android.googlesource.co
 
 ---
 
+### Cross-device Activity lookup (Android 8–15 and other builds)
+
+**Default is auto-detection, not a hard-coded emulator model.** AOSP's Java/ART internals differ by vendor/Android build and no single method is guaranteed on all devices. The script now looks for an eligible `android.app.Activity` using the original `Java.choose()` first, then falls back to `ActivityThread.mActivities` when needed (including the Android 15/Frida `EnsurePluginLoaded` issue). It rejects finishing/destroyed activities, and stops with a diagnostic error if neither method succeeds.
+
+These options choose **only the Activity lookup algorithm**; they do not change the subscription or payment eligibility, and CI mock tests cannot verify every Android build.
+
+| Configuration | Behavior |
+| --- | --- |
+| `--activity-method auto` (default) | Try original Java.choose, then ActivityThread fallback |
+| `--activity-method choose` | Use original Frida heap enumeration only |
+| `--activity-method thread` | Use ActivityThread activity records only |
+| `--serial emulator-5554` | Explicitly choose one connected ADB device; required with multiple devices |
+
+**Read-only checks (no checkout):**
+
+```powershell
+git pull --ff-only
+python ultra0.py --check --serial emulator-5554
+python scripts/diagnose-activity.py --serial emulator-5554
+python ultra0.py --account "current@device" --no-add --list --plan pro12 --serial emulator-5554
+```
+
+The independent ActivityThread diagnostic only inspects an already-running Google One process and reports whether its Activity is visible; it does not run billing or payment. A green diagnostic does **not** guarantee checkout works or that any trial is available.
+
+**Do not use live checkout to test device compatibility:** without `--list`, the original code may automatically tap Subscribe. Confirm any real subscription only in Google Play's subscription screen. Android/Frida combinations that fail both Activity lookup methods remain unsupported until validated.
+
+---
 ## 7. Repository files
 
 | Path | Purpose |
