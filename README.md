@@ -1,4 +1,4 @@
-# Google AI Pro — Android / MuMu Python and Playwright guide
+# Google AI Pro — Android / MuMu Python setup and troubleshooting
 
 **English is the default documentation language.** [中文说明 (Chinese)](README.zh-CN.md) · [Original author's instructions (Chinese)](使用说明.txt) · [Playwright details](PLAYWRIGHT.md) · [Security notes](SECURITY.md)
 
@@ -59,7 +59,7 @@ The above is a placeholder, not a universal MuMu port. If more than one device i
 python ultra0.py --account "current@device" --no-add --force --list --plan pro12
 ```
 
-**Playwright wrapper:**
+**Optional Playwright wrapper (not needed for the Python workflow):**
 
 ```powershell
 npm install
@@ -71,7 +71,7 @@ node scripts/playwright-android.mjs offers --plan pro6
 
 The Playwright `doctor` command verifies that a reachable Android device has Play Store and Google One installed. The `offers` command performs the device check then delegates to the **original Python/Frida script**; it can still start Frida and alter Android networking. No checkout is requested in listing mode.
 
-## 5. Original three-step commands vs. Playwright
+## 5. Original Python / batch-file stages (Playwright optional)
 
 The following are the **original author's claimed** subscription stages. They are reproduced here to document the existing code, **not as a promise** that a free trial or stacked subscription will be granted.
 
@@ -138,6 +138,40 @@ Replace placeholders with actual values. The same structure applies to `--step 2
 | Play Store cannot connect | Confirm Android internet access, account sign-in and network settings; the original check can modify proxy settings |
 | Billing screen says ineligible or displays a price | **Do not confirm** the transaction; Google determines eligibility and the payable amount |
 | Checkout opened but status is uncertain | Check the subscription directly in Google Play; don't infer success from a launched activity |
+
+### `wrong_account`, `account_unverified`, or `app_not_started` after successful offer listing
+
+These are **distinct checks**, not evidence that Google declined a trial:
+
+- `account_unverified` means the script cannot read the active Google Play email (previous versions reported this incorrectly as `wrong_account`). It now opens the **Play Store UI** first. If the email is still missing, manually open Play Store, tap your profile avatar and verify the correct account. It **stops without checkout** rather than guessing.
+- `wrong_account` means it actually read a different email. Switch accounts manually in Google Play Store, then retry only after confirming the intended account.
+- `app_not_started` means Google One has no visible application PID after launch. The code now waits up to 16 seconds and reports if Google One is missing, fails to launch or appears to stop. This is an Android app/startup problem, not necessarily a Frida or account error.
+
+Inspect your Android instance in PowerShell **without starting checkout**:
+
+```powershell
+adb devices -l
+adb -s emulator-5554 shell id
+adb -s emulator-5554 shell su -c id
+adb -s emulator-5554 shell pm path com.android.vending
+adb -s emulator-5554 shell pm path com.google.android.apps.subscriptions.red
+adb -s emulator-5554 shell monkey -p com.google.android.apps.subscriptions.red -c android.intent.category.LAUNCHER 1
+adb -s emulator-5554 shell pidof com.google.android.apps.subscriptions.red
+```
+
+If neither `id` nor `su -c id` reports `uid=0(root)`, enable ROOT for the **same emulator instance**, fully restart MuMu and rerun `python ultra0.py --check`. ADB reporting `device` does not imply root. Replace `emulator-5554` if your ADB serial differs.
+
+If `pidof` remains empty, open Google One manually and check for a crash, sign-in prompt, missing Play Services or required app update. You can inspect recent Android crash messages with:
+
+```powershell
+adb -s emulator-5554 logcat -d -t 400 | findstr /i "FATAL AndroidRuntime subscriptions.red"
+```
+
+The **Python + ADB + Frida** workflow is the primary supported path in this repository. Playwright is optional and only wraps Python; it is **not required** to diagnose or run the original script.
+
+**Safety:** Offer listing does not complete a subscription. Running a non-`--list` command can automatically tap Subscribe, so check Google Play's payment and renewal terms before any live checkout. Do not use `--force` to hide an unverified account.
+
+---
 
 ### Windows: resolve Python, ADB, and `offline` emulator errors
 

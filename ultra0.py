@@ -537,16 +537,35 @@ def add_card(card: dict) -> bool:
 
 
 def current_play_account() -> str:
-    """读 Play 当前账号；读不到返回空串。"""
-    for n in nodes(ui_xml()):
-        if "账号和设置" in n["desc"] or "Account and settings" in n["desc"]:
-            tap(n["x"], n["y"]); time.sleep(3); break
+    """Read the visible account from Play Store; unknown is not an account mismatch."""
+    xml = ui_xml()
+    if f'package="{VENDING}"' not in xml:
+        note("Opening Play Store to verify the account (Google One may be foreground)...")
+        sh("shell", f"am start -n {VENDING}/com.google.android.finsky.activities.MainActivity", timeout=25)
+        time.sleep(3)
+        xml = ui_xml()
+    if f'package="{VENDING}"' not in xml:
+        warn("Cannot inspect Play Store UI. Open Play Store, tap the profile icon, and retry.")
+        return ""
+
+    opened_profile = False
+    for n in nodes(xml):
+        if ("账号和设置" in n["desc"] or "Account and settings" in n["desc"]
+                or "Tài khoản và chế độ cài đặt" in n["desc"]):
+            tap(n["x"], n["y"])
+            time.sleep(3)
+            opened_profile = True
+            break
     best = ""
     for n in nodes(ui_xml()):
         m = re.search(r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+)", n["desc"] + " " + n["text"])
         if m:
-            best = m.group(1).lower(); break
-    sh("shell", "input keyevent 4")
+            best = m.group(1).lower()
+            break
+    if opened_profile:
+        sh("shell", "input keyevent 4")
+    if not best:
+        warn("Play account is not visible to UI automation; check the Play Store profile manually.")
     return best
 
 
@@ -580,11 +599,27 @@ def switch_play(email) -> bool:
 
 # ---------- Frida ----------
 def launch_app() -> int:
+    """Start Google One and wait for a real PID; report launch failures clearly."""
+    if not sh("shell", f"pm path {PKG}", timeout=15).strip():
+        warn(f"Google One is not installed or enabled ({PKG}). Install/open it from Play Store.")
+        return 0
     sh("shell", f"am force-stop {PKG}")
-    sh("shell", f"monkey -p {PKG} -c android.intent.category.LAUNCHER 1")
-    time.sleep(7)
-    pid = sh("shell", f"pidof {PKG}")
-    return int(pid) if pid.strip().isdigit() else 0
+    try:
+        launch_output = sh("shell", f"monkey -p {PKG} -c android.intent.category.LAUNCHER 1", timeout=30)
+    except subprocess.TimeoutExpired:
+        warn("Google One launch (monkey) timed out; inspect the emulator screen.")
+        launch_output = ""
+    if "No activities found" in launch_output:
+        warn("Google One has no launchable activity on this Android instance.")
+        return 0
+    for seconds in (7, 3, 3, 3):
+        time.sleep(seconds)
+        pid = sh("shell", f"pidof {PKG}").strip()
+        if pid.isdigit():
+            return int(pid)
+    warn("Google One stopped or did not launch after 16 seconds. Open it manually in MuMu.")
+    warn(f"Diagnostics: adb shell pm path {PKG} ; adb shell monkey -p {PKG} -c android.intent.category.LAUNCHER 1")
+    return 0
 
 
 def build_js(plan: str = "auto", list_only: bool = False, stack: bool = False, old_token: str = "", stack_mode=None) -> str:
@@ -748,8 +783,13 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
         ok(f"列表模式：使用设备当前账号 {cur or '未知'}（不校验、不下单）")
     elif no_switch:
         cur = current_play_account()
+        if not cur:
+            warn("Play Store account could not be verified; aborting without checkout.")
+            rec["status"] = "account_unverified"
+            rec["error"] = "Play Store profile email was not readable; check the foreground Play Store UI"
+            return rec
         if cur != email.lower():
-            warn(f"当前 Play 账号是 {cur or '未知'}，不是 {email}，中止")
+            warn(f"当前 Play 账号是 {cur}，不是 {email}，中止")
             rec["status"] = "wrong_account"
             return rec
         ok("Play 账号已确认（手动切换模式）")
