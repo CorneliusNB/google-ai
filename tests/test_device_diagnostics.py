@@ -33,7 +33,7 @@ class DeviceDiagnosticsTests(unittest.TestCase):
         email = [{"desc": "example@example.com", "text": "", "x": 12, "y": 34}]
         called = []
         with patch.object(mod, "ui_xml", side_effect=xml), \
-             patch.object(mod, "nodes", side_effect=[profile, profile, email]), \
+             patch.object(mod, "nodes", side_effect=[profile, email]), \
              patch.object(mod, "tap"), patch.object(mod.time, "sleep"), \
              patch.object(mod, "sh", side_effect=lambda *a, **kw: called.append(a) or ""):
             result = mod.current_play_account()
