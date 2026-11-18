@@ -18,6 +18,6 @@ python setup_env.py
 
 echo.
 echo ------------------------------------------------------------
-echo   Done. If all green, double-click 2_Pro_12个月_第1步.bat
+echo   Done. If all green, double-click 2_Pro_12m_step1.bat
 echo ------------------------------------------------------------
 pause

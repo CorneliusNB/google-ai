@@ -6,10 +6,11 @@ ultra0-report/
 __pycache__/
 .DS_Store
 
-# Sensitive local artifacts
-*.db
-*.sqlite*
+# Playwright runner
+node_modules/
+playwright-report/
+test-results/
+*.log
 .env
 .env.*
-*.pem
-*.key
+*.zip

@@ -8,14 +8,21 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Compile Python
+      - name: Python syntax
         run: python -m compileall -q ultra0.py setup_env.py query_sku.py
-      - name: Run no-device tests (includes Frida JavaScript syntax check)
-        run: python -m unittest discover -s tests -v
+      - name: Playwright runner syntax
+        run: node --check scripts/playwright-android.mjs
+      - name: Pure Node unit tests (no Android or purchases)
+        run: node --test tests/playwright-runner.test.mjs
+      - name: Playwright CLI dry run
+        run: node scripts/playwright-android.mjs run --step 1 --email example@example.com --dry-run

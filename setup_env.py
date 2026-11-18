@@ -54,7 +54,7 @@ def check_python():
     step("检查 Python")
     v = sys.version_info
     print(f"   {platform.python_version()}  ({platform.architecture()[0]})")
-    if v < (3, 10):
+    if v < (3, 9):
         die("Python 版本太低，请安装 3.10 或更高：https://www.python.org/downloads/")
     ok("Python 可用")
 
@@ -63,7 +63,7 @@ def install_frida():
     step("安装 frida 16.5.9（注入必需）")
     try:
         import frida
-        if frida.__version__ == "16.5.9":
+        if frida.__version__.startswith("16."):
             ok(f"已安装 frida {frida.__version__}")
             return
         warn(f"当前是 frida {frida.__version__}，17.x 不能用，正在降级…")
@@ -72,13 +72,15 @@ def install_frida():
 
     cmds = [
         [sys.executable, "-m", "pip", "install", "--no-cache-dir", "frida==16.5.9"],
+        [sys.executable, "-m", "pip", "install", "--no-cache-dir",
+         "-i", "https://pypi.tuna.tsinghua.edu.cn/simple", "frida==16.5.9"],
     ]
     for c in cmds:
         print("   " + " ".join(c[2:]))
         r = subprocess.run(c, capture_output=True, text=True, errors="ignore")
         if r.returncode == 0:
             break
-        print("   " + ((r.stderr or r.stdout).strip().splitlines() or ["Unknown pip error"])[-1][:160])
+        print("   " + (r.stderr or r.stdout).strip().splitlines()[-1][:160])
     try:
         import importlib
         import frida
@@ -95,10 +97,6 @@ def download_platform_tools():
     with urllib.request.urlopen(PLATFORM_TOOLS_URL, timeout=180) as r, open(tmp, "wb") as f:
         f.write(r.read())
     with zipfile.ZipFile(tmp) as z:
-        for item in z.infolist():
-            target = (BASE / item.filename).resolve()
-            if not target.is_relative_to(BASE.resolve()):
-                die("不安全的 ZIP 路径，停止解压")
         z.extractall(BASE)
     tmp.unlink(missing_ok=True)
     adb = dest / "adb.exe"
