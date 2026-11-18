@@ -63,7 +63,7 @@ def install_frida():
     step("安装 frida 16.5.9（注入必需）")
     try:
         import frida
-        if frida.__version__.startswith("16."):
+        if frida.__version__ == "16.5.9":
             ok(f"已安装 frida {frida.__version__}")
             return
         warn(f"当前是 frida {frida.__version__}，17.x 不能用，正在降级…")

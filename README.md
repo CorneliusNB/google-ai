@@ -219,6 +219,31 @@ npm run android:offers
 
 ---
 
+### Frida 17: `exception` while injecting the offer-query agent
+
+The author's embedded JavaScript relies on the Java bridge built into **Frida 16**. Starting with Frida 17, raw Python-injected scripts no longer have that bridge automatically. See [official Frida bridge documentation](https://frida.re/docs/bridges/). The current code requires **Frida 16.5.9**, and now automatically repairs a mismatched Python client and Android server during `--check` or offer queries.
+
+To update your local copy and retry **without starting checkout**, open PowerShell:
+
+```powershell
+cd C:\Users\david\Downloads\google-ai
+git pull --ff-only
+python ultra0.py --check
+python -c "import frida; print(frida.__version__)"
+python ultra0.py --account "current@device" --no-add --force --list --plan pro12
+```
+
+The compatibility check can **install/downgrade the Python `frida` package**, restart Python once, stop an old Frida server on your own emulator, and download the matching server from Frida's official GitHub releases. It does **not** alter the author's BillingClient, offer selection, or checkout code. The separate `setup_env.py` installer now also requires the exact matching 16.5.9 version.
+
+If a Python/Frida error still occurs, the script now prints the exception type/message and captures Frida JavaScript errors, rather than only showing `exception`. The report is in `ultra0-report/`, but **do not share the full JSON**: it may contain offer tokens. Show only the `error` field:
+
+```powershell
+Get-Content .\ultra0-report\current.json -Raw | ConvertFrom-Json | Select-Object -ExpandProperty error
+```
+
+An environment check passing does **not** prove the Google One injection succeeds or that any free trial is available. Keep checkout disabled until the offer listing works and you have verified your Google account and payment terms independently.
+
+---
 ## 7. Repository files
 
 | Path | Purpose |
