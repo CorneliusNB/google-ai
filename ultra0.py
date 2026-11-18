@@ -57,6 +57,7 @@ PRODUCT = "g1.play.20tb"                            # Ultra 5x / 20TB
 OFFER = "eft-12month"                               # 首年免费
 MODULE_REMOTE = "/data/local/tmp/module_521.apk"
 FRIDA_REMOTE = "/data/local/tmp/frida-server"
+FRIDA_REQUIRED = "16.5.9"
 REPORT_DIR = Path("ultra0-report")
 
 ADB_CANDIDATES = [
@@ -166,45 +167,88 @@ def ensure_root():
         sys.exit("❌ 设备没有 root 权限。MuMu：设置里打开「ROOT 权限」并重启；或先手动执行 adb root。")
 
 
-def ensure_frida_server():
-    running = "frida-server" in sh("shell", "ps -A | grep frida-server || true")
-    if running:
-        ok("frida-server 已在运行")
+def ensure_frida_client():
+    """Pin Frida 16 for the original Java bridge-based script."""
+    from importlib.metadata import PackageNotFoundError, version
+    try:
+        installed = version("frida")
+    except PackageNotFoundError:
+        installed = "not installed"
+    if installed == FRIDA_REQUIRED:
         return
-    if not sh("shell", f"ls {FRIDA_REMOTE} 2>/dev/null"):
-        warn("设备上没有 frida-server，尝试用本地 frida 版本自动下载…")
-        try:
-            import frida
-            ver = frida.__version__
-        except Exception:
-            sys.exit("❌ 电脑没装 frida。请先执行：pip3 install frida")
-        abi = sh("shell", "getprop ro.product.cpu.abi").strip() or "arm64-v8a"
+    if os.environ.get("ULTRA0_FRIDA_REPAIR_ATTEMPTED") == "1":
+        raise RuntimeError(f"Host Frida is {installed}; expected {FRIDA_REQUIRED}. "
+                           f"Manual fix: {sys.executable} -m pip install frida=={FRIDA_REQUIRED}")
+    warn(f"Host Frida {installed} is incompatible with the original Java script; installing {FRIDA_REQUIRED}...")
+    try:
+        result = subprocess.run([sys.executable, "-m", "pip", "install", "--disable-pip-version-check",
+                                 "--no-cache-dir", f"frida=={FRIDA_REQUIRED}"],
+                                capture_output=True, text=True, errors="replace", timeout=240)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(f"Unable to install Frida {FRIDA_REQUIRED}: {exc}") from exc
+    if result.returncode:
+        msgs = (result.stderr or result.stdout).strip().splitlines()
+        raise RuntimeError(f"Frida installation failed: {(msgs[-1] if msgs else 'pip failed')[:240]}")
+    note("Frida Python updated; restarting script with the same arguments...")
+    os.environ["ULTRA0_FRIDA_REPAIR_ATTEMPTED"] = "1"
+    os.environ["ULTRA0_FRIDA_RESTART_SERVER"] = "1"
+    os.execv(sys.executable, [sys.executable, *sys.argv])
+
+
+def ensure_frida_server():
+    """Check running Frida version; replace 17.x with the matching 16.5.9 build."""
+    ensure_frida_client()
+    running = sh("shell", "pidof frida-server || true").strip()
+    try:
+        deployed_version = sh("shell", f"{FRIDA_REMOTE} --version 2>/dev/null", timeout=12).strip()
+    except subprocess.TimeoutExpired:
+        deployed_version = ""
+    must_restart = os.environ.pop("ULTRA0_FRIDA_RESTART_SERVER", "") == "1"
+    if running and deployed_version == FRIDA_REQUIRED and not must_restart:
+        ok(f"frida-server {FRIDA_REQUIRED} is running")
+        return
+    if running:
+        warn(f"Restarting frida-server (device version: {deployed_version or 'unknown'})")
+        for pid in running.split():
+            if pid.isdigit():
+                sh("shell", f"kill {pid}")
+        time.sleep(1)
+        remaining = sh("shell", "pidof frida-server || true").strip()
+        if remaining:
+            for pid in remaining.split():
+                if pid.isdigit():
+                    sh("shell", f"su -c 'kill {pid}'")
+            time.sleep(1)
+        if sh("shell", "pidof frida-server || true").strip():
+            raise RuntimeError("Cannot stop old Frida server; restart MuMu and retry")
+    if deployed_version != FRIDA_REQUIRED:
+        abi = sh("shell", "getprop ro.product.cpu.abi").strip()
         arch = {"arm64-v8a": "arm64", "armeabi-v7a": "arm", "armeabi": "arm",
-                "x86_64": "x86_64", "x86": "x86"}.get(abi, "arm64")
-        note(f"设备 ABI={abi} → frida-server-{ver}-android-{arch}")
-        url = (f"https://github.com/frida/frida/releases/download/{ver}/"
-               f"frida-server-{ver}-android-{arch}.xz")
+                "x86_64": "x86_64", "x86": "x86"}.get(abi)
+        if not arch:
+            raise RuntimeError(f"Unsupported device ABI: {abi}")
         import urllib.request, lzma
-        tmp = Path(tempfile.gettempdir()) / "frida-server.xz"
-        note(f"下载 {url}")
-        with urllib.request.urlopen(url, timeout=120) as r, open(tmp, "wb") as f:
-            f.write(r.read())
-        raw = Path(tempfile.gettempdir()) / "frida-server"
-        with lzma.open(tmp, "rb") as fi, open(raw, "wb") as fo:
-            fo.write(fi.read())
-        sh("push", str(raw), FRIDA_REMOTE, timeout=180)
-        sh("shell", f"chmod 755 {FRIDA_REMOTE}")
-    is_root = "uid=0" in sh("shell", "id")
-    if is_root:
+        url = (f"https://github.com/frida/frida/releases/download/{FRIDA_REQUIRED}/"
+               f"frida-server-{FRIDA_REQUIRED}-android-{arch}.xz")
+        archive = Path(tempfile.gettempdir()) / f"frida-server-{FRIDA_REQUIRED}-{arch}.xz"
+        extracted = Path(tempfile.gettempdir()) / f"frida-server-{FRIDA_REQUIRED}-{arch}"
+        note(f"Downloading official matching Frida server: {url}")
+        with urllib.request.urlopen(url, timeout=120) as response, open(archive, "wb") as output:
+            output.write(response.read())
+        with lzma.open(archive, "rb") as source, open(extracted, "wb") as output:
+            output.write(source.read())
+        sh("push", str(extracted), FRIDA_REMOTE, timeout=180, check=True)
+        sh("shell", f"chmod 755 {FRIDA_REMOTE}", check=True)
+    if "uid=0" in sh("shell", "id"):
         sh("shell", f"nohup {FRIDA_REMOTE} -D >/dev/null 2>&1 &", timeout=15)
     else:
         sh("shell", f"su -c 'nohup {FRIDA_REMOTE} -D >/dev/null 2>&1 &'", timeout=15)
     for _ in range(20):
         time.sleep(0.5)
-        if "frida-server" in sh("shell", "ps -A | grep frida-server || true"):
-            ok("frida-server 已启动")
+        if sh("shell", "pidof frida-server || true").strip():
+            ok(f"frida-server {FRIDA_REQUIRED} started")
             return
-    sys.exit("❌ frida-server 启动失败")
+    raise RuntimeError(f"frida-server {FRIDA_REQUIRED} could not start")
 
 
 def read_purchase_token(sku_short: str) -> str:
@@ -578,7 +622,14 @@ def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_
     res = {"offers": [], "launched": None, "purchase": None, "errors": []}
 
     def on_msg(m, _):
+        if m.get("type") == "error":
+            detail = str(m.get("description") or m.get("stack") or "Unknown JavaScript error")
+            res["errors"].append({"ev": "frida_script_error", "message": detail[:400]})
+            warn(f"Frida JavaScript error: {detail[:240]}")
+            return
         p = m.get("payload") or {}
+        if not isinstance(p, dict):
+            return
         ev = p.get("ev")
         if ev == "offer":
             res["offers"].append(p)
@@ -838,7 +889,9 @@ def main():
                           no_switch=a.no_switch, list_only=a.list, stack=a.stack, old_token=a.old_token,
                           stack_mode=a.mode)
         except Exception as e:
-            rec = {"email": email, "status": "exception", "error": str(e)[:200]}
+            warn(f"{type(e).__name__}: {str(e)[:320]}")
+            rec = {"email": email, "status": "exception", "error": str(e)[:320],
+                   "exception_type": type(e).__name__}
         results.append(rec)
         (REPORT_DIR / f"{email.split('@')[0]}.json").write_text(
             json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
