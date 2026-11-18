@@ -1,126 +1,52 @@
-# google-ultra
+# Google One / Google AI Billing 研究脚本
 
-Google One 的 AI Ultra 有个 12 个月免费试用的 offer，任何页面上都看不到，只存在于 Play 结算库（BillingClient）的返回值里。这个脚本把「查 offer → 拉起 Play 收银台 → 确认 0 元 → 开通」串成了一条命令。
+[English README](README.en.md) · [安全说明](SECURITY.md) · [静态测试](tests/test_static.py)
 
-原理是借 Google One 自己的进程调 BillingClient，不需要 Xposed，不需要改 APK。
+> **非 Google 官方项目。** 此项目用于研究 Android Play Billing 查询和结算界面的行为，并非免费获得 Google AI Pro 的保证。查询到某个 offer 不代表账号具备资格；打开结算界面也不代表订阅成功。
 
-## 能拿到什么
+## 功能与限制
 
-拿到的是 **Ultra 5x，20TB，12 个月 $0**，到期前取消就不用付钱。开通后 Play 订阅页会写「即将扣款 2027-11-17 US$99.99/月」，这是试用结束后的价格，不是现在扣。
+- 通过 ADB、Frida 和 Google One 应用进程查询 Android Play Billing 的商品与 offer。
+- 只读查询模式不会打开订阅结算界面。
+- 在结算模式下，脚本只打开并读取结算页面，**不会自动点击订阅**；任何真实购买必须由账号持有人在 Google Play 界面手动审查并确认。
+- 历史版本提到的“12 + 6 + 6 个月”叠加并未在本版本经过真实账号验证，不能保证可用性、优惠长度或后续收费金额。
 
-30TB 那档（20x）也查得到 offer，但 Play 结算时会二次校验，大部分号会弹「您不符合免费试用条件」。这个脚本不会去点它。
+## 环境要求
 
-## 需要什么
+- Python 3.10+，ADB，具备所需权限的 Android 测试设备/模拟器。
+- 测试设备中需安装 Google Play 和 Google One。
+- `frida==16.5.9`（请先检查下载的工具和附带 DEX 模块的可信度）。
+- **不要在文本文件中存放真实密码、TOTP 密钥或支付卡信息。**
 
-一台 root 过的安卓手机，USB 连着电脑。Magisk、KernelSU、APatch 都行，模拟器也行。
-
-电脑上要 Python 3.9 以上，外加两个包：
-
-```bash
-pip3 install frida
-```
-
-adb 用 Android SDK 里的 platform-tools。装好后 `adb devices` 能看到手机就行。没装过的话，Mac 上 `brew install android-platform-tools`，Windows 去下 platform-tools 压缩包，解压后把目录加进 PATH。
-
-手机上要开「开发者选项 → USB 调试」，插上后在弹窗里点允许。
-
-## 用法
-
-先自检一遍环境，它会检查设备、root、frida-server、推送计费模块，还会顺手关掉会拦截 Play 网络的代理和 Clash：
+## 安全检查
 
 ```bash
-python3 ultra0.py --check
+python -m pip install -r requirements.txt
+python ultra0.py --check
+python ultra0.py --account current@device --no-add --list --plan pro12
+python -m unittest discover -s tests -v
 ```
 
-全绿就可以跑号了。
+`--check` 会尝试启动检测所需的 Android/Frida 环境，不是完全无副作用的操作。默认不会清除代理或终止网络应用；只有指定 `--reset-network` 才允许更改网络设置。
 
-账号写成一个文本文件，一行一个，字段用四个短横线隔开：
+结算操作必须验证当前 Google Play 账号；`--force` 只允许用于只读 `--list`。任何真实付款及续费条款均以 Google Play 实际页面为准。
 
-```
-邮箱----密码----辅助邮箱----2FA密钥----卡号----有效期----CVC----持卡人----邮编
-```
+## 文件
 
-后面几项留空也行。刚买的新号一般没有 2FA，那就留空：
+- `ultra0.py`: ADB/Frida 主脚本、offer 查询与结算界面观察。
+- `setup_env.py`: Windows 环境安装及检测。
+- `query_sku.py`: 商品查询辅助脚本。
+- `0_环境自检.bat`, `1_查看offer列表.bat`: 环境和只读查询。
+- `2_Pro_*.bat` 至 `5_Pro_*.bat`: 保留的实验性步骤，不保证优惠资格或时间叠加。
+- `README.en.md`: 完整英文说明。
+- `SECURITY.md`: 安全边界、已知限制及报告建议。
+- `tests/test_static.py`: 不连接设备、无需真实账号的自动化静态测试。
 
-```
-abc123@gmail.com----mypassword----
-```
+## 注意事项
 
-带卡的话：
+- 仅使用自己拥有或获得授权的设备和账号。请遵守 Google Play 服务和促销条款。
+- 已打开结算窗口的状态为 `checkout_opened_manual_verification_required`，**不是成功购买**。
+- 任何订阅结果都应当在 Google Play 的正式订阅页面核对实际到期/续订日期。
+- 本项目内嵌的 DEX 为预编译代码，尚未完成独立安全审计；不要在主力设备或主要 Google 账号上直接执行。
 
-```
-abc123@gmail.com----mypassword--------4242424242424242----10/29----326----ZHANG SAN----97201
-```
-
-地址不填会默认用 `123 Main St, Portland, OR 97201`，俄勒冈免消费税。
-
-跑：
-
-```bash
-python3 ultra0.py accounts.txt
-```
-
-单个号也可以：
-
-```bash
-python3 ultra0.py --account "abc@gmail.com:密码:2FA密钥"
-```
-
-想看结果，开订阅页确认一下：
-
-```
-Play 商店 → 头像 → 付款和订阅 → 订阅
-```
-
-## 它内部干了什么
-
-1. 把账号加到手机（没有就加，有就跳过）
-2. 切 Play 账号。切完一定从头像面板读回来核对，对不上直接退出，不会跑到别的号上
-3. 启动 Google One，用 Frida 挂进去，`DexClassLoader` 加载计费模块
-4. `queryProductDetailsAsync` 查 `g1.play.20tb`，拿回 5 个 offer
-5. 挑免费期最长的那个（`eft-12month`，P1Y），在主线程调 `launchBillingFlow`
-6. 盯着收银台。看到价格是 0 或者「免费试用 12 个月」才点订阅；看到「不符合免费试用条件」就关掉，绝不点
-7. Play 有时会要求重新输密码，脚本自己填
-8. 打开订阅页核对，结果写进 `ultra0-report/`
-
-## 失败的时候是什么情况
-
-**账号不符合资格。** Play 会说「您不符合免费试用条件，尽管如此，您仍能订阅」。一个号基本只有一次机会：试用一旦发起过，哪怕没确认，offer 也会消失。所以别拿主力号试。
-
-**没有付款方式。** 订阅必须有卡。Play 的加卡页是 WebView，adb 填不进去，脚本会停下来提示你在手机上填完再按回车。每台设备手动绑一次，之后所有号共用这张卡。
-
-**Play 账号没切过来。** 脚本会打印当前实际登录的是哪个号，然后退出。这时手动在 Play 里切一下，加上 `--no-switch` 重跑，让它只做校验不再尝试切换：
-
-```bash
-python3 ultra0.py accounts.txt --no-switch
-```
-
-**收银台没弹出来。** 重跑一次。连续两次都不弹，检查一下设备的网络：`settings get global http_proxy`，不是 `null` 就清掉；Clash 这类 VPN 会劫持 DNS，也会让 Play 连不上。
-
-## 一些参数
-
-```bash
---plan 5x      # 只开 20TB
---plan 20x     # 只查 30TB（多数号拿不到试用）
---plan auto    # 默认，两档都查，挑免费期最长的
---no-add       # 账号已经在手机上，跳过加号
---no-switch    # 不自动切账号，只校验当前账号
-```
-
-## 几个说明
-
-试完之后记得去 Play 里取消订阅，不然到期会扣 $99.99。
-
-脚本只在本地跑，账号密码和卡号不联网，也不上传任何地方。报告文件在 `ultra0-report/`，里面有 offer 明细和每步结果。
-
-这段代码只对 Play 结算流程里「客户端能拿到试用 offer」这件事做了利用，没有改任何服务端数据。
-
-## 交流
-
-有问题进群问。进不来的话加我微信，备注「Ultra」，我拉你进去。
-
-<img src="assets/wechat-group.jpg" width="320" alt="交流群二维码">
-
-<br>
-
-<img src="assets/wechat-admin.jpg" width="320" alt="微信二维码">
+详细英文说明请阅读 [README.en.md](README.en.md)。

@@ -9,6 +9,6 @@ echo   Run this ONLY after step 1 succeeded
 echo   Uses subscription upgrade (old purchaseToken + CHARGE_FULL_PRICE) so the
 echo   remaining trial is prorated and deferred instead of replaced.
 echo ============================================
-python ultra0.py --account "current@device" --no-add --force --stack --plan pro6
+python ultra0.py --account "current@device" --no-add --no-switch --stack --plan pro6
 echo.
 pause

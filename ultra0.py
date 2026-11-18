@@ -15,8 +15,8 @@ accounts.txt 每行一个号：
     - 手机上已登录目标 Google 账号（脚本也能自动加）
     - 电脑装了 Python3 + frida（pip install frida）
 
-脚本会自动：推 frida-server、推 BillingClient 模块、查 offer、用 eft-12month 拉起收银台，
-只有在确认金额为 0 时才点「订阅」。
+本版本仅打开结算页面以供人工核对，不会自动点击「订阅」。
+报价、资格、优惠期与续费日期以 Google Play 实际显示为准。
 """
 import argparse, base64, hashlib, hmac, json, os, re, select, struct, subprocess, sys, threading, time
 from pathlib import Path
@@ -34,20 +34,24 @@ def wait_human(msg: str, timeout: int = 600) -> bool:
     print(f"\n⏸  需要你操作：{msg}")
     print("   完成后按【回车】继续（网页版点「我已完成，继续」）", flush=True)
     HUMAN_EVENT.clear()
-    end = time.time() + timeout
-    while time.time() < end:
-        if HUMAN_EVENT.is_set():
-            break
-        try:
-            r, _, _ = select.select([sys.stdin], [], [], 0.5)
-            if r:
-                sys.stdin.readline()
+    end = time.monotonic() + timeout
+    completed = False
+    try:
+        while time.monotonic() < end:
+            if HUMAN_EVENT.is_set():
+                completed = True
                 break
-        except Exception:
-            time.sleep(0.5)
-    WAITING["on"] = False
-    print("▶  继续执行", flush=True)
-    return True
+            try:
+                r, _, _ = select.select([sys.stdin], [], [], 0.5)
+                if r and sys.stdin.readline():
+                    completed = True
+                    break
+            except (OSError, ValueError):
+                time.sleep(0.5)
+    finally:
+        WAITING["on"] = False
+    print("▶  继续执行" if completed else "⚠️  人工确认超时", flush=True)
+    return completed
 
 # ---------- 常量 ----------
 PKG = "com.google.android.apps.subscriptions.red"   # Google One
@@ -81,8 +85,8 @@ def find_adb() -> str:
             continue
         if c in ("adb", "adb.exe") or Path(c).exists():
             try:
-                subprocess.run([c, "version"], capture_output=True, timeout=5)
-                return c
+                if subprocess.run([c, "version"], capture_output=True, timeout=5).returncode == 0:
+                    return c
             except Exception:
                 continue
     sys.exit("❌ 找不到 adb，请安装 Android platform-tools 并加入 PATH")
@@ -121,6 +125,11 @@ def pick_device():
     global SERIAL
     out = sh("devices")
     lines = [l for l in out.splitlines()[1:] if "\tdevice" in l]
+    if SERIAL:
+        if SERIAL not in {l.split("\t")[0] for l in lines}:
+            sys.exit(f"❌ 指定设备 {SERIAL} 未连接或未授权")
+        ok(f"设备已连接：{SERIAL}")
+        return
     if not lines:
         # 模拟器：自动尝试常见端口
         for port in ("16384", "7555", "16416", "62001", "21503"):
@@ -207,64 +216,63 @@ def ensure_frida_server():
     sys.exit("❌ frida-server 启动失败")
 
 
-def read_purchase_token(sku_short: str) -> str:
-    """从 Play 商店的 library.db 里读出该 SKU 当前的 purchaseToken（叠加必需）。"""
-    import tempfile, sqlite3, json as _json
-    remote = "/data/local/tmp/lib_read.db"
-    try:
-        sh("shell", f"cp /data/data/{VENDING}/databases/library.db {remote} 2>/dev/null; chmod 666 {remote}", timeout=30)
-    except Exception:
-        pass
-    tmp = Path(tempfile.gettempdir()) / "lib_read.db"
-    try:
-        if tmp.exists():
-            tmp.unlink()
-        sh("pull", remote, str(tmp), timeout=60)
-    except Exception as e:
-        warn(f"拉取 library.db 失败：{e}")
+def read_purchase_token(sku_short: str, expected_account: str) -> str:
+    """Read an active token only for the verified Play account.
+
+    The database is streamed over adb exec-out; no world-readable remote
+    database copy is created on the Android device.
+    """
+    import sqlite3
+    if not expected_account or "@" not in expected_account:
+        warn("无法确认 Play 账号，不读取订阅令牌")
         return ""
-    if not tmp.exists():
-        return ""
-    tok = ""
+    remote_db = f"/data/data/{VENDING}/databases/library.db"
     try:
-        con = sqlite3.connect(str(tmp))
-        cur = con.cursor()
-        rows = cur.execute(
-            "select account, subs_valid_until_time, inapp_purchase_data "
-            "from ownership where doc_id like ?",
-            (f"%{sku_short}%",),
-        ).fetchall()
+        is_root = "uid=0" in sh("shell", "id", timeout=10)
+        args = ("exec-out", "cat", remote_db) if is_root else ("exec-out", "su", "-c", f"cat {remote_db}")
+        db = sh(*args, binary=True, timeout=60, check=True)
+        if not db.startswith(b"SQLite format 3\x00"):
+            raise ValueError("invalid SQLite database response")
+    except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
+        warn(f"读取 Play 订阅数据库失败：{type(exc).__name__}")
+        return ""
+
+    local = None
+    try:
+        with tempfile.NamedTemporaryFile(prefix="play_subs_", suffix=".db", delete=False) as f:
+            local = Path(f.name)
+            os.chmod(local, 0o600)
+            f.write(db)
+        with sqlite3.connect(f"file:{local}?mode=ro", uri=True) as con:
+            rows = con.execute(
+                "SELECT account, subs_valid_until_time, inapp_purchase_data "
+                "FROM ownership WHERE doc_id LIKE ?", (f"%{sku_short}%",)
+            ).fetchall()
+        candidates = []
         now_ms = int(time.time() * 1000)
-        picked = None
         for account, valid, data in rows:
-            if not data:
+            if not account or str(account).strip().lower() != expected_account.lower():
                 continue
             try:
-                j = _json.loads(data)
-            except Exception:
+                expiry = int(valid or 0)
+                if expiry <= now_ms:
+                    continue
+                token = json.loads(data or "{}").get("purchaseToken")
+                if token:
+                    candidates.append((expiry, token))
+            except (ValueError, TypeError, json.JSONDecodeError):
                 continue
-            tk = j.get("purchaseToken")
-            if not tk:
-                continue
-            try:
-                alive = int(valid) > now_ms
-            except Exception:
-                alive = False
-            # 优先取「未过期」的；多个账号都活跃时取到期时间最晚的
-            if picked is None or (alive and not picked[2]) or (alive == picked[2] and int(valid or 0) > picked[3]):
-                picked = (tk, account, alive, int(valid or 0))
-        if picked:
-            tok = picked[0]
-            note(f"purchaseToken 来源账号：{picked[1]}（{'有效' if picked[2] else '已过期'}）")
-        con.close()
-    except Exception as e:
-        warn(f"读取 library.db 失败：{e}")
+        if not candidates:
+            warn("未找到与当前 Play 账号匹配的有效订阅")
+            return ""
+        ok("已找到与 Play 账号匹配的有效订阅令牌")
+        return max(candidates)[1]
+    except (OSError, sqlite3.Error) as exc:
+        warn(f"解析 Play 订阅数据库失败：{type(exc).__name__}")
+        return ""
     finally:
-        try:
-            tmp.unlink()
-        except Exception:
-            pass
-    return tok
+        if local is not None:
+            local.unlink(missing_ok=True)
 
 
 def ensure_vending():
@@ -347,7 +355,9 @@ def tap_text(*needles, exact=False) -> bool:
 
 
 def type_text(s: str):
-    sh("shell", f"input text '{s.replace(' ', '%s')}'")
+    import shlex
+    # Quote for the Android shell; never interpolate user text into raw quotes.
+    sh("shell", "input text " + shlex.quote(s.replace(" ", "%s")))
 
 
 def find_edit():
@@ -429,11 +439,12 @@ def add_account(email, password, totp_secret="") -> bool:
         if ("两步验证" in text or "2-Step" in text or "输入验证码" in text):
             if totp_secret and find_edit():
                 code = totp(totp_secret)
-                note(f"2FA 验证码：{code}")
+                note("请输入设备上的 2FA 验证码（不会记录到日志）")
                 tap(*find_edit()); type_text(code); time.sleep(1)
                 tap_text("下一步", "Next"); time.sleep(8)
                 continue
-            wait_human("手机上出现两步验证，请在手机上输入验证码完成", 300)
+            if not wait_human("手机上出现两步验证，请在手机上输入验证码完成", 300):
+                return False
             continue
 
         if tap_text("以后再说", "Not now"):
@@ -444,12 +455,14 @@ def add_account(email, password, totp_secret="") -> bool:
             time.sleep(2); continue
 
         if any(k in text for k in ("证明您不是自动程序", "验证身份", "请输入电话号码", "无法验证", "确认是您本人")):
-            wait_human("手机上出现人机/身份验证，请在手机上手动完成", 300)
+            if not wait_human("手机上出现人机/身份验证，请在手机上手动完成", 300):
+                return False
             continue
 
         unknown_rounds += 1
         if unknown_rounds >= 8:
-            wait_human("当前界面脚本不认识，请手动完成加号，完成后继续", 300)
+            if not wait_human("当前界面脚本不认识，请手动完成加号，完成后继续", 300):
+                return False
             unknown_rounds = 0
         time.sleep(2)
 
@@ -576,86 +589,72 @@ def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_
     dev = frida.get_usb_device(timeout=10)
     sess = dev.attach(pid)
     res = {"offers": [], "launched": None, "purchase": None, "errors": []}
+    done = threading.Event()
 
     def on_msg(m, _):
+        if m.get("type") == "error":
+            res["errors"].append({"ev": "frida_error", "message": m.get("description", "")[:200]})
+            done.set()
+            return
         p = m.get("payload") or {}
+        if not isinstance(p, dict):
+            return
         ev = p.get("ev")
         if ev == "offer":
-            res["offers"].append(p)
-            note(f"offer {p.get('id')} → {p.get('micros')} ({p.get('p0','')})")
-            note(f"    token={p.get('token','')}")
+            # Offer tokens are credentials: keep them in memory, never print.
+            res["offers"].append({k: v for k, v in p.items() if k != "token"})
+            note(f"offer {p.get('id')} → {p.get('micros')} ({p.get('period','')})")
         elif ev == "launched":
             res["launched"] = p
-            ok(f"已拉起收银台：{p}")
+            ok(f"已打开收银台：code={p.get('code')}")
         elif ev == "purchase_cb":
             res["purchase"] = p
         elif ev and ("err" in ev or ev.startswith("no_")):
             res["errors"].append(p)
+        if ev in ("launched", "no_trial", "no_offers", "no_activity", "list_only", "launch_err", "boot_err", "query_err", "frida_error"):
+            done.set()
 
-    sc = sess.create_script(build_js(plan, list_only, stack, old_token, stack_mode))
-    sc.on("message", on_msg)
-    sc.load()
-    time.sleep(wait)
+    try:
+        sc = sess.create_script(build_js(plan, list_only, stack, old_token, stack_mode))
+        sc.on("message", on_msg)
+        sc.load()
+        if not done.wait(wait):
+            res["errors"].append({"ev": "timeout", "seconds": wait})
+    finally:
+        sess.detach()
     return res
 
 
 def handle_verify(password="") -> bool:
-    """买完可能要求重新输密码；顺手关掉 Play 积分提示。"""
-    changed = False
-    for _ in range(12):
-        blob = " ".join(n["text"] for n in nodes(ui_xml()) if n["text"])
-        if "以后再说" in blob or "Play 积分" in blob:
-            tap_text("以后再说", "Not now"); time.sleep(2); changed = True; continue
-        if ("验证" in blob or "Verify" in blob) and password:
-            es = [n for n in nodes(ui_xml()) if "EditText" in n["cls"]]
-            if es:
-                tap(es[0]["x"], es[0]["y"]); time.sleep(0.8)
-                slow_type(password, 0.1); time.sleep(0.8)
-                tap_text("验证", "Verify"); time.sleep(6); changed = True; continue
-        break
-    return changed
+    """Do not auto-type passwords on an untrusted billing UI."""
+    warn("如需验证密码，请在设备上手动完成；脚本不会输入密码")
+    return False
 
 
-def confirm_zero(wait=40, password="") -> dict:
-    step("检查收银台金额（只在 0 元时确认）")
-    out = {"price": None, "confirmed": False, "ineligible": False, "text": ""}
-    for _ in range(wait // 2):
-        xml = ui_xml()
-        text = " ".join(n["text"] for n in nodes(xml) if n["text"])
+def confirm_zero(wait=12, password="") -> dict:
+    """Read the checkout text without authorizing a payment.
+
+    A zero charge today does not imply a free renewal or a valid trial.
+    The user must inspect all terms and approve or cancel on the device.
+    """
+    step("读取结算页面（不会自动点击订阅）")
+    out = {"price": None, "confirmed": False, "ineligible": False,
+           "manual_review_required": True, "text": ""}
+    for _ in range(max(1, wait // 2)):
+        text = " ".join(n["text"] for n in nodes(ui_xml()) if n["text"])
         if "不符合免费试用条件" in text or "not eligible" in text.lower():
-            warn("Play 提示：该账号不符合免费试用条件")
-            if tap_text("知道了", "OK", "Got it"):
-                time.sleep(2)
             out["ineligible"] = True
+            warn("Play 表示该账号不符合优惠条件，未做任何支付操作")
             return out
-        if ("订阅" in text or "Subscribe" in text) and ("Ultra" in text or "AI" in text):
-            out["text"] = text[:300]
-            m = re.search(r"(US\$|HK\$|NT\$|\$|€|£)\s?([\d.,]+)", text)
+        if "订阅" in text or "Subscribe" in text or "JP¥" in text or "US$" in text:
+            out["text"] = text[:500]
+            m = re.search(r"(US\$|HK\$|NT\$|JP¥|¥|₫|\$|€|£)\s?([\d.,]+)", text)
             if m:
                 out["price"] = m.group(0)
-                try:
-                    if float(m.group(2).replace(",", "")) == 0:
-                        tap_text("订阅", "Subscribe")
-                        out["confirmed"] = True
-                        ok("已确认 0 元订阅")
-                        return out
-                except Exception:
-                    pass
-                warn(f"当前金额 {m.group(0)}，不是 0 元，不点确认")
-                return out
-            if ("不符合免费试用条件" in text) or ("not eligible" in text.lower()):
-                out["ineligible"] = True
-                warn("Play：该账号不符合免费试用条件，不点确认")
-                tap_text("关闭", "取消", "Close"); return out
-            if (re.search(r"(US\$|HK\$|NT\$|\$)\s?0(\.00)?\b", text)
-                    or "US$0/月" in text or "US$0.00" in text
-                    or re.search(r"免费试用\s*\d+\s*(个月|年|mo|month)", text)):
-                tap_text("订阅", "Subscribe")
-                out["confirmed"] = True
-                ok("已确认免费试用")
-                return out
+            warn("请手动检查今日费用、续订价格、日期和优惠资格；脚本不会确认支付")
+            return out
         time.sleep(2)
-    warn("没有检测到收银台（可能这个号已经订阅过）")
+    warn("未识别结算页面；未执行任何支付操作")
     return out
 
 
@@ -686,12 +685,15 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
             rec["status"] = "add_account_error"
             return rec
     if card:
-        try:
-            add_card(card)
-        except Exception as e:
-            warn(f"绑卡失败：{e}")
+        rec["status"] = "payment_data_not_accepted"
+        warn("拒绝从明文账号文件自动输入银行卡数据；请仅通过 Google Play 官方界面手动添加付款方式")
+        return rec
     if globals().get("SKIP_ACCOUNT_CHECK"):
-        ok("已跳过 Play 账号校验（--force）")
+        if not list_only:
+            rec["status"] = "account_check_required"
+            warn("支付流程禁止 --force 跳过账号检查")
+            return rec
+        note("只读模式跳过 Play 账号校验")
     elif list_only:
         cur = current_play_account()
         ok(f"列表模式：使用设备当前账号 {cur or '未知'}（不校验、不下单）")
@@ -705,13 +707,15 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
     elif not switch_play(email):
         rec["status"] = "play_account_switch_failed"
         return rec
-    if stack and not old_token:
+    if stack and list_only:
+        note("只读模式不会执行订阅叠加")
+    if stack and not list_only and not old_token:
         note("正在读取当前订阅的 purchaseToken…")
-        old_token = read_purchase_token("subs_variant")
-        if old_token:
-            ok(f"已读到 purchaseToken（{old_token[:16]}…），将用订阅升级模式叠加")
-        else:
-            warn("没读到 purchaseToken，将退回 queryPurchases 方式（可能拿不到）")
+        old_token = read_purchase_token("subs_variant", email)
+        if not old_token:
+            rec["status"] = "matching_active_subscription_not_found"
+            warn("无法验证当前账号有效订阅；为防止错误交易，中止叠加")
+            return rec
 
     pid = launch_app()
     if not pid:
@@ -720,25 +724,26 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
     fr = run_trial(pid, plan=plan, list_only=list_only, stack=stack, old_token=old_token, stack_mode=stack_mode)
     rec.update(fr)
     if list_only:
-        rec["status"] = "listed"
+        rec["status"] = "listed" if not rec["errors"] else "list_incomplete"
         return rec
     if fr["launched"] and fr["launched"].get("code") == 0:
-        rec["sheet"] = confirm_zero(password=password)
-        rec["subscription_page"] = verify()
-        rec["status"] = "subscribed" if "Ultra" in rec["subscription_page"] else "launched"
+        rec["sheet"] = confirm_zero()
+        rec["status"] = ("offer_ineligible" if rec["sheet"]["ineligible"]
+                         else "checkout_opened_manual_verification_required")
     else:
         rec["status"] = "launch_failed"
     return rec
 
 
 # ---------- 入口 ----------
-def do_check():
+def do_check(reset_network=False):
     global ADB
     ADB = find_adb()
     ok(f"adb：{ADB}")
     pick_device()
     ensure_root()
-    ensure_network()
+    if reset_network:
+        ensure_network()
     ensure_frida_server()
     ensure_module_apk()
     ensure_vending()
@@ -785,7 +790,8 @@ def main():
     ap.add_argument("--account", help="单号：email:password:totp")
     ap.add_argument("--check", action="store_true", help="只做环境自检")
     ap.add_argument("--list", action="store_true", help="只列出 offer 和 token，不拉起收银台（零风险）")
-    ap.add_argument("--force", action="store_true", help="跳过 Play 账号校验（读不到账号时用）")
+    ap.add_argument("--force", action="store_true", help="仅在 --list 模式跳过 Play 账号校验；支付流程禁止")
+    ap.add_argument("--reset-network", action="store_true", help="明确允许清除安卓代理并停止 Clash")
     ap.add_argument("--mode", type=int, default=None,
                     help="替换模式：1=TIME_PRORATION 2=CHARGE_PRORATED_PRICE 3=WITHOUT_PRORATION 4=DEFERRED 5=CHARGE_FULL_PRICE")
     ap.add_argument("--old-token", default="",
@@ -800,16 +806,20 @@ def main():
                     help="auto=两档都查挑最长；5x=Ultra 20TB；20x=Ultra 30TB")
     a = ap.parse_args()
 
+    if a.force and not a.list:
+        ap.error("--force is allowed only with --list; checkout requires account verification")
+    if a.old_token and not a.stack:
+        ap.error("--old-token requires --stack")
     ADB = find_adb()
     globals()["SKIP_ACCOUNT_CHECK"] = bool(a.force)
+    SERIAL = a.serial
     if a.check:
-        return do_check()
+        return do_check(reset_network=a.reset_network)
 
     pick_device()
-    if a.serial:
-        SERIAL = a.serial
     ensure_root()
-    ensure_network()
+    if a.reset_network:
+        ensure_network()
     ensure_frida_server()
     ensure_module_apk()
     ensure_vending()   # Play 商店必须在跑，否则计费查询永远不回调
@@ -820,7 +830,14 @@ def main():
         a.account = "current@device"
     if a.account:
         parts = a.account.split(":")
-        rows = [[parts[0], parts[1] if len(parts) > 1 else "", "", parts[2] if len(parts) > 2 else ""]]
+        email = parts[0]
+        if email == "current@device" and not a.list:
+            email = current_play_account()
+            if not email:
+                warn("无法确定当前 Play 账号；请手动打开 Play 商店确认账号后重试")
+                return 1
+            a.no_switch = True
+        rows = [[email, parts[1] if len(parts) > 1 else "", "", parts[2] if len(parts) > 2 else ""]]
     elif a.accounts:
         rows = parse_accounts(Path(a.accounts))
     else:
@@ -840,7 +857,8 @@ def main():
         except Exception as e:
             rec = {"email": email, "status": "exception", "error": str(e)[:200]}
         results.append(rec)
-        (REPORT_DIR / f"{email.split('@')[0]}.json").write_text(
+        safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", email)[:100].strip("._") or "account"
+        (REPORT_DIR / f"{safe_name}.json").write_text(
             json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"   结果：{rec.get('status')}")
 
@@ -850,7 +868,8 @@ def main():
     for r in results:
         print(f"  {r['email']:<42} {r.get('status')}")
     print(f"\n明细已保存到 {REPORT_DIR.resolve()}")
-    return 0
+    successful = {"listed", "checkout_opened_manual_verification_required"}
+    return 0 if all(r.get("status") in successful for r in results) else 1
 
 
 entry = main
@@ -978,16 +997,16 @@ function launchWithStack(pd, offer){
       try{
         var list=Java.cast(purchases, Java.use("java.util.List"));
         S({ev:"purchases", n:list.size(), code:String(br.getResponseCode())});
-        if(list.size()===0){ S({ev:"no_purchase"}); launch(pd, offer); return; }
+        if(list.size()===0){ S({ev:"no_purchase"}); return; }
         var pu=Java.cast(list.get(0), Java.use("com.android.billingclient.api.Purchase"));
         var tok=String(pu.getPurchaseToken());
         S({ev:"old_purchase", head:tok.slice(0,16), products:String(pu.getProducts())});
         launch(pd, offer, tok);
-      }catch(e){ S({ev:"stack_query_err", m:String(e).slice(0,200)}); launch(pd, offer); }
+      }catch(e){ S({ev:"stack_query_err", m:String(e).slice(0,200)}); }
     }}});
   var qp=QP.newBuilder().setProductType("subs").build();
   clientRef.queryPurchasesAsync(qp, cls.$new());
- }catch(e){ S({ev:"stack_outer_err", m:String(e).slice(0,200)}); launch(pd, offer); }
+ }catch(e){ S({ev:"stack_outer_err", m:String(e).slice(0,200)}); }
 }
 
 function launch(pd, offer, oldTok){
@@ -1013,10 +1032,11 @@ function launch(pd, offer, oldTok){
         catch(e2){ S({ev:"mode_err", m:String(e2).slice(0,120)}); }
       }
       S({ev:"mode_applied", mode:md, ok:mode_set});
+      if(!mode_set){ S({ev:"mode_err", m:"replacement mode unavailable; aborting checkout"}); return; }
       var sup=sb.setOldPurchaseToken(String(oldTok)).build();
       b=b.setSubscriptionUpdateParams(sup);
       S({ev:"stack_mode", mode:md, old: String(oldTok).slice(0,16)});
-    }catch(e){ S({ev:"stack_param_err", m:String(e).slice(0,160)}); }
+    }catch(e){ S({ev:"stack_param_err", m:String(e).slice(0,160)}); return; }
   }
   var params=b.build();
   var act=getActivity();

@@ -5,3 +5,11 @@ ultra0-report/
 *.png
 __pycache__/
 .DS_Store
+
+# Sensitive local artifacts
+*.db
+*.sqlite*
+.env
+.env.*
+*.pem
+*.key

@@ -8,6 +8,6 @@ echo   Google AI Pro 5TB - 12 months free (step 1)
 echo   Confirm the sheet says: 12-month free trial
 echo   DO NOT confirm if it shows 1 month or a price
 echo ============================================
-python ultra0.py --account "current@device" --no-add --force --plan pro12
+python ultra0.py --account "current@device" --no-add --no-switch --plan pro12
 echo.
 pause
