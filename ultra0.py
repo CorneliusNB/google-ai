@@ -668,8 +668,8 @@ def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_
         ev = p.get("ev")
         if ev == "offer":
             res["offers"].append(p)
-            note(f"offer {p.get('id')} → {p.get('micros')} ({p.get('p0','')})")
-            note(f"    token={p.get('token','')}")
+            note(f"offer {p.get('id')} → {p.get('micros')} ({p.get('period','')})")
+            # Offer tokens are private checkout inputs; do not print them in terminal.
         elif ev == "launched":
             res["launched"] = p
             ok(f"已拉起收银台：{p}")
@@ -683,6 +683,34 @@ def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_
     sc.load()
     time.sleep(wait)
     return res
+
+
+def diagnose_launch_failure(fr: dict) -> tuple:
+    """Explain why billing UI was not opened, without retrying purchases."""
+    events = fr.get("errors") or []
+    ev_names = {e.get("ev") for e in events if isinstance(e, dict)}
+    if "choose_err" in ev_names:
+        return ("activity_lookup_failed",
+                "Frida Java.choose could not enumerate Android Activity instances. "
+                "Known ART/libart.so compatibility issue: inspect the choose_err message "
+                "and Android version; no checkout was confirmed.")
+    if "no_activity" in ev_names:
+        return ("no_activity",
+                "Google One had no usable Android Activity; reopen the app in MuMu.")
+    for event in events:
+        if isinstance(event, dict) and event.get("ev") in (
+                "launch_err", "launch_outer_err", "mode_err", "frida_script_error"):
+            message = str(event.get("m") or event.get("message") or event["ev"])[:240]
+            return ("billing_launch_error", message)
+    result = fr.get("launched")
+    if isinstance(result, dict):
+        code = result.get("code")
+        message = str(result.get("msg") or "")[:180]
+        return ("billing_flow_error",
+                f"BillingClient launchBillingFlow returned code={code}; message={message}.")
+    return ("launch_failed",
+            "No successful launchBillingFlow response was observed. "
+            "Inspect the report's errors field; do not infer subscription success.")
 
 
 def handle_verify(password="") -> bool:
@@ -818,7 +846,8 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
         rec["subscription_page"] = verify()
         rec["status"] = "subscribed" if "Ultra" in rec["subscription_page"] else "launched"
     else:
-        rec["status"] = "launch_failed"
+        rec["status"], rec["error"] = diagnose_launch_failure(fr)
+        warn(f"Checkout not opened: {rec['status']}: {rec['error']}")
     return rec
 
 

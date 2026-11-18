@@ -278,6 +278,26 @@ Get-Content .\ultra0-report\current.json -Raw | ConvertFrom-Json | Select-Object
 An environment check passing does **not** prove the Google One injection succeeds or that any free trial is available. Keep checkout disabled until the offer listing works and you have verified your Google account and payment terms independently.
 
 ---
+### `activity_lookup_failed` / `choose_err`: missing `EnsurePluginLoaded` in `libart.so`
+
+If an offer is successfully listed but checkout returns `launch_failed` with an error like `choose_err: Error: libart.so: unable to find export '_ZN3art7Runtime18EnsurePluginLoaded...'`, the failing operation is the **Frida `Java.choose()` enumeration of Android Activity objects**. The original script's `getActivity()` calls `Java.choose('android.app.Activity', ...)` and cannot proceed without a valid foreground Activity. This is an **Android Runtime / Frida Java-bridge compatibility problem**, not proof of account ineligibility, wrong root configuration, or a completed subscription. A similar error was reported upstream in [frida/frida#2851](https://github.com/frida/frida/issues/2851).
+
+The program now reports the distinct status `activity_lookup_failed` and a readable description, instead of only `launch_failed`. It **does not automatically retry checkout, bypass Play eligibility, or change BillingClient behavior**. Frida 16.5.9 was required to solve the previous Python bridge mismatch, but may still have incompatibilities with the emulator's `libart.so`.
+
+Inspect the saved errors without printing offer tokens:
+
+```powershell
+Get-Content .\ultra0-report\eplusdotdev.json -Raw | ConvertFrom-Json | Select-Object status, error, errors
+adb -s emulator-5554 shell getprop ro.build.version.release
+adb -s emulator-5554 shell getprop ro.build.version.sdk
+adb -s emulator-5554 shell getprop ro.product.cpu.abi
+```
+
+To confirm whether a subscription exists, check the Google Play Store's **Payments & subscriptions → Subscriptions** screen. Do not repeat live checkout or attempt to stack promotional periods while account eligibility, charges, and renewal terms are uncertain.
+
+**Privacy:** The offer tokens are no longer printed to the terminal; report JSON files may still include tokens and should not be shared unredacted or committed.
+
+---
 ## 7. Repository files
 
 | Path | Purpose |

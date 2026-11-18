@@ -24,6 +24,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_frida_compat.py' -v
       - name: Device/account diagnostic unit tests (no Android or purchases)
         run: python -m unittest discover -s tests -p 'test_device_diagnostics.py' -v
+      - name: Billing launch diagnostics tests (no Android/purchases)
+        run: python -m unittest discover -s tests -p 'test_launch_diagnostics.py' -v
       - name: Playwright runner syntax
         run: node --check scripts/playwright-android.mjs
       - name: Pure Node unit tests (no Android or purchases)
