@@ -298,6 +298,30 @@ To confirm whether a subscription exists, check the Google Play Store's **Paymen
 **Privacy:** The offer tokens are no longer printed to the terminal; report JSON files may still include tokens and should not be shared unredacted or committed.
 
 ---
+### Android 15 / API 35 / x86_64: read-only ActivityThread probe
+
+On some Android 15 (API 35) MuMu builds, Frida 16.5.9's `Java.choose()` fails with a `libart.so` symbol lookup error (`EnsurePluginLoaded`). The earlier `activity_lookup_failed` status means the checkout **did not open**. It is separate from account verification and successful offer listing.
+
+AOSP Android 15 exposes the Activity objects through `ActivityThread.mActivities` and each `ActivityClientRecord.activity`. The repository now includes an **optional read-only diagnostic** to test this access path without invoking `Java.choose()`, BillingClient, account switching, or checkout.
+
+First open **Google One** manually in MuMu; then in PowerShell:
+
+```powershell
+cd C:\Users\david\Downloads\google-ai
+git pull --ff-only
+adb -s emulator-5554 shell getprop ro.build.version.release
+adb -s emulator-5554 shell pidof com.google.android.apps.subscriptions.red
+python scripts/diagnose-activity.py --serial emulator-5554
+```
+
+Expected useful output is `status: "ok"` with one or more `activities` and `className` fields. `no_activity` means no Activity was found; `error` identifies why this Android build denied the lookup. **A passing diagnostic does not mean the account is eligible or a subscription exists**. It only shows an alternative way to discover a running Activity.
+
+This command only reads app runtime state via Frida and never requests or confirms a Google Play purchase. It has not been executed on the user's MuMu in GitHub CI.
+
+See also [AOSP Android 15 ActivityThread source](https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-15.0.0_r17/core/java/android/app/ActivityThread.java).
+
+---
+
 ## 7. Repository files
 
 | Path | Purpose |
@@ -308,6 +332,7 @@ To confirm whether a subscription exists, check the Google Play Store's **Paymen
 | `一键安装环境.bat`, `0_环境自检.bat` | Original setup and preflight batch files |
 | `1_查看offer列表.bat` | Original offer-listing batch file |
 | `2_Pro_12个月_第1步.bat` … `5_Pro_备用6个月.bat` | Original checkout stages |
+| `scripts/diagnose-activity.py` | Read-only Android 15 ActivityThread probe; no billing or checkout |
 | `scripts/playwright-android.mjs` | Additive Playwright/ADB wrapper and optional Python command dispatcher |
 | `PLAYWRIGHT.md` | Full Playwright-specific instructions |
 | `README.zh-CN.md`, `使用说明.txt` | Original Chinese documentation |

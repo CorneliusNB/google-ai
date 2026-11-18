@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Python syntax
-        run: python -m compileall -q ultra0.py setup_env.py query_sku.py
+        run: python -m compileall -q ultra0.py setup_env.py query_sku.py scripts/diagnose-activity.py
       - name: Frida compatibility tests (mocked, no Android)
         run: python -m unittest discover -s tests -p 'test_frida_compat.py' -v
       - name: Device/account diagnostic unit tests (no Android or purchases)
