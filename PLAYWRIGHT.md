@@ -30,16 +30,16 @@ node scripts/playwright-android.mjs doctor --screenshot device-check.png
 node scripts/playwright-android.mjs offers --plan pro12
 
 # Preview an original checkout command, without Android or Python execution
-node scripts/playwright-android.mjs run --step 1 --email your-account@example.com --dry-run
+node scripts/playwright-android.mjs run --step 1 --dry-run
 ```
 
 To run an **existing** original billing step through the wrapper (not recommended for primary accounts):
 
 ```powershell
-node scripts/playwright-android.mjs run --step 1 --email your-account@example.com --acknowledge-live-checkout
+node scripts/playwright-android.mjs run --step 1 --acknowledge-live-checkout
 ```
 
-Step 2 (`--step 2`) selects `pro6` and `--stack`; step 3 (`--step 3`) selects `pro6b` and `--stack`. An extra `--step extra` selects `pro6c`. The wrapper requires the actual target email; it **does not** use the original `.bat` files' `--force` account-check bypass. The Python logic itself remains byte-identical to the author's original archive.
+Step 2 (`--step 2`) selects `pro6` and `--stack`; step 3 (`--step 3`) selects `pro6b` and `--stack`. An extra `--step extra` selects `pro6c`. By default, the wrapper uses the **same** flags as the original `.bat` files: `--account current@device --no-add --force`, plus `--stack` for steps 2, 3, and extra. Optionally pass `--email address@example.com` to substitute the account string. `--force` bypasses the original account-check guard: verify the active Google Play account yourself. The Python logic itself remains byte-identical to the author's original archive.
 
 **Warning:** The original billing flow may tap Subscribe automatically in the Android application. Only invoke a step when you understand its behavior and accept the terms of any Google Play transaction. No code can promise a zero-cost two-year subscription. The wrapper requires `--acknowledge-live-checkout` to prevent accidental invocation; it does not replace review of Google's checkout conditions.
 

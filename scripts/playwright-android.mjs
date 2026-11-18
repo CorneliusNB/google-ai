@@ -20,12 +20,13 @@ const HELP = `Android Playwright wrapper (preserves the original Python/Frida lo
 Usage:
   node scripts/playwright-android.mjs doctor [--serial SERIAL] [--browser-check] [--screenshot PATH]
   node scripts/playwright-android.mjs offers [--serial SERIAL] [--plan pro12|pro6|pro6b|pro6c]
-  node scripts/playwright-android.mjs run --step 1|2|3|extra --email ACCOUNT [--serial SERIAL] [--dry-run]
-  node scripts/playwright-android.mjs run --step 1|2|3|extra --email ACCOUNT --acknowledge-live-checkout
+  node scripts/playwright-android.mjs run --step 1|2|3|extra [--email ACCOUNT] [--serial SERIAL] [--dry-run]
+  node scripts/playwright-android.mjs run --step 1|2|3|extra [--email ACCOUNT] --acknowledge-live-checkout
 
 This requires a connected Android emulator/device (ADB), Python and Frida.
 Playwright only does device checks and optional browser checks; the ORIGINAL
 Python script handles BillingClient. It may automatically tap Subscribe.
+The default --account current@device and --force match the original .bat files.
 The tool does not guarantee any discount, offer eligibility, or term length.
 `;
 
@@ -73,8 +74,8 @@ export function parseArgs(argv) {
   }
   if (options.command === 'run') {
     if (!STEPS[options.step]) throw new Error('run requires --step 1|2|3|extra');
-    if (!options.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(options.email)) {
-      throw new Error('run requires an actual target --email (current@device is not accepted)');
+    if (options.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(options.email)) {
+      throw new Error('Invalid --email; omit it to use the original current@device account mode');
     }
     if (!options.dryRun && !options.acknowledge) {
       throw new Error('Original checkout may auto-confirm purchases; supply --acknowledge-live-checkout or --dry-run');
@@ -89,12 +90,12 @@ export function parseArgs(argv) {
 
 export function pythonArgs(options, serial) {
   if (options.command === 'offers') {
-    return ['ultra0.py', '--account', 'current@device', '--no-add', '--list', '--plan', options.plan,
+    return ['ultra0.py', '--account', 'current@device', '--no-add', '--force', '--list', '--plan', options.plan,
       ...(serial ? ['--serial', serial] : [])];
   }
   if (options.command === 'run') {
     const step = STEPS[options.step];
-    return ['ultra0.py', '--account', options.email, '--no-add', '--no-switch', '--plan', step.plan,
+    return ['ultra0.py', '--account', options.email || 'current@device', '--no-add', '--force', '--plan', step.plan,
       ...(step.stack ? ['--stack'] : []), ...(serial ? ['--serial', serial] : [])];
   }
   throw new Error('doctor does not run Python');
@@ -162,7 +163,8 @@ async function main(argv) {
   if (options.command === 'doctor') return 0;
   if (options.command === 'run') {
     console.warn('WARNING: Running the ORIGINAL Python code. It may auto-click Subscribe.');
-    console.warn('Verify the signed-in account and Google Play payment/renewal terms.');
+    console.warn('Original --force skips the account-check guard; verify the signed-in Play account yourself.');
+    console.warn('Verify Google Play price and renewal terms before proceeding.');
   }
   return await runPython(pythonArgs(options, serial));
 }

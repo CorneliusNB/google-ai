@@ -54,13 +54,13 @@ npm run android:offers
 
 `android:doctor` enumerates devices through Playwright's Android API and checks installed packages. `android:offers` starts the **original Python** query after the Playwright preflight; it does not open checkout. You can optionally verify Chrome on the emulator with `--browser-check` and save a private screenshot with `--screenshot <path>`.
 
-The runner also exposes an explicitly acknowledged `run` command for invoking an original checkout step with a verified target account. **It calls the unchanged Python script, which may interact automatically with Google Play checkout.** See [PLAYWRIGHT.md](PLAYWRIGHT.md) for the exact command and risks. The Playwright integration itself never fills card details, submits purchases or circumvents offer eligibility.
+The runner also exposes an explicitly acknowledged `run` command for invoking an original checkout step with the original account placeholder `current@device` (or optional `--email`). **It calls the unchanged Python script, which may interact automatically with Google Play checkout.** See [PLAYWRIGHT.md](PLAYWRIGHT.md) for the exact command and risks. The Playwright integration itself never fills card details, submits purchases or circumvents offer eligibility.
 
 ## Limitations and security
 
 - Google Play Billing offer eligibility and the effect of subscription-replacement modes are controlled by Google, not by this repository. The author's 12+6+6 month claim remains unverified.
 - Native Android / Play Billing remains dependent on MuMu/physical Android + ADB + Frida. Chromium running on a GitHub Actions hosted runner is not a replacement.
-- Original code uses `--force` in `.bat` scripts and includes a payment UI auto-confirmation routine. **These behaviors are preserved at your request**, not endorsed as safe. The new runner does **not** use `--force` for checkout; it requires an exact email and an account match.
+- Original code uses `--force` in `.bat` scripts and includes a payment UI auto-confirmation routine. **These behaviors are preserved at your request**, not endorsed as safe. The new runner uses the **same original `--force` flag** and `current@device` account placeholder by default; `--force` bypasses the original account-check guard, so verify the signed-in account independently.
 - Original `ultra0.py` can read subscription data from Google Play databases, change proxy settings, and create reports. Review it before using it with any account.
 - Never publish `accounts.txt`, access tokens, passwords, screenshots of personal data, or payment details. The `.gitignore` excludes the obvious generated files.
 - No real Android device, Google account or billing action is exercised in the repository's CI.
