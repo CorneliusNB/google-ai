@@ -139,6 +139,86 @@ Replace placeholders with actual values. The same structure applies to `--step 2
 | Billing screen says ineligible or displays a price | **Do not confirm** the transaction; Google determines eligibility and the payable amount |
 | Checkout opened but status is uncertain | Check the subscription directly in Google Play; don't infer success from a launched activity |
 
+### Windows: resolve Python, ADB, and `offline` emulator errors
+
+These are **local Windows/ADB setup problems**, not proof of a bug in the Python billing script. Run these checks in a fresh **PowerShell** window, with MuMu fully booted into Android.
+
+**A. `python` is not recognized or opens Microsoft Store**
+
+Install a current Python 3.10+ release from [python.org](https://www.python.org/downloads/windows/) and enable **Add python.exe to PATH** during installation. Close/reopen PowerShell, then:
+
+```powershell
+python --version
+py --version
+where.exe python
+```
+
+If Python is installed but `python` still resolves to the Microsoft Store alias, open **Windows Settings → Apps → Advanced app settings → App execution aliases** and disable the App Installer aliases for `python.exe` and `python3.exe`. Reopen PowerShell. The Windows Python launcher may also work as `py` (e.g. `py setup_env.py`) if the `python` command is unavailable.
+
+**B. `adb` is not recognized**
+
+Install Google's [Android SDK Platform Tools](https://developer.android.com/tools/releases/platform-tools), extract the archive, and add its **platform-tools folder** (the folder containing `adb.exe`) to your Windows user PATH. Close/reopen PowerShell, then:
+
+```powershell
+where.exe adb
+adb version
+adb devices -l
+```
+
+Alternatively, the original `python setup_env.py` tries to locate MuMu's bundled ADB or download platform-tools. If using multiple copies of `adb.exe`, `where.exe adb` helps identify PATH conflicts.
+
+**C. `emulator-5554 offline` or another device shows `offline`**
+
+`offline` means the ADB daemon lists an emulator but **cannot communicate with its Android instance**. It does not prove that `emulator-5554` is your active MuMu instance.
+
+1. Ensure MuMu has reached the Android home screen, then run:
+
+   ```powershell
+   adb kill-server
+   adb start-server
+   adb reconnect offline
+   adb devices -l
+   ```
+
+2. If it remains `offline`, fully close MuMu and restart it. Check its actual ADB listening port in the MuMu instance/settings UI; the correct port varies by installation and instance. Substitute that port into the next command:
+
+   ```powershell
+   # EXAMPLE ONLY: replace 7555 with your MuMu instance's actual ADB port
+   adb connect 127.0.0.1:7555
+   adb devices -l
+   ```
+
+3. Continue only when the intended device shows `device`, not `offline` or `unauthorized`. If multiple devices appear, select the correct **serial** for Playwright:
+
+   ```powershell
+   node scripts/playwright-android.mjs doctor --serial 127.0.0.1:7555
+   ```
+
+   Replace the example serial with the one reported by `adb devices -l`. If `unauthorized`, accept the Android debugging authorization prompt.
+
+4. If the problem persists, inspect both executable locations and versions:
+
+   ```powershell
+   where.exe adb
+   adb version
+   adb devices -l
+   ```
+
+**D. Once Python and ADB are working**
+
+```powershell
+cd C:\Users\david\Downloads\google-ai  # Replace with your own clone directory
+python setup_env.py
+python ultra0.py --check
+npm install
+npm run android:doctor
+npm run android:offers
+```
+
+`setup_env.py` may install/start Frida and change Android network settings; inspect its code before executing it. `android:offers` queries available offers only. **Do not start a live checkout while ADB is offline or the active Google Play account is uncertain.** The original checkout script may automatically tap Subscribe and `--force` skips its own account check.
+
+---
+
 ## 7. Repository files
 
 | Path | Purpose |
