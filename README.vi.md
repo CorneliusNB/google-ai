@@ -56,6 +56,16 @@ adb devices
 
 Thiết bị phải ở trạng thái `device`, không phải `offline` hoặc `unauthorized`. Nếu không tìm thấy ADB, xem [hướng dẫn xử lý lỗi](docs/DETAILED-GUIDE.md).
 
+### Phương án thay thế: sử dụng bản phát hành khi gặp lỗi
+
+Nếu phiên bản mới nhất chạy từ source gặp lỗi, bạn có thể thử **bản phát hành đã công bố** tại [GitHub Releases](https://github.com/hoangsvit/google-ai/releases). Chọn một phiên bản, đọc ghi chú phát hành và tải gói Windows **nếu có file đính kèm**. Nếu chỉ có **Source code (zip)** do GitHub cung cấp, hãy tải ZIP, giải nén, mở PowerShell ngay trong thư mục đã giải nén rồi chạy:
+
+```powershell
+.\run-all.ps1
+```
+
+**Source code (zip) không phải ứng dụng `.exe` hay bộ cài dựng sẵn.** Nên giữ bản phát hành trong **thư mục riêng**, không chép đè lên bản source đang dùng. Bản phát hành cũ có thể chưa chứa những bản sửa lỗi mới và vẫn cần Windows, Python, MuMuPlayer, ADB/Frida cùng các lưu ý về thanh toán. Nếu lỗi vẫn xảy ra, xem [hướng dẫn khắc phục](docs/DETAILED-GUIDE.md) hoặc [tạo Issue](https://github.com/hoangsvit/google-ai/issues).
+
 ## 3. Sử dụng giao diện
 
 Chọn **Check Device & Offers** để thực hiện **Step 1 — Available offers**, truy vấn ưu đãi **không khởi tạo checkout**. Theo dõi **Live Status**, mở **Show technical details** khi cần và kiểm tra tài khoản trong Google Play. Việc không có log mới trong 30 giây chỉ là cảnh báo thiếu hoạt động, **không phải kết luận treo**.
