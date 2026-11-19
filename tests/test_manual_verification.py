@@ -36,6 +36,25 @@ class ManualVerificationTests(unittest.TestCase):
         finally:
             blocked.release.set()
 
+    def test_card_setup_does_not_invent_billing_address(self):
+        fields = [{"cls": "EditText", "x": 10, "y": 20}] * 7
+        card = {"number": "4111111111111111", "exp": "0129",
+                "cvc": "000", "holder": "Actual Name"}
+        with patch.object(ultra0, "sh"), \
+             patch.object(ultra0, "tap_text", return_value=True), \
+             patch.object(ultra0, "nodes", return_value=fields), \
+             patch.object(ultra0, "ui_xml", return_value="<xml/>"), \
+             patch.object(ultra0, "tap"), \
+             patch.object(ultra0, "type_text") as text_input, \
+             patch.object(ultra0, "wait_human", return_value=True) as confirm, \
+             patch.object(ultra0.time, "sleep"):
+            self.assertTrue(ultra0.add_card(card))
+        entered = [call.args[0] for call in text_input.call_args_list]
+        self.assertEqual(entered, ["4111111111111111", "01", "29", "000", "Actual Name"])
+        self.assertNotIn("123 Main St", entered)
+        self.assertNotIn("Portland", entered)
+        confirm.assert_called_once()
+
     def test_unconfirmed_payment_method_prevents_checkout(self):
         with patch.object(ultra0, "add_card", return_value=False) as add, \
              patch.object(ultra0, "launch_app") as launch:
