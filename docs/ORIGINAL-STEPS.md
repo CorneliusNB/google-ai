@@ -36,6 +36,8 @@ Run `setup-environment.bat` to invoke the original setup helper, or use the main
 .\run-all.ps1 -AllStages -Force
 ```
 
+`-AllStages` requires `RUN ALL` at the start, `VERIFIED` after reviewing each billing result in Google Play, and `RUN 5` separately if the optional extra stage is wanted. A standalone `-Step N` asks for `RUN N`. `-Force` first requires `FORCE` and only bypasses Play Store account checking, not offer eligibility or payment validation.
+
 For the **Step 3–5** subscription replacement, the revised code rejects missing purchase tokens, expired or wrong-account database tokens, or unsupported replacement modes instead of silently falling back to a fresh standalone purchase. If the optional BillingClient query finds multiple subscriptions, it only accepts the matching original Google AI Pro product ID.
 
 The Python status `checkout_requested` means the script clicked Subscribe, **not** that the purchase completed, the subscription is active, or the time was extended. Confirm the actual charge and next renewal date in Google Play before continuing. The proposed 12+6+6(+6) durations remain unverified historical claims.

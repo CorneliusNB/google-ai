@@ -81,15 +81,17 @@ For an individual original billing stage (possible real purchase):
 .\run-all.ps1 -Step 2 -Email your-email@gmail.com
 ```
 
-For the author's main 12 + 6 + 6 month sequence with a verification gate between stages:
+For the complete original sequence (environment check, offer listing, Steps 2–4, and optional Step 5), run:
 
 ```powershell
-.\run-all.ps1 -AllStages -Email your-email@gmail.com
+.\run-all.ps1 -AllStages
 ```
 
-Optional alternative offer 6 months is **Step 5 only** and is not included in `-AllStages`. The default command with no Step is read-only (`-Step 1`).
+The active Play Store email is detected automatically; `-Email` can specify an expected account. `-Force` passes the original Python `--force` to bypass **only** the account-verification check, after you type `FORCE`. Normally it is unnecessary.
 
-The guided script checks the selected device and Google Play account, displays the offers and requires a specific confirmation before each live stage. It pauses between stages for manual verification. The original Python program can still press Subscribe automatically during a live stage; **this is not a simulation**.
+For `-AllStages`, type `RUN ALL` to begin. After each attempted subscription stage, verify the result in Google Play and type `VERIFIED` to proceed; optional Step 5 needs its own `RUN 5` approval. Individual `-Step 2`, `-Step 3`, `-Step 4` or `-Step 5` executions ask for `RUN N`. The default command without options remains read-only (`-Step 1`).
+
+The original Python code can click **Subscribe** automatically on a screen it interprets as a zero-priced checkout. This is a real billing flow, not a simulation, and the claimed subscription extensions are not guaranteed.
 
 If local execution policy prevents PowerShell scripts, review the file and follow your organization's Windows execution-policy rules rather than disabling system protections globally.
 
@@ -139,7 +141,7 @@ On some Android 15 / API 35 x86_64 emulator builds, Frida `Java.choose()` raises
 | Claimed additional six months | `04-pro-add-6-months-again.bat` | `--plan pro6b --stack` |
 | Optional alternative six months | `05-pro-alternative-6-months.bat` | `--plan pro6c --stack` |
 
-The legacy-compatible `.bat` files use `--force` to bypass account verification and may initiate purchase flows. They remain available to preserve the original author's files, but the safer guided PowerShell entrypoint uses `--no-switch` and checks account identity. The original 12+6+6 stacking claim is unverified and cannot be inferred from offer identifiers.
+The legacy-compatible `.bat` files use `--force` to bypass account verification and may initiate purchase flows. The guided PowerShell entrypoint uses `--no-switch` and verifies the detected account by default; explicit `-Force` mirrors the original account-check bypass and requires separate confirmation. The original 12+6+6 stacking claim is unverified and cannot be inferred from offer identifiers.
 
 ## Common failures
 

@@ -58,7 +58,7 @@ This reuses the Google Play account detected on the device, runs the original 12
 
 To use the original author's `--force` account-check bypass, explicitly add `-Force`. It is not needed when the correct Play account is already detected and does not force eligibility or free prices.
 
-The guided script requires explicit confirmation for each live stage, validates the selected Play account, and halts between stages for subscription verification. It never uses `--force`. A CI pass **does not** prove real billing compatibility with your device.
+The guided script checks the selected Play account by default. `-Force` intentionally passes the author's `--force` option to Python **after an explicit `FORCE` confirmation**, bypassing only account verification. For `-AllStages`, type `RUN ALL` once to approve starting the main sequence; check Google Play and type `VERIFIED` after each attempted billing step, or leave it blank to stop. Optional Step 5 requires its own `RUN 5` approval. A CI pass **does not** prove real billing compatibility with your device.
 
 ## Step-by-step workflow: original author's Google AI Pro (5 TB) flow
 
@@ -88,7 +88,7 @@ To run the **full author's sequence (Steps 0–5)** in one guided session, use:
 .\run-all.ps1 -AllStages
 ```
 
-Step 5 remains optional: it is offered after Steps 2–4, but requires separate approval and can be skipped. The script detects the active Play account automatically. Use `-Email` to specify one, or `-Force` only if you intentionally want the author's account-check bypass. Each billing step requires you to type `RUN 2` / `I ACCEPT 2` (or the matching step number) and then `VERIFIED` only after checking the real active plan, next charge date and price in Google Play. If any offer, activity lookup, account check, or token validation fails, stop; do not bypass it with `--force`.
+Step 5 remains optional: it is offered after Steps 2–4, but requires separate approval and can be skipped. The script detects the active Play account automatically. Use `-Email` to specify one, or `-Force` only if you intentionally want the author's account-check bypass. When using `-AllStages`, type `RUN ALL` at the beginning, then `VERIFIED` after checking the real active plan, renewal date and future price in Google Play following each attempted billing stage. Optional Step 5 requires typing `RUN 5`; running an individual `-Step 2` through `-Step 5` requires its corresponding `RUN N`. `-Force` separately asks for `FORCE` and only bypasses the account check. Stop on failed offers, token validation, or unexpected prices; `-Force` does not override Google Play eligibility or transaction results.
 
 The default `.\run-all.ps1` is equivalent to **Step 1** (read-only). The previous `-SetupOnly` and `-ListOnly` switches remain aliases for environment-only and offer-only workflows. Auto device detection remains enabled; you can specify `-Serial emulator-5554` when needed.
 
