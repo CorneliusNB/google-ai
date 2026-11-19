@@ -1,0 +1,136 @@
+# ePlus AI Toolkit — Español
+
+[English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
+
+> **Referencia principal:** [README en inglés](README.md). Esta traducción explica el uso esencial y los riesgos; si hay diferencias, consulta el código actual y la documentación inglesa.
+
+**ePlus AI Toolkit** es una herramienta de terminal centrada en **Windows** que usa **PowerShell, Python, ADB, Frida y un emulador Android (MuMuPlayer)** para consultar ofertas de Google AI Pro mediante Google One y Google Play. La interfaz Textual y el CLI usan el mismo motor.
+
+![Interfaz de ePlus AI Toolkit](https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3)
+
+> [!CAUTION]
+> **Proyecto no oficial; pueden producirse cargos reales.** Los **pasos 2–5** pueden abrir un proceso de pago real de Google Play y pulsar **Subscribe** automáticamente. Encontrar una oferta, ver un precio inicial de cero o recibir un mensaje de envío del pago **no demuestra** que la cuenta cumpla los requisitos, que la suscripción sea gratuita, que esté activa ni que se haya ampliado. Antes de cada pago, comprueba en Google Play la cuenta, el importe de hoy, el precio de renovación y la siguiente fecha de cobro. Detener el programa no deshace una transacción enviada.
+
+## Descargo de responsabilidad
+
+Este proyecto es **independiente y no está afiliado, patrocinado ni respaldado** por Google, Google One, Google Play, NetEase o MuMuPlayer. El software se ofrece **tal cual**, sin garantías de elegibilidad, resultado de suscripción o compatibilidad. Úsalo solo con cuentas y dispositivos propios o autorizados y respeta las leyes y condiciones de cada plataforma. Lee el [descargo completo (inglés)](DISCLAIMER.md) y las [precauciones de seguridad](SECURITY.md).
+
+## 1. Requisitos e instalación de MuMuPlayer
+
+- **Windows**, PowerShell **5.1+** y Python **3.10+**.
+- **Instala MuMuPlayer por separado**, inicia Android con root y depuración ADB habilitados.
+- Instala e inicia sesión en **Google Play Store** y **Google One** dentro del emulador.
+- La herramienta puede localizar/descargar **Android SDK Platform-Tools (ADB)** y preparar **Frida 16.5.9**, pero **no descarga ni instala MuMuPlayer**. La compatibilidad de Frida depende de la versión de Android.
+
+**Descarga oficial de MuMuPlayer:** [mumuplayer.com/download](https://www.mumuplayer.com/download/) (elige Windows). Evita sitios de terceros. Consulta la [guía de instalación de la Wiki](https://github.com/hoangsvit/google-ai/wiki/Install).
+
+## 2. Descargar y ejecutar
+
+En PowerShell:
+
+```powershell
+git clone https://github.com/hoangsvit/google-ai.git
+cd google-ai
+.\run-all.ps1
+```
+
+Si ya clonaste el repositorio:
+
+```powershell
+git pull --ff-only
+.\run-all.ps1
+```
+
+Al ejecutar **sin parámetros** se abre el panel Textual; no se inicia una compra automáticamente. Cuando sea necesario, el programa puede preparar Textual, ADB o Frida. Normalmente **no hace falta** ejecutar `setup_env.py` antes. La preparación puede modificar el emulador, el proxy o la configuración de red.
+
+Si ADB está disponible en PATH, comprueba la conexión:
+
+```powershell
+adb devices
+```
+
+El estado debe ser `device`, no `offline` ni `unauthorized`. Más información en la [guía técnica](docs/DETAILED-GUIDE.md).
+
+## 3. Usar el panel Textual
+
+**Check Device & Offers** ejecuta **Step 1 — Available offers**: consulta ofertas y **no inicia el pago**. Supervisa **Live Status** y **Show technical details**; 30 segundos sin nuevos mensajes no implican necesariamente un bloqueo.
+
+En **Advanced: Run by step**:
+
+| Modo | Acción |
+| --- | --- |
+| **One step only** | Ejecuta un único paso seleccionado, del 0 al 5 |
+| **From selected step** | Inicia una secuencia guiada desde el paso 2–5 |
+| **All: Steps 2–5** | Inicia la secuencia desde el paso 2; el 5 es opcional |
+
+| Paso | Función | Riesgo |
+| --- | --- | --- |
+| **0 — Environment** | Diagnóstico/preparación de Android, ADB y Frida | Sin compra; puede cambiar ajustes locales |
+| **1 — Available offers** | Consulta de ofertas de Google Play | Sin compra; la preparación puede cambiar ajustes |
+| **2 — Pro 12 months** | Oferta original de 12 meses | **Posible cargo real** |
+| **3 — Pro +6 months** | Actualización de suscripción original | **Posible cargo real** |
+| **4 — Pro +6 months (second)** | Segunda actualización de suscripción | **Posible cargo real** |
+| **5 — Optional +6 months** | Actualización adicional opcional | **Posible cargo real** |
+
+Los meses son **nombres históricos de los pasos**, no una garantía de ampliación. Si ya tienes una suscripción activa, **no repitas el paso 2**.
+
+El TUI exige **aprobación explícita por cada paso de pago**. Aunque aparezca un mensaje de pago enviado, comprueba el estado real, los cargos y la renovación en [Suscripciones de Google Play](https://play.google.com/store/account/subscriptions). Pulsa **Verified in Google Play → Next** solo si has confirmado personalmente el cambio. La herramienta **no puede demostrar por sí misma** la activación.
+
+**Detener/salir:** Stop en los pasos 0–1 solicita cancelar el proceso local. En los pasos 2–5, **Stop after this step** evita los pasos siguientes, pero **no fuerza la interrupción de un pago en curso**. **Q / Exit** espera a que acabe el paso de pago actual. **D** alterna los detalles; **R** inicia el modo seleccionado.
+
+## 4. PowerShell CLI (avanzado)
+
+**Consulta y diagnóstico, sin pago:**
+
+```powershell
+.\run-all.ps1 -Step 1
+.\run-all.ps1 -Step 1 -Debug
+.\run-all.ps1 -Step 0
+.\run-all.ps1 -Cli
+```
+
+**Los siguientes comandos pueden iniciar pagos reales:**
+
+```powershell
+.\run-all.ps1 -Step 2
+.\run-all.ps1 -Step 3
+.\run-all.ps1 -Step 4
+.\run-all.ps1 -Step 5
+```
+
+A diferencia del TUI, un comando individual `-Step 2..5` **no pide una segunda aprobación escrita en PowerShell**. Ejecútalo solo si realmente deseas intentar una compra y ya comprobaste las condiciones.
+
+Secuencia guiada del CLI:
+
+```powershell
+.\run-all.ps1 -AllStages
+.\run-all.ps1 -AllStages -StartStep 3
+```
+
+Confirmaciones: **1 = Continue (continuar), 2 = End run (terminar), 0 = Stop (detener)**. Comprueba Google Play antes de pasar al paso siguiente. `-StartStep 3` no demuestra que las ampliaciones anteriores hayan funcionado.
+
+Parámetros opcionales:
+
+```powershell
+.\run-all.ps1 -Step 1 -Serial emulator-5554
+.\run-all.ps1 -AllStages -Email "account@gmail.com"
+```
+
+Usa solo un número de serie mostrado por ADB. Evita `-Force`: omite la comprobación de la cuenta, **pero no modifica** la elegibilidad ni las restricciones de pago de Google.
+
+## 5. Problemas habituales y resultados
+
+- **MuMu/ADB no detectado:** revisa el emulador, root, ADB y los permisos del dispositivo.
+- **Error de Frida:** revisa los detalles y la compatibilidad de **16.5.9** con Android.
+- **Sin ofertas:** abre Google One/Play Store y vuelve a ejecutar **Step 1**.
+- **Cuenta incorrecta:** verifica el perfil de Google Play; no omitas la comprobación.
+- **Pago solicitado:** no confirma una suscripción nueva ni una renovación; revisa Google Play antes de repetirlo.
+- **Error de seguridad de pagos (por ejemplo OR-REH-04):** detén los pasos de pago y sigue el procedimiento oficial.
+
+Los registros están en `logs/` y los informes en `ultra0-report/`. **No compartas archivos sin ocultar correos, tokens y datos de pago.** CI solo ejecuta pruebas estáticas/simuladas y **no valida compras reales**. **macOS aún no dispone de soporte completo**.
+
+## Documentación y créditos
+
+[README en inglés](README.md) · [Wiki de instalación](https://github.com/hoangsvit/google-ai/wiki/Install) · [Guía detallada](docs/DETAILED-GUIDE.md) · [Pasos originales](docs/ORIGINAL-STEPS.md) · [Descargo](DISCLAIMER.md) · [Seguridad](SECURITY.md) · [Contribuir](CONTRIBUTING.md) · [Avisos de terceros](THIRD_PARTY_NOTICES.md)
+
+**Autor original:** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **Mantenedor:** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). El aviso MIT del autor original permanece en `THIRD_PARTY_NOTICES.md`.
