@@ -43,5 +43,5 @@ jobs:
           $tokens = $null
           $parseErrors = $null
           [System.Management.Automation.Language.Parser]::ParseFile("run-all.ps1", [ref]$tokens, [ref]$parseErrors) | Out-Null
-          if ($parseErrors.Count -gt 0) { $parseErrors | ForEach-Object { Write-Error $_.Message }; exit 1 }
+          if ($parseErrors.Count -gt 0) { $parseErrors | ForEach-Object { Write-Host ("Parse error at line {0}, column {1}: {2}" -f $_.Extent.StartLineNumber, $_.Extent.StartColumnNumber, $_.Message) }; exit 1 }
           ./run-all.ps1 -Help | Out-Null
