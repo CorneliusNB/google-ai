@@ -197,3 +197,9 @@ To inspect the active Google One Activity without making a purchase:
 python scripts/diagnose-activity.py --serial emulator-5554
 ```
 
+
+## Checkout shows a renewal price or backup-payment prompt
+
+The Google Play popup **Turn on backup payment methods?** asks permission to charge alternate saved payment methods if a primary method fails. It does not itself prove a subscription offer was accepted, and this toolkit does not turn it on. See https://support.google.com/googleplay/answer/4646404.
+
+A displayed amount such as **US$19.99** may be a later renewal price, not the amount payable today. The checkout parser distinguishes these by requiring an explicit **today $0** amount and the expected trial duration on the *live checkout screen*. It no longer assumes the first monetary amount is today's payment. If either detail cannot be checked, it records a reason in `ultra0-report/<account>.json`, leaves the Google Play UI open for review, and does not tap Subscribe. The original BillingClient offer's first phase is not proof of actual account eligibility. Avoid `-Force` when the checkout price is unclear.

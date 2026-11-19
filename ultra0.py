@@ -837,46 +837,80 @@ def handle_verify(password="") -> bool:
     return changed
 
 
-def confirm_zero(wait=40, password="") -> dict:
-    step("Checking Google Play checkout price (original script only accepts zero)")
-    out = {"price": None, "confirmed": False, "ineligible": False, "text": ""}
-    for _ in range(wait // 2):
-        xml = ui_xml()
-        text = " ".join(n["text"] for n in nodes(xml) if n["text"])
-        if "\u4e0d\u7b26\u5408\u514d\u8d39\u8bd5\u7528\u6761\u4ef6" in text or "not eligible" in text.lower():
-            warn("Google Play says this account is ineligible for the trial")
-            if tap_text("\u77e5\u9053\u4e86", "OK", "Got it"):
-                time.sleep(2)
+def assess_checkout_terms(text: str, expected_plan: str = "auto") -> dict:
+    """Do not mistake a renewal price for the amount due today."""
+    clean = " ".join(text.split())
+    low = clean.lower()
+    result = {"reason": "checkout_not_visible", "today_price": None, "text": clean[:400]}
+    if any(x in low for x in ("backup payment methods", "备用付款方式",
+                               "phương thức thanh toán dự phòng")):
+        result["reason"] = "backup_payment_methods_prompt"
+        return result
+    if any(x in low for x in ("not eligible", "ineligible", "不符合免费试用条件",
+                               "không đủ điều kiện dùng thử")):
+        result["reason"] = "ineligible"
+        return result
+    if "processing" in low and "subscribe" not in low:
+        result["reason"] = "processing"
+        return result
+    if not (any(x in low for x in ("subscribe", "订阅", "đăng ký")) and
+            any(x in low for x in ("google ai", "google one", "ultra", "pro"))):
+        return result
+    currency = r"(?:US\$|HK\$|NT\$|CA\$|AU\$|JP¥|¥|￥|\$|€|£|₫|VND\s*)"
+    zero = currency + r"\s*0(?:[.,]0{1,2})?(?!\d)"
+    today = r"(?:today|due today|pay today|total today|charged today|今天|今日|本日|hôm nay)"
+    zero_today = bool(re.search(today + r"\s*[:：–-]?\s*" + zero, clean, re.I) or
+                      re.search(zero + r"\s*(?:due\s*)?" + today, clean, re.I))
+    result["prices"] = re.findall(currency + r"\s*\d[\d,.]*", clean, re.I)[:8]
+    if not zero_today:
+        result["reason"] = "today_price_unverified"
+        return result
+    result["today_price"] = "0"
+    patterns = {
+        "pro12": r"(?:12\s*[- ]?\s*months?|1\s*[- ]?\s*year|one year|365\s*days|12\s*个\s*月|一年|12\s*か月)",
+        "pro6": r"(?:6\s*[- ]?\s*months?|6\s*个\s*月|半年|6\s*か月)",
+        "pro6b": r"(?:6\s*[- ]?\s*months?|6\s*个\s*月|半年|6\s*か月)",
+        "pro6c": r"(?:6\s*[- ]?\s*months?|6\s*个\s*月|半年|6\s*か月)",
+    }
+    if not re.search(patterns.get(expected_plan, r"(?!x)x"), clean, re.I):
+        result["reason"] = "trial_duration_unverified"
+        return result
+    result["reason"] = "zero_today_and_duration_verified"
+    return result
+
+
+def confirm_zero(wait=40, password="", expected_plan="auto") -> dict:
+    step("Checking today's Google Play checkout total and trial duration")
+    out = {"price": None, "confirmed": False, "ineligible": False,
+           "text": "", "reason": "checkout_not_visible"}
+    for _ in range(max(1, wait // 2)):
+        visible = " ".join(n["text"] or n["desc"] for n in nodes(ui_xml())
+                           if n["text"] or n["desc"])
+        assessment = assess_checkout_terms(visible, expected_plan)
+        reason = assessment["reason"]
+        out.update({"reason": reason, "price": assessment["today_price"],
+                    "text": assessment["text"]})
+        if reason == "ineligible":
             out["ineligible"] = True
+            warn("Google Play says this account is not eligible; no Subscribe tap.")
             return out
-        if ("\u8ba2\u9605" in text or "Subscribe" in text) and ("Ultra" in text or "AI" in text):
-            out["text"] = text[:300]
-            m = re.search(r"(US\$|HK\$|NT\$|\$|€|£)\s?([\d.,]+)", text)
-            if m:
-                out["price"] = m.group(0)
-                try:
-                    if float(m.group(2).replace(",", "")) == 0:
-                        tap_text("\u8ba2\u9605", "Subscribe")
-                        out["confirmed"] = True
-                        ok("Clicked Subscribe on a zero-priced checkout screen")
-                        return out
-                except Exception:
-                    pass
-                warn(f"Checkout displayed {m.group(0)}, not zero; refusing to confirm")
-                return out
-            if ("\u4e0d\u7b26\u5408\u514d\u8d39\u8bd5\u7528\u6761\u4ef6" in text) or ("not eligible" in text.lower()):
-                out["ineligible"] = True
-                warn("Google Play says this account is ineligible; refusing to confirm")
-                tap_text("\u5173\u95ed", "\u53d6\u6d88", "Close"); return out
-            if (re.search(r"(US\$|HK\$|NT\$|\$)\s?0(\.00)?\b", text)
-                    or "US$0/\u6708" in text or "US$0.00" in text
-                    or re.search(r"\u514d\u8d39\u8bd5\u7528\s*\d+\s*(\u4e2a\u6708|\u5e74|mo|month)", text)):
-                tap_text("\u8ba2\u9605", "Subscribe")
+        if reason == "backup_payment_methods_prompt":
+            warn("Google Play backup-payment prompt needs manual review; not enabling it automatically.")
+            return out
+        if reason == "zero_today_and_duration_verified":
+            if tap_text("订阅", "Subscribe", "Đăng ký"):
                 out["confirmed"] = True
-                ok("Clicked Subscribe on an introductory offer screen")
-                return out
+                ok("Tapped Subscribe after verifying today's zero total and expected trial period.")
+            else:
+                out["reason"] = "subscribe_button_not_found"
+                warn("Subscribe control not found; no transaction confirmed.")
+            return out
+        if reason in ("today_price_unverified", "trial_duration_unverified"):
+            warn("Checkout does not explicitly verify BOTH today's $0 total and the expected duration. "
+                 "A nonzero amount could be the future renewal price. Leaving Google Play open.")
+            return out
         time.sleep(2)
-    warn("Could not find the checkout screen; the account may already be subscribed")
+    warn(f"Checkout was not confirmed ({out['reason']}); leaving Google Play open.")
     return out
 
 
@@ -952,8 +986,13 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
             rec["error"] = "No offer data returned; inspect BillingClient and Frida errors."
         return rec
     if fr["launched"] and fr["launched"].get("code") == 0:
-        rec["sheet"] = confirm_zero(password=password)
-        rec["subscription_page"] = verify()
+        rec["sheet"] = confirm_zero(password=password, expected_plan=plan)
+        # Preserve the original checkout screen if amount or offer terms
+        # are ambiguous; never navigate away before the user can inspect it.
+        if rec["sheet"].get("confirmed"):
+            rec["subscription_page"] = verify()
+        else:
+            note("Checkout not confirmed; Google Play remains open for inspection.")
         # launchBillingFlow code 0 and seeing a product name on the Play page
         # DO NOT prove the subscription is active or a free trial is applied.
         rec["status"] = ("checkout_requested" if rec["sheet"].get("confirmed")
