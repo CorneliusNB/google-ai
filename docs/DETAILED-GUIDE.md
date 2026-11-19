@@ -180,3 +180,20 @@ If a checkout is ever initiated, confirm subscription status, renewal date, amou
 - `scripts/runtime-lookup.py`: ASCII-safe runtime discovery for Windows PowerShell.
 - `tests/`: Python tests and one dependency-free Node.js Frida JavaScript test.
 - `.github/workflows/static-checks.yml`: Hosted CI; **no actual Android billing test**.
+
+## Technical fixes and diagnostics
+
+The maintained workflow includes compatibility fixes that are intentionally omitted from the quick-start README:
+
+- **Windows PowerShell automatic variables:** older wrappers used `$pid`, which collides with the read-only `$PID` variable. The maintained wrapper uses `$googleOnePid` and CI checks for accidental assignments to reserved variables.
+- **Android 15 and Frida process enumeration:** some Frida builds cannot verify `get_process(pid)` even when ADB can find Google One. The CLI checks the selected device and process identity via ADB before attaching; it refuses mismatched PIDs.
+- **Account and subscription replacement checks:** ADB transport selection is deterministic when identifiable, and subscription updates fail closed when an appropriate existing purchase token or update mode cannot be verified.
+- **PowerShell inline Python and Windows codepages:** the wrapper uses `scripts/runtime-lookup.py` to return ASCII-safe machine-readable values rather than fragile inline `python -c` commands.
+- **ADB file permissions:** `setup_env.py` reuses a working Android platform-tools installation and falls back to a writable per-user location instead of overwriting a locked `adb.exe`.
+
+To inspect the active Google One Activity without making a purchase:
+
+```powershell
+python scripts/diagnose-activity.py --serial emulator-5554
+```
+
