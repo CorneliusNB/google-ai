@@ -21,7 +21,6 @@ class OriginalProStageTests(unittest.TestCase):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         self.assertIn("[int]$Step = 1", ps)
         self.assertIn('if ($ListOnly -or ($Step -eq 1 -and -not $AllStages))', ps)
-        self.assertIn('$_ .Number', ps.replace("$_ .Number", "$_ .Number")) if False else None
 
     def test_optional_stage_never_runs_in_all_stages(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")

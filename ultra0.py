@@ -264,8 +264,8 @@ def ensure_frida_server():
     raise RuntimeError(f"frida-server {FRIDA_REQUIRED} could not start")
 
 
-def read_purchase_token(sku_short: str) -> str:
-    """Read a purchase token from Google Play library.db for the legacy subscription update flow."""
+def read_purchase_token(sku_short: str, expected_account: str = "") -> str:
+    """Read an unexpired Play purchase token only for the verified account."""
     import tempfile, sqlite3, json as _json
     remote = "/data/local/tmp/lib_read.db"
     try:
@@ -296,6 +296,8 @@ def read_purchase_token(sku_short: str) -> str:
         for account, valid, data in rows:
             if not data:
                 continue
+            if expected_account and str(account).strip().lower() != expected_account.lower():
+                continue
             try:
                 j = _json.loads(data)
             except Exception:
@@ -307,9 +309,11 @@ def read_purchase_token(sku_short: str) -> str:
                 alive = int(valid) > now_ms
             except Exception:
                 alive = False
-            # Prefer unexpired records; if several are active, select the latest expiry.
-            if picked is None or (alive and not picked[2]) or (alive == picked[2] and int(valid or 0) > picked[3]):
-                picked = (tk, account, alive, int(valid or 0))
+            # Never reuse expired tokens or tokens belonging to another account.
+            if not alive:
+                continue
+            if picked is None or int(valid or 0) > picked[3]:
+                picked = (tk, account, True, int(valid or 0))
         if picked:
             tok = picked[0]
             note(f"Purchase token account: {picked[1]} ({'active' if picked[2] else 'expired'})")
@@ -740,7 +744,7 @@ def diagnose_launch_failure(fr: dict) -> tuple:
     """Explain why billing UI was not opened, without retrying purchases."""
     events = fr.get("errors") or []
     ev_names = {e.get("ev") for e in events if isinstance(e, dict)}
-    if ev_names.intersection({"no_purchase", "stack_query_err", "stack_outer_err",
+    if ev_names.intersection({"no_purchase", "no_matching_purchase", "stack_query_err", "stack_outer_err",
                               "stack_param_err", "mode_err"}):
         return ("subscription_update_unavailable",
                 "Existing subscription token or replacement parameters were unavailable. "
@@ -887,7 +891,7 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
         return rec
     if stack and not old_token:
         note("Reading the existing subscription purchase token...")
-        old_token = read_purchase_token("subs_variant")
+        old_token = read_purchase_token("subs_variant", expected_account=email)
         if old_token:
             ok(f"Read existing purchase token ({old_token[:16]}...); attempting subscription update")
         else:

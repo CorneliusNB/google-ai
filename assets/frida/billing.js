@@ -164,10 +164,18 @@ function launchWithStack(pd, offer){
       try{
         var list=Java.cast(purchases, Java.use("java.util.List"));
         S({ev:"purchases", n:list.size(), code:String(br.getResponseCode())});
-        if(list.size()===0){ S({ev:"no_purchase"}); return; }
-        var pu=Java.cast(list.get(0), Java.use("com.android.billingclient.api.Purchase"));
-        var tok=String(pu.getPurchaseToken());
-        S({ev:"old_purchase", head:tok.slice(0,16), products:String(pu.getProducts())});
+        if(br.getResponseCode()!==0 || list.size()===0){ S({ev:"no_purchase"}); return; }
+        var Purchase=Java.use("com.android.billingclient.api.Purchase");
+        var matching=null;
+        for(var p=0;p<list.size();p++){
+          var purchase=Java.cast(list.get(p), Purchase);
+          if(purchase.getProducts().contains("g1.2tb.ai.subs_variant")){
+            matching=purchase; break;
+          }
+        }
+        if(!matching){ S({ev:"no_matching_purchase"}); return; }
+        var tok=String(matching.getPurchaseToken());
+        S({ev:"old_purchase", head:tok.slice(0,16), products:String(matching.getProducts())});
         launch(pd, offer, tok);
       }catch(e){ S({ev:"stack_query_err", m:String(e).slice(0,200)}); return; }
     }}});

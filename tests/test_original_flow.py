@@ -54,7 +54,7 @@ class OriginalFlowGuardrails(unittest.TestCase):
         with patch.object(mod, "current_play_account", return_value=""), \
              patch.object(mod, "launch_app", return_value=123), \
              patch.object(mod, "run_trial", return_value={
-                 "offers": [], "launched": {"code": 0}, "errors": [],
+                 "offers": [{"id": "12months-eft", "micros": "0"}], "launched": {"code": 0}, "errors": [],
                  "purchase": None}), \
              patch.object(mod, "confirm_zero", return_value={"confirmed": True}), \
              patch.object(mod, "verify", return_value="Google AI Pro subscription"):
@@ -63,7 +63,7 @@ class OriginalFlowGuardrails(unittest.TestCase):
         with patch.object(mod, "current_play_account", return_value="test@example.com"), \
              patch.object(mod, "launch_app", return_value=123), \
              patch.object(mod, "run_trial", return_value={
-                 "offers": [], "launched": {"code": 0}, "errors": [],
+                 "offers": [{"id": "12months-eft", "micros": "0"}], "launched": {"code": 0}, "errors": [],
                  "purchase": None}), \
              patch.object(mod, "confirm_zero", return_value={"confirmed": True}), \
              patch.object(mod, "verify", return_value="Google AI Pro subscription"):
