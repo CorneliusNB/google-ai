@@ -43,7 +43,7 @@ Run `setup-environment.bat` to invoke the original setup helper, or use the main
 
 For the **Step 3–5** subscription replacement, the revised code rejects missing purchase tokens, expired or wrong-account database tokens, or unsupported replacement modes instead of silently falling back to a fresh standalone purchase. If the optional BillingClient query finds multiple subscriptions, it only accepts the matching original Google AI Pro product ID.
 
-The Python status `checkout_requested` means the script clicked Subscribe, **not** that the purchase completed, the subscription is active, or the time was extended. Confirm the actual charge and next renewal date in Google Play before continuing. The proposed 12+6+6(+6) durations remain unverified historical claims.
+**Current internal report statuses:** `listed` means the offer query returned data; `checkout_requested` is still assigned by `ultra0.py` when the script reports tapping **Subscribe** after checking displayed terms; `checkout_not_confirmed` means the tap was not confirmed. None of these statuses proves a completed purchase, active subscription or extended renewal date. Confirm the actual charge and next renewal date in Google Play before continuing. The proposed 12+6+6(+6) durations remain unverified historical claims.
 
 ## Maintained entrypoints
 
@@ -56,7 +56,7 @@ The Python status `checkout_requested` means the script clicked Subscribe, **not
 | Original stage 3 | `04-pro-add-6-months-again.bat` | Additional claimed `--stack` flow; **possible purchase** |
 | Alternate stage | `05-pro-alternative-6-months.bat` | Claimed alternative offer; **possible purchase** |
 
-These legacy-compatible batch files preserve the original `--force` option and **do not verify the Play account**. The guided `run-all.ps1 -AllStages` includes optional Step 5 and checks the account by default. Add `-Force` only to mirror the author's deliberate account-check bypass; you must confirm that choice. All live stages still require confirmation and Google Play subscription verification.
+These legacy-compatible batch files preserve the original `--force` option and **do not verify the Play account**. The guided `run-all.ps1 -AllStages` includes optional Step 5 and checks the account by default. Add `-Force` only to mirror the author's deliberate account-check bypass; you must confirm that choice. In the guided `-AllStages` flow, prompts use numeric approvals and users must independently verify the Google Play subscription. **Standalone `-Step 2..5` does not prompt for a second PowerShell approval** and can initiate a real checkout.
 
 ## What the original script attempts
 
