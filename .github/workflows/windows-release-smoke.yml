@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/windows-release-smoke.yml"
-      - ".github/workflows/publish-v1.0.1.yml"
+      - ".github/workflows/publish-release.yml"
       - "docs/releases/**"
       - "docs/WINDOWS-SMOKE-TEST.md"
       - "run-all.ps1"
