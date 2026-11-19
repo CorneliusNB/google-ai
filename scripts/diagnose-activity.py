@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import threading
+from pathlib import Path
 
 GOOGLE_ONE = "com.google.android.apps.subscriptions.red"
 
@@ -67,12 +68,12 @@ def main():
         if not pid:
             print("Google One is not running. Open it manually in MuMu, then retry.")
             return 2
-        import frida
-        dev = frida.get_usb_device(timeout=10)
-        if dev.id != args.serial:
-            print(f"Frida selected device '{dev.id}' instead of '{args.serial}'. "
-                  "Disconnect other Android devices, then retry.")
-            return 3
+        # Use the same verified ADB/Frida mapping as the main offer query.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        import ultra0 as main_cli
+        main_cli.ADB = adb
+        main_cli.SERIAL = args.serial
+        dev = main_cli.get_target_frida_device(pid, args.serial)
         session = dev.attach(pid)
         done = threading.Event()
         outcome = {}

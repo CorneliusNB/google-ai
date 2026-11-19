@@ -669,8 +669,47 @@ def build_js(plan: str = "auto", list_only: bool = False, stack: bool = False, o
     return js
 
 
+def verify_adb_target_pid(pid: int, serial: str) -> str:
+    """Validate PID and process ownership on the EXACT ADB device.
+
+    Frida get_process()/enumerate_processes() can fail independently of attach
+    on certain ART/Android versions. ADB is the authoritative PID source.
+    Never guess if PID was recycled or belongs to an unrelated process.
+    """
+    if not ADB or not serial or not isinstance(pid, int) or pid <= 0:
+        raise RuntimeError("ADB executable, device serial, or Google One PID is invalid.")
+
+    def adb_shell(*command: str):
+        result = subprocess.run([ADB, "-s", serial, "shell", *command],
+                                capture_output=True, timeout=12)
+        if result.returncode != 0:
+            raise RuntimeError(
+                "ADB process inspection failed on %s: %s" %
+                (serial, result.stderr.decode("utf-8", "replace").strip()[:160]))
+        return result.stdout.decode("utf-8", "replace").strip()
+
+    pids = adb_shell("pidof", PKG).split()
+    if str(pid) not in pids:
+        raise RuntimeError(
+            f"Google One PID {pid} is no longer running on ADB device {serial}. "
+            "Reopen Google One and retry read-only offer listing.")
+    try:
+        cmdline = adb_shell("cat", f"/proc/{pid}/cmdline")
+    except (OSError, subprocess.TimeoutExpired, RuntimeError):
+        # Some Android builds restrict /proc. A fresh, exact-package pidof
+        # check is still sufficient to reject unrelated or stale PIDs.
+        note("ADB /proc inspection is restricted; PID verified by package pidof.")
+        return PKG
+
+    name = cmdline.split("\x00", 1)[0].strip()
+    if name and name != PKG and not name.startswith(PKG + ":"):
+        raise RuntimeError(
+            f"ADB PID {pid} is {name!r}, not {PKG!r}; refusing to attach.")
+    return name or PKG
+
+
 def get_target_frida_device(pid: int, serial: str):
-    """Select the Frida transport for the ADB target; never pick an arbitrary USB device."""
+    """Map Frida to the ADB-selected Android and validate the process via ADB."""
     import frida
     candidates = [dev for dev in frida.get_device_manager().enumerate_devices()
                   if getattr(dev, "type", None) == "usb"]
@@ -678,26 +717,29 @@ def get_target_frida_device(pid: int, serial: str):
     if len(exact) == 1:
         selected = exact[0]
     elif len(candidates) == 1:
-        selected = candidates[0]
+        # Frida may report another ADB alias for the same emulator. Require
+        # a matching Android boot UUID before treating these as equivalent.
+        from device_selector import boot_uuid, online_serials
+        candidate = candidates[0]
+        candidate_serial = str(candidate.id)
+        online = online_serials(ADB)
+        original_boot = boot_uuid(ADB, serial)
+        frida_boot = boot_uuid(ADB, candidate_serial) if candidate_serial in online else ""
+        if not original_boot or original_boot != frida_boot:
+            raise RuntimeError(
+                f"Frida device {candidate_serial!r} does not match ADB device {serial!r}. "
+                "Select a matching --serial; refusing to attach to another emulator.")
+        selected = candidate
     else:
         available = ", ".join(str(dev.id) for dev in candidates) or "none"
         raise RuntimeError(
             f"Cannot map ADB serial {serial!r} to a unique Frida device. "
             f"Frida USB devices: {available}. Check frida-ls-devices and use --serial.")
 
-    # Frida PID integers are scoped to a device: the same PID can represent
-    # unrelated processes on different phones. Confirm the package before attach.
-    try:
-        process = selected.get_process(pid)
-        name = str(process.name)
-    except Exception as exc:
-        raise RuntimeError(
-            f"Cannot verify PID {pid} on Frida device {selected.id}; "
-            "refusing to attach to an unverified Android process.") from exc
-    if name not in (PKG, "Google One") and not name.startswith(PKG + ":"):
-        raise RuntimeError(
-            f"Frida device {selected.id} PID {pid} is {name!r}, not Google One. "
-            f"Selected ADB device is {serial!r}; refusing to attach.")
+    # Frida's get_process(pid) may fail to enumerate Android processes even
+    # though the process is running and attach(pid) works. Verify with ADB.
+    identity = verify_adb_target_pid(pid, serial)
+    note(f"Verified Google One PID {pid} via ADB: {identity}")
     return selected
 
 

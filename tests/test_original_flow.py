@@ -25,7 +25,8 @@ class OriginalFlowGuardrails(unittest.TestCase):
         devices = [mock_dev("127.0.0.1:16384"), mock_dev("emulator-5554")]
         module = types.SimpleNamespace(get_device_manager=lambda: types.SimpleNamespace(
             enumerate_devices=lambda: devices))
-        with patch.dict(sys.modules, {"frida": module}):
+        with patch.dict(sys.modules, {"frida": module}), \
+             patch.object(mod, "verify_adb_target_pid", return_value=mod.PKG):
             self.assertIs(mod.get_target_frida_device(123, "emulator-5554"), devices[1])
 
     def test_different_frida_devices_do_not_default_to_first(self):
@@ -36,12 +37,25 @@ class OriginalFlowGuardrails(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "Cannot map ADB serial"):
                 mod.get_target_frida_device(123, "emulator-5554")
 
-    def test_unrelated_process_pid_refuses_attach(self):
-        device = mock_dev("emulator-5554", name="com.example.other.app")
+    def test_frida_process_enumeration_failure_does_not_block_valid_adb_pid(self):
+        device = mock_dev("emulator-5554")
+        device.get_process.side_effect = RuntimeError("Android 15 process enumeration unavailable")
         module = types.SimpleNamespace(get_device_manager=lambda: types.SimpleNamespace(
             enumerate_devices=lambda: [device]))
-        with patch.dict(sys.modules, {"frida": module}):
-            with self.assertRaisesRegex(RuntimeError, "not Google One"):
+        with patch.dict(sys.modules, {"frida": module}), \
+             patch.object(mod, "verify_adb_target_pid", return_value=mod.PKG):
+            self.assertIs(mod.get_target_frida_device(11004, "emulator-5554"), device)
+        device.get_process.assert_not_called()
+
+    def test_unrelated_adb_process_is_rejected(self):
+        from unittest.mock import patch as mock_patch
+        device = mock_dev("emulator-5554")
+        module = types.SimpleNamespace(get_device_manager=lambda: types.SimpleNamespace(
+            enumerate_devices=lambda: [device]))
+        with patch.dict(sys.modules, {"frida": module}), \
+             mock_patch.object(mod, "verify_adb_target_pid",
+                               side_effect=RuntimeError("ADB PID 123 is unrelated")):
+            with self.assertRaisesRegex(RuntimeError, "unrelated"):
                 mod.get_target_frida_device(123, "emulator-5554")
 
     def test_missing_purchase_token_has_distinct_failure(self):

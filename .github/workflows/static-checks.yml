@@ -36,6 +36,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_assets.py' -v
       - name: Original step mapping tests
         run: python -m unittest discover -s tests -p 'test_author_steps.py' -v
+      - name: Android 15 ADB/Frida PID validation regression tests
+        run: python -m unittest discover -s tests -p 'test_frida_pid.py' -v
       - name: Original flow safety regression tests (mocked, no purchases)
         run: python -m unittest discover -s tests -p 'test_original_flow.py' -v
       - name: Frida compatibility tests (mocked, no Android)

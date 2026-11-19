@@ -122,6 +122,8 @@ python ultra0.py --account "current@device" --no-add --list --plan pro12 --seria
 python scripts/diagnose-activity.py --serial emulator-5554
 ```
 
+On Android 15, Frida may fail to enumerate a running process by PID. The tool now verifies the package PID through ADB on the selected serial and does not require Frida `get_process()` to succeed. If the process changes or belongs to another package, attachment is rejected. This check is independent of the Activity lookup.
+
 The default Activity lookup is `auto` (Frida `Java.choose` followed by `ActivityThread`). The optional `--activity-method choose|thread` forces a lookup strategy. If both fail, the script stops instead of guessing.
 
 ## Development and tests
