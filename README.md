@@ -28,7 +28,7 @@ The setup helper locates or installs ADB, configures Frida 16.5.9 and checks MuM
 .\run-all.ps1 -Step 1 -Debug
 ```
 
-Do not publish diagnostic logs without removing account identifiers and payment data.
+User-facing errors explain what happened and what to do next. Internal error codes and raw diagnostics appear with `-Debug`. Do not publish diagnostic logs without removing account identifiers and payment data.
 
 ### Run the author's full sequence
 

@@ -59,6 +59,9 @@ jobs:
       - name: PowerShell numbered prompt tests (offline)
         shell: pwsh
         run: ./tests/test_terminal_prompts.ps1
+      - name: Friendly terminal errors (offline)
+        shell: pwsh
+        run: ./tests/test_user_errors.ps1
       - name: PowerShell end-to-end script parse and help check
         shell: pwsh
         run: |

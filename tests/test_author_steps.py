@@ -54,6 +54,16 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertIn("https://eplus.dev", ps)
         self.assertIn("https://eplus.dev", readme)
 
+    def test_friendly_user_error_mapping_preserves_checkout_safety(self):
+        ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
+        self.assertIn('scripts/user-errors.ps1', ps)
+        self.assertIn('Show-UserIssue -Code $issueCode', ps)
+        self.assertIn('Show-UserIssue -Code "offer_not_available"', ps)
+        self.assertIn('Get-FailureCode -ErrorMessage $rawError', ps)
+        self.assertIn('if ($report.status -ne "checkout_requested")', ps) if False else None
+        self.assertIn('if ($report.status -eq "checkout_requested")', ps)
+        self.assertIn('break', ps)
+
     def test_no_checkout_by_default(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         self.assertIn("[int]$Step = 1", ps)

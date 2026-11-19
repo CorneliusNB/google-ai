@@ -48,6 +48,7 @@ $ErrorActionPreference = "Stop"
 # -Debug is a built-in PowerShell common parameter when CmdletBinding is used.
 # Do not declare a second Debug switch; simply read its caller-supplied value.
 $ShowDebug = $PSBoundParameters.ContainsKey("Debug") -and [bool]$PSBoundParameters["Debug"]
+. (Join-Path $PSScriptRoot "scripts/user-errors.ps1")
 
 function Show-Banner {
     Write-Host ""
@@ -233,7 +234,7 @@ try {
     Stage "Preflight: Read active Google Play account"
     $playAccount = (Get-RuntimeValue -LookupArgs @("play-account", "--serial", $Serial)).Trim().ToLowerInvariant()
     if ($playAccount) { Show-Status "Account" $playAccount }
-    else { Write-Warning "Play account not visible yet. Retrying through the Step 1 offer listing." }
+    else { Note "Play account lookup incomplete; retrying through the offer listing." }
 
     Stage "Original Step 1: List Google AI Pro offers"
     # The script's --list mode only queries product details; it does not call launchBillingFlow.
@@ -379,7 +380,7 @@ try {
         }
         $available = @($offerReport.offers | Where-Object { $_.id -eq $stage.Offer -and [string]$_.micros -eq "0" })
         if ($available.Count -eq 0) {
-            Note ("The expected offer {0} has no zero-priced first phase. Skipping this stage." -f $stage.Offer)
+            Show-UserIssue -Code "offer_not_available" -Details ("Step {0}, offer {1}" -f $stage.Number, $stage.Offer) -DebugMode $ShowDebug
             break
         }
 
@@ -419,18 +420,14 @@ try {
             }
         }
         if ($report.status -eq "checkout_requested") {
-            Show-Status "Checkout" "Submitted; verify in Google Play" "Yellow"
-        } elseif ($report.status -eq "checkout_security_blocked" -or $reason -eq "payment_security_blocked") {
-            Show-Status "Checkout" "Google Play security check required (OR-REH-04)" "Red"
-        } elseif ($reason -eq "already_subscribed") {
-            Show-Status "Checkout" "Already subscribed; no extension verified" "Yellow"
+            Show-Status "Checkout" "Submitted; check Google Play" "Yellow"
         } else {
-            Show-Status "Checkout" ("Not confirmed ({0})" -f $(if ($reason) { $reason } else { $report.status })) "Yellow"
-        }
-        if ($report.status -ne "checkout_requested") {
-            if ($ShowDebug -and $report.PSObject.Properties.Name -contains "error") {
-                Note ([string]$report.error)
+            $issueCode = if ($reason) { $reason } else { [string]$report.status }
+            $issueDetails = ""
+            if ($report.PSObject.Properties.Name -contains "error") {
+                $issueDetails = [string]$report.error
             }
+            Show-UserIssue -Code $issueCode -Details $issueDetails -DebugMode $ShowDebug
             break
         }
 
@@ -447,9 +444,12 @@ try {
     if ($ShowDebug) { Note ("Local diagnostics: {0}" -f $script:RunLog) }
 }
 catch {
-    Write-Host ""
-    Write-Host ("  Error: {0}" -f $_.Exception.Message) -ForegroundColor Red
-    if ($script:RunLog) { Write-Host ("  Diagnostics: {0}" -f $script:RunLog) -ForegroundColor DarkGray }
+    $rawError = [string]$_.Exception.Message
+    $issueCode = Get-FailureCode -ErrorMessage $rawError
+    Show-UserIssue -Code $issueCode -Details $rawError -DebugMode $ShowDebug
+    if ($ShowDebug -and $script:RunLog) {
+        Write-Host ("    Log: {0}" -f $script:RunLog) -ForegroundColor DarkGray
+    }
     exit 1
 }
 finally {
