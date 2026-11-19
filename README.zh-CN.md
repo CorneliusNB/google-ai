@@ -2,6 +2,8 @@
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
+**macOS 预览版：**[Mac 专用版](docs/MACOS-PREVIEW.md)已实现步骤 0–5。步骤 2–5 可能产生真实扣费，每一步都需要单独确认；CI 测试不代表真实 Mac/MuMu 上的支付已验证。
+
 > **权威版本：**[英文 README](README.md)。本翻译说明主要操作和风险；若有差异，请以当前代码及英文 README 为准。
 
 这是一个主要面向 **Windows** 的终端工具，通过 **PowerShell、Python、ADB、Frida 和 Android 模拟器（MuMuPlayer）** 检查 Google One / Google Play 中的 Google AI Pro 优惠。Textual 界面与 CLI 使用同一底层引擎。

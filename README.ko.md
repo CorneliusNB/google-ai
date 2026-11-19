@@ -2,6 +2,8 @@
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md)
 
+**macOS 미리보기:** [Mac 버전](docs/MACOS-PREVIEW.md)은 0–5단계 전체 흐름을 구현했습니다. 결제 2–5단계는 실제 요금이 발생할 수 있으므로 단계별 확인이 필요합니다. 실제 Mac/MuMu에서 결제 호환성은 아직 검증되지 않았습니다.
+
 > **기준 문서:** [영어 README](README.md). 이 번역은 주요 사용법과 주의사항을 설명합니다. 내용이 다르면 최신 소스 코드와 영어 README를 확인하세요.
 
 **ePlus AI Toolkit**은 주로 **Windows**에서 사용하는 터미널 도구입니다. **PowerShell, Python, ADB, Frida, Android 에뮬레이터(MuMuPlayer)**를 통해 Google One / Google Play의 Google AI Pro 프로모션 정보를 확인합니다. Textual UI와 CLI는 같은 실행 엔진을 사용합니다.

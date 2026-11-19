@@ -2,6 +2,15 @@
 
 Instructions for coding agents working in this repository. Read this file, `README.md`, `CONTRIBUTING.md`, and `SECURITY.md` before changing code. Prefer the implementation on the current target branch over old PR descriptions, screenshots, or previous task summaries.
 
+## macOS full-stage port constraints
+
+- `run-macos.sh` launches the shared Textual dashboard with Steps 0–5. `macos_runner.py` is the macOS-native adapter to the **unchanged** Android engine; do not invoke Windows-only `setup_env.py` on Mac.
+- Do not bypass stage confirmation, current Google Play account lookup, exact offer ID or zero-price introductory phase validation. The Mac adapter intentionally does **not** support `--force` or automatic account switching.
+- Steps 2–5 may initiate real charges. Every stage requires a separate TUI approval, and continuing a sequence requires user verification of the subscription and renewal date in Google Play. The native CLI requires explicit authorization flags.
+- macOS CI is restricted to unit and integration mocks; never run a real checkout in CI, and never claim that a successful host run verifies actual Mac/MuMu billing.
+- Keep Mac workflow targeting `dev` until hardware testing, and preserve Windows behavior.
+
+
 ## Project purpose and boundaries
 
 **ePlus AI Toolkit** is a Windows/PowerShell + Python application for inspecting Google AI Pro offers on Android/MuMu. The Textual UI must remain an interface to the existing engine, not a second implementation of Android, Frida, account, offer, or Google Play Billing logic.
