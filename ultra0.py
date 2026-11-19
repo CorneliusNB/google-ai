@@ -19,6 +19,7 @@ WARNING: non-list mode can open Google Play checkout and tap Subscribe.
 Offer metadata does not prove eligibility or subscription activation.
 """
 import argparse, base64, hashlib, hmac, json, os, re, struct, subprocess, sys, threading, time
+import shlex
 from pathlib import Path
 import tempfile
 
@@ -457,7 +458,9 @@ def tap_text(*needles, exact=False) -> bool:
 
 
 def type_text(s: str):
-    sh("shell", f"input text '{s.replace(' ', '%s')}'")
+    # Quote the full text for the Android shell so passwords/emails containing
+    # quotes, semicolons or substitutions cannot become shell instructions.
+    sh("shell", "input text " + shlex.quote(s.replace(" ", "%s")))
 
 
 def find_edit():
@@ -539,7 +542,7 @@ def add_account(email, password, totp_secret="") -> bool:
         if ("\u4e24\u6b65\u9a8c\u8bc1" in text or "2-Step" in text or "\u8f93\u5165\u9a8c\u8bc1\u7801" in text):
             if totp_secret and find_edit():
                 code = totp(totp_secret)
-                note(f"Two-factor verification code: {code}")
+                note("Submitting the two-factor code without printing it")
                 tap(*find_edit()); type_text(code); time.sleep(1)
                 tap_text("\u4e0b\u4e00\u6b65", "Next"); time.sleep(8)
                 continue

@@ -59,6 +59,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_device_diagnostics.py' -v
       - name: Manual confirmation and timeout safety tests (offline)
         run: python -m unittest discover -s tests -p 'test_manual_verification.py' -v
+      - name: Android text shell escaping and 2FA confidentiality (offline)
+        run: python -m unittest discover -s tests -p 'test_adb_text_input.py' -v
       - name: Google Play checkout text tests (no Android or purchases)
         run: python -m unittest discover -s tests -p 'test_checkout_terms.py' -v
       - name: Billing launch diagnostics tests (no Android/purchases)
