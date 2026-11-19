@@ -64,6 +64,16 @@ class OriginalFlowGuardrails(unittest.TestCase):
         self.assertEqual(s, "subscription_update_unavailable")
         self.assertIn("token", message)
 
+    def test_read_only_listing_saves_verified_play_account(self):
+        with patch.object(mod, "current_play_account", return_value="test@example.com"), \
+             patch.object(mod, "launch_app", return_value=123), \
+             patch.object(mod, "run_trial", return_value={
+                 "offers": [{"id": "12months-eft", "micros": "0"}],
+                 "launched": None, "errors": []}):
+            result = mod.process("current@device", add=False, list_only=True, plan="pro12")
+        self.assertEqual(result["status"], "listed")
+        self.assertEqual(result["detected_play_account"], "test@example.com")
+
     def test_checkout_launch_is_not_subscription_activation(self):
         with patch.object(mod, "current_play_account", return_value=""), \
              patch.object(mod, "launch_app", return_value=123), \

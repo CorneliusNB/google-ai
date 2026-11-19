@@ -170,7 +170,7 @@ try {
     Stage "Preflight: Read active Google Play account"
     $playAccount = (Get-RuntimeValue -LookupArgs @("play-account", "--serial", $Serial)).Trim().ToLowerInvariant()
     if ($playAccount) { Note ("Detected Play Store account: {0}" -f $playAccount) }
-    else { Write-Warning "Could not read Google Play account. Open the Play Store profile menu in MuMu." }
+    else { Write-Warning "Play account not visible yet. Retrying through the Step 1 offer listing." }
 
     Stage "Original Step 1: List Google AI Pro offers"
     # The script's --list mode only queries product details; it does not call launchBillingFlow.
@@ -180,6 +180,24 @@ try {
     $offerReport = Read-PythonReport "current"
     if ($offerReport.status -ne "listed") {
         Stop-Workflow ("Offer query did not complete: {0}" -f $offerReport.status)
+    }
+
+    # Reuse the Play account that ultra0.py already verified during Step 1.
+    # If preflight and listing disagree, abort instead of choosing an account.
+    $listedAccount = ""
+    if ($offerReport.PSObject.Properties.Name -contains "detected_play_account") {
+        $listedAccount = ([string]$offerReport.detected_play_account).Trim().ToLowerInvariant()
+    }
+    if ($listedAccount -and $listedAccount -notmatch '^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$') {
+        Stop-Workflow "Invalid Play Store account returned by Step 1. Verify the Play Store profile."
+    }
+    if ($playAccount -and $listedAccount -and $playAccount -cne $listedAccount) {
+        Stop-Workflow ("Play Store account changed: preflight '{0}', Step 1 '{1}'. " +
+                       "Verify the Play Store profile before any checkout.") -f $playAccount, $listedAccount
+    }
+    if (-not $playAccount -and $listedAccount) {
+        $playAccount = $listedAccount
+        Note ("Recovered verified Play Store account from Step 1: {0}" -f $playAccount)
     }
     Note ""
     Note "Returned first pricing phases (NOT proof of eligibility, stacking or future charges):"

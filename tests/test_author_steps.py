@@ -22,6 +22,15 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertIn("[int]$Step = 1", ps)
         self.assertIn('if ($ListOnly -or ($Step -eq 1 -and -not $AllStages))', ps)
 
+    def test_uses_verified_account_from_step_one_if_preflight_misses_it(self):
+        ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
+        ultra = (ROOT / "ultra0.py").read_text(encoding="utf-8")
+        self.assertIn('rec["detected_play_account"] = cur or ""', ultra)
+        self.assertIn('Read-PythonReport "current"', ps)
+        self.assertIn('if (-not $playAccount -and $listedAccount)', ps)
+        self.assertIn('$playAccount = $listedAccount', ps)
+        self.assertIn('if ($playAccount -and $listedAccount -and $playAccount -cne $listedAccount)', ps)
+
     def test_diagnostic_does_not_assign_to_powershell_automatic_pid(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         self.assertIn("$googleOnePid =", ps)

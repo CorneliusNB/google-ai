@@ -949,6 +949,10 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
         ok("WARNING: Play Store account check bypassed (--force)")
     elif list_only:
         cur = current_play_account()
+        # Persist the verified identity in the read-only report. PowerShell
+        # might have tried account discovery before Play Store finished loading.
+        # This value is rechecked before any purchase in the live stage.
+        rec["detected_play_account"] = cur or ""
         ok(f"List-only: current Play Store account is {cur or 'unknown'} (no checkout)")
     elif no_switch:
         cur = current_play_account()
