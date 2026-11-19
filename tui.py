@@ -102,7 +102,7 @@ class GoogleAITUI(App[None]):
     #welcome_panel { height: auto; border: round #2b97bc; background: #112b49; padding: 0 2; margin-bottom: 1; }
     #welcome { color: #91e3ff; text-style: bold; height: 1; margin-top: 1; }
     #quick_hint { color: #afcce3; height: auto; margin-bottom: 1; }
-    #quickstart { width: 100%; height: 3; margin-bottom: 1; }
+    #quickstart { display: none; }
     #read_only { color: #81c6df; height: 1; }
     #status_panel { height: 1fr; min-height: 0; border: round #285a80; background: #101f35; padding: 0 1; }
     #state { color: #f2f9ff; text-style: bold; margin-top: 1; }
@@ -179,10 +179,10 @@ class GoogleAITUI(App[None]):
                                          id=f"stage_{stage.number}", classes="workflow-step")
                 with Vertical(id="results"):
                     with Vertical(id="welcome_panel"):
-                        yield Static("GET STARTED", id="welcome")
-                        yield Static("Check your device and available Google AI offers.", id="quick_hint")
+                        yield Static("HOW TO USE", id="welcome")
+                        yield Static("Choose a mode and press Run on the left. Step 1 safely lists offers.", id="quick_hint")
                         yield Button("Check Device & Offers", id="quickstart", variant="primary")
-                        yield Static("Read-only. No payment will be made.", id="read_only")
+                        yield Static("Steps 2-5 require approval and can request real checkout.", id="read_only")
                     with Vertical(id="status_panel"):
                         yield Static("LIVE STATUS", classes="section")
                         yield Static("Ready — no check started", id="state")
