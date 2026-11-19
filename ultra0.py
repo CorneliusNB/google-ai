@@ -22,6 +22,14 @@ import argparse, base64, hashlib, hmac, json, os, re, select, struct, subprocess
 from pathlib import Path
 import tempfile
 
+# Standalone launches may use a Windows legacy console code page that cannot
+# encode status symbols. Preserve the console's encoding, but escape unsupported
+# characters rather than aborting ADB/device checks with UnicodeEncodeError.
+# The PowerShell launcher separately forces UTF-8 for its piped Python children.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(errors="backslashreplace")
+
 # Manual confirmation gate for an unfamiliar Android verification screen.
 HUMAN_EVENT = threading.Event()
 WAITING = {"on": False, "msg": ""}
