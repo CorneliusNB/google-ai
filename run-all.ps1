@@ -81,7 +81,11 @@ try {
         }
         foreach ($line in $adbOutput) {
             Write-Host $line
-            if ($line -match '^ADB_RESOLVED=(.+)
+            if ($line.StartsWith("ADB_RESOLVED=")) {
+                $Adb = $line.Substring("ADB_RESOLVED=".Length).Trim()
+            }
+        }
+    }
     if (-not $Adb) {
         Stop-Workflow "adb.exe was not found. Install Android SDK platform-tools or configure PATH and retry."
     }
