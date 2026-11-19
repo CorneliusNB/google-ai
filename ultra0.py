@@ -273,67 +273,71 @@ def ensure_frida_server():
 
 
 def read_purchase_token(sku_short: str, expected_account: str = "") -> str:
-    """Read an unexpired Play purchase token only for the verified account."""
-    import tempfile, sqlite3, json as _json
-    remote = "/data/local/tmp/lib_read.db"
+    """Read a valid matching-account purchase token without retaining Play DB copies."""
+    import sqlite3
+    import json as _json
+
+    # Never leave a world-readable copy of the Play Store database on Android.
+    # Unique paths prevent concurrent lookups from touching each other's files.
+    remote = f"/data/local/tmp/lib_read_{os.getpid()}_{time.time_ns()}.db"
     try:
-        sh("shell", f"cp /data/data/{VENDING}/databases/library.db {remote} 2>/dev/null; chmod 666 {remote}", timeout=30)
-    except Exception:
-        pass
-    tmp = Path(tempfile.gettempdir()) / "lib_read.db"
-    try:
-        if tmp.exists():
-            tmp.unlink()
-        sh("pull", remote, str(tmp), timeout=60)
-    except Exception as e:
-        warn(f"Failed to retrieve library.db: {e}")
-        return ""
-    if not tmp.exists():
-        return ""
-    tok = ""
-    try:
-        con = sqlite3.connect(str(tmp))
-        cur = con.cursor()
-        rows = cur.execute(
-            "select account, subs_valid_until_time, inapp_purchase_data "
-            "from ownership where doc_id like ?",
-            (f"%{sku_short}%",),
-        ).fetchall()
-        now_ms = int(time.time() * 1000)
-        picked = None
-        for account, valid, data in rows:
-            if not data:
-                continue
-            if expected_account and str(account).strip().lower() != expected_account.lower():
-                continue
+        sh("shell", f"cp /data/data/{VENDING}/databases/library.db {remote} 2>/dev/null && chmod 666 {remote}",
+           timeout=30)
+        with tempfile.TemporaryDirectory(prefix="google-ai-play-db-") as folder:
+            local = Path(folder) / "library.db"
             try:
-                j = _json.loads(data)
-            except Exception:
-                continue
-            tk = j.get("purchaseToken")
-            if not tk:
-                continue
+                sh("pull", remote, str(local), timeout=60)
+            except Exception as error:
+                warn(f"Failed to retrieve Google Play database: {type(error).__name__}")
+                return ""
+            if not local.is_file():
+                return ""
+
+            now_ms = int(time.time() * 1000)
+            picked = None
             try:
-                alive = int(valid) > now_ms
-            except Exception:
-                alive = False
-            # Never reuse expired tokens or tokens belonging to another account.
-            if not alive:
-                continue
-            if picked is None or int(valid or 0) > picked[3]:
-                picked = (tk, account, True, int(valid or 0))
-        if picked:
-            tok = picked[0]
-            note(f"Purchase token account: {picked[1]} ({'active' if picked[2] else 'expired'})")
-        con.close()
-    except Exception as e:
-        warn(f"Failed to read library.db: {e}")
+                with sqlite3.connect(str(local)) as con:
+                    rows = con.execute(
+                        "select account, subs_valid_until_time, inapp_purchase_data "
+                        "from ownership where doc_id like ?",
+                        (f"%{sku_short}%",),
+                    ).fetchall()
+                for account, valid, data in rows:
+                    if not data:
+                        continue
+                    if expected_account and str(account).strip().lower() != expected_account.lower():
+                        continue
+                    try:
+                        record = _json.loads(data)
+                    except (TypeError, ValueError):
+                        continue
+                    token = record.get("purchaseToken")
+                    if not token:
+                        continue
+                    try:
+                        expiry = int(valid)
+                    except (ValueError, TypeError):
+                        continue
+                    if expiry <= now_ms:
+                        continue
+                    if picked is None or expiry > picked[2]:
+                        picked = (token, account, expiry)
+                if picked:
+                    note("Found an active purchase token for the verified Google Play account.")
+                    return picked[0]
+            except (sqlite3.Error, OSError, ValueError) as error:
+                warn(f"Failed to inspect Google Play database: {type(error).__name__}")
+            return ""
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+        warn(f"Could not read Google Play purchase token: {type(error).__name__}")
+        return ""
     finally:
+        # Cleanup must run even if the copy, pull, query or token validation fails.
+        # Never print token values or account identifiers in this path.
         try:
-            tmp.unlink()
+            sh("shell", f"rm -f {remote}", timeout=15)
         except Exception:
             pass
-    return tok
 
 
 def ensure_vending():
