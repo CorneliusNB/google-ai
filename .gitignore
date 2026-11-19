@@ -6,10 +6,6 @@ ultra0-report/
 __pycache__/
 .DS_Store
 
-# Playwright runner
-node_modules/
-playwright-report/
-test-results/
 *.log
 .env
 .env.*
