@@ -11,6 +11,9 @@
 > [!CAUTION]
 > **Outil non officiel ; des frais réels peuvent être facturés.** Les **étapes 2 à 5** peuvent ouvrir un véritable paiement Google Play et appuyer automatiquement sur **Subscribe (S'abonner)**. L'affichage d'une offre, d'un prix initial nul ou d'un message indiquant qu'un paiement a été demandé **ne prouve pas** l'éligibilité, la gratuité, l'activation ni la prolongation de l'abonnement. Avant toute opération, vérifiez dans Google Play le compte, le montant dû aujourd'hui, le prix de renouvellement et la date de facturation. Arrêter l'outil n'annule pas une transaction déjà envoyée.
 
+> [!NOTE]
+> **Une vérification de carte peut bloquer temporairement des fonds même si le paiement Google Play indique 0 USD.** Une **préautorisation en attente d'environ 3 USD** (ou d'un autre montant) peut apparaître. **Les 3 USD sont un exemple, pas des frais fixes de Google ni une facturation d'abonnement confirmée.** Cette retenue peut réduire provisoirement le solde disponible. Selon Google, une autorisation n'est pas un achat et disparaît généralement sous **1 à 14 jours ouvrés**, selon la banque. Si la somme devient un débit définitif ou reste bloquée après 14 jours ouvrés, contactez votre banque et Google Payments. [Documentation officielle de Google Play](https://support.google.com/googleplay/answer/6224192?hl=en).
+
 ## Avertissement et responsabilité
 
 Ce projet est **indépendant, sans affiliation, parrainage ni approbation officielle** de Google, Google One, Google Play, NetEase ou MuMuPlayer. Le logiciel est fourni **en l'état**, sans garantie concernant les offres, les résultats d'abonnement ou la compatibilité. Utilisez-le uniquement sur vos appareils et comptes ou avec autorisation, conformément aux lois et conditions des plateformes. Consultez la [décharge complète (anglais)](DISCLAIMER.md) et les [précautions de sécurité](SECURITY.md).

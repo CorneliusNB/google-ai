@@ -11,6 +11,9 @@
 > [!CAUTION]
 > **Proyecto no oficial; pueden producirse cargos reales.** Los **pasos 2–5** pueden abrir un proceso de pago real de Google Play y pulsar **Subscribe** automáticamente. Encontrar una oferta, ver un precio inicial de cero o recibir un mensaje de envío del pago **no demuestra** que la cuenta cumpla los requisitos, que la suscripción sea gratuita, que esté activa ni que se haya ampliado. Antes de cada pago, comprueba en Google Play la cuenta, el importe de hoy, el precio de renovación y la siguiente fecha de cobro. Detener el programa no deshace una transacción enviada.
 
+> [!NOTE]
+> **La verificación de la tarjeta puede retener fondos temporalmente aunque Google Play muestre un total de 0 USD.** Podrías ver una **preautorización pendiente de unos 3 USD** (o de otro importe). **Los 3 USD son un ejemplo, no una tarifa fija de Google ni un cargo de suscripción confirmado.** La retención puede reducir temporalmente el saldo disponible. Según Google, las autorizaciones no son compras y normalmente se liberan en **1–14 días laborables**, según el banco. Si el importe se contabiliza como cargo definitivo o sigue retenido pasados 14 días laborables, contacta con tu banco y Google Payments. [Información oficial de Google Play](https://support.google.com/googleplay/answer/6224192?hl=en).
+
 ## Descargo de responsabilidad
 
 Este proyecto es **independiente y no está afiliado, patrocinado ni respaldado** por Google, Google One, Google Play, NetEase o MuMuPlayer. El software se ofrece **tal cual**, sin garantías de elegibilidad, resultado de suscripción o compatibilidad. Úsalo solo con cuentas y dispositivos propios o autorizados y respeta las leyes y condiciones de cada plataforma. Lee el [descargo completo (inglés)](DISCLAIMER.md) y las [precauciones de seguridad](SECURITY.md).

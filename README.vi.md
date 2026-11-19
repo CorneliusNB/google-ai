@@ -11,6 +11,9 @@ Bộ công cụ dòng lệnh dành chủ yếu cho **Windows**, sử dụng **Po
 > [!CAUTION]
 > **Đây là công cụ không chính thức và có rủi ro thanh toán.** Các bước **2–5** có thể mở quy trình thanh toán thật trên Google Play và tự nhấn **Subscribe**. Việc nhìn thấy ưu đãi hoặc mức giá ban đầu bằng 0 **không chứng minh** tài khoản đủ điều kiện, được miễn phí, đã kích hoạt hay đã gia hạn. Trước khi checkout, phải xác minh tài khoản, số tiền trả hôm nay, giá gia hạn và ngày thanh toán tiếp theo **trên Google Play**. Dừng công cụ không thể hoàn tác giao dịch đã gửi.
 
+> [!NOTE]
+> **Xác thực thẻ có thể tạm giữ tiền dù hóa đơn Google Play hiển thị 0 USD.** Bạn có thể thấy khoản **giữ tiền chờ xử lý khoảng 3 USD** (hoặc mức khác) để xác thực thẻ. **3 USD chỉ là mức tham khảo, không phải phí cố định của Google hoặc bằng chứng đã thanh toán gói đăng ký.** Khoản tạm giữ có thể làm giảm số dư khả dụng; theo Google, lệnh xác thực này không phải giao dịch mua hàng và thường được giải tỏa trong **1–14 ngày làm việc**, tùy ngân hàng. Nếu tiền được hạch toán thành khoản trừ thực tế hoặc lệnh giữ tiền còn tồn tại sau 14 ngày làm việc, hãy liên hệ ngân hàng và Google Payments. [Nguồn chính thức của Google Play](https://support.google.com/googleplay/answer/6224192?hl=en).
+
 ## Tuyên bố miễn trừ trách nhiệm
 
 Dự án độc lập, **không liên kết, được tài trợ hoặc chứng thực** bởi Google, Google One, Google Play, NetEase hay MuMuPlayer. Phần mềm cung cấp **nguyên trạng**, không bảo đảm ưu đãi, khả năng tương thích hay kết quả đăng ký. Chỉ sử dụng với thiết bị và tài khoản mà bạn có quyền kiểm soát, tuân thủ quy định và điều khoản dịch vụ. Xem [Disclaimer đầy đủ (tiếng Anh)](DISCLAIMER.md) và [Lưu ý bảo mật](SECURITY.md).

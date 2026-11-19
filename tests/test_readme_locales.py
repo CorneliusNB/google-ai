@@ -43,6 +43,18 @@ class ReadmeLocalesTests(unittest.TestCase):
                 for reference in REQUIRED_LINKS + REQUIRED_COMMANDS + REQUIRED_IDENTIFIERS:
                     self.assertIn(reference, text)
 
+    def test_card_verification_hold_note_in_every_language(self):
+        # All locales must explain a possible ~US$3 pending authorization
+        # without turning it into a guaranteed fee or subscription payment.
+        official_url = "https://support.google.com/googleplay/answer/6224192?hl=en"
+        for path in DOCS:
+            with self.subTest(file=path):
+                text = (ROOT / path).read_text(encoding="utf-8")
+                self.assertIn("> [!NOTE]", text)
+                self.assertIn(official_url, text)
+                self.assertIn("3", text)
+                self.assertIn("14", text)
+
     def test_local_markdown_links_resolve(self):
         for path in DOCS:
             source = ROOT / path
