@@ -127,11 +127,16 @@ def command_for_step(step: int, repo: Path, shell: str | None = None) -> list[st
             "-File", str(script), "-Step", str(step)]
 
 
-def read_fresh_report(directory: Path, step: int, started_at: float) -> dict | None:
-    """Only read reports updated by this invocation, not historical successes."""
+def read_fresh_report(directory: Path, step: int, started_at: float,
+                      expected_account: str | None = None) -> dict | None:
+    """Read only fresh reports for the account verified by this invocation."""
     validate_step(step)
     if not directory.exists():
         return None
+    # A paid result without a verified Google Play account is ambiguous.
+    if step >= 2 and not expected_account:
+        return None
+    expected = (expected_account or "").strip().lower()
     candidates = []
     for path in directory.glob("*.json"):
         try:
@@ -146,11 +151,13 @@ def read_fresh_report(directory: Path, step: int, started_at: float) -> dict | N
                 continue
             data = json.loads(path.read_text(encoding="utf-8"))
             if isinstance(data, dict) and isinstance(data.get("status"), str):
+                if step >= 2 and str(data.get("email", "")).strip().lower() != expected:
+                    continue
                 candidates.append(data)
         except (OSError, ValueError, UnicodeError):
             continue
-    # With no verified account key at the TUI boundary, two concurrent
-    # account reports cannot be assigned safely to this stage. Fail closed.
+    # Multiple matching reports still cannot be assigned unambiguously to a
+    # single invocation. Refuse to authorize another checkout.
     return candidates[0] if len(candidates) == 1 else None
 
 
