@@ -114,10 +114,18 @@ try {
     } elseif ($online.Count -eq 1) {
         $Serial = $online[0]
     } else {
-        Note ("Multiple Android devices: {0}" -f ($online -join ", "))
-        $Serial = Read-Host "Enter the exact ADB serial to use"
-        if ($online -cnotcontains $Serial) {
-            Stop-Workflow "Invalid serial. Nothing was executed on any device."
+        Note ("Multiple ADB connections: {0}" -f ($online -join ", "))
+        Note "Identifying duplicate transports and checking Google One..."
+        $candidate = Get-RuntimeValue -LookupArgs @("device")
+        if ($candidate -and $online -ccontains $candidate) {
+            $Serial = $candidate
+            Note ("Auto-selected Android device: {0}" -f $Serial)
+        } else {
+            Note "Multiple different devices are still eligible; explicit selection is required."
+            $Serial = Read-Host "Enter an exact device serial (example: emulator-5554)"
+            if ($online -cnotcontains $Serial) {
+                Stop-Workflow "Invalid serial. Nothing was executed on any device."
+            }
         }
     }
     Note "Using device: $Serial"

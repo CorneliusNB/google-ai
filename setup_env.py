@@ -18,6 +18,8 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+from device_selector import auto_select_device, online_serials
+
 BASE = Path(__file__).resolve().parent
 ADB_CANDIDATES = [
     os.environ.get("ADB_PATH", ""),
@@ -170,18 +172,29 @@ def find_adb() -> str:
 
 
 def connect_emulator(adb):
+    """Select an existing Android device; do not connect all emulator ports."""
     step("Connecting to the emulator")
-    ports = ["16384", "7555", "16416", "21503", "62001"]
-    for p in ports:
-        subprocess.run([adb, "connect", f"127.0.0.1:{p}"], capture_output=True, text=True, errors="ignore")
-    out = subprocess.run([adb, "devices"], capture_output=True, text=True, errors="ignore").stdout
-    devices = [l.split("\t")[0] for l in out.splitlines()[1:] if "\tdevice" in l]
+    devices = online_serials(adb)
     if not devices:
-        warn("No device found. Start MuMu and enable ADB debugging in emulator settings.")
-        print("   " + out.strip().replace("\n", "\n   "))
+        for port in ("16384", "7555", "16416", "21503", "62001"):
+            subprocess.run([adb, "connect", f"127.0.0.1:{port}"],
+                           capture_output=True, text=True, errors="replace", timeout=10)
+            devices = online_serials(adb)
+            if devices:
+                break
+    if not devices:
+        warn("No online Android device. Start MuMu and enable ADB debugging.")
         return None
-    ok(f"Connected device(s): {', '.join(devices)}")
-    return devices[0]
+    selected = auto_select_device(adb, serials=devices)
+    if not selected:
+        warn("Multiple distinct devices are available. Specify -Serial in run-all.ps1.")
+        print("   Devices: " + ", ".join(devices))
+        return None
+    if len(devices) > 1:
+        ok(f"Auto-selected device {selected} among {', '.join(devices)}")
+    else:
+        ok(f"Connected device: {selected}")
+    return selected
 
 
 def run_check(adb, serial):

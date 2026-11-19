@@ -141,8 +141,15 @@ def pick_device(preferred=None):
     if preferred and preferred not in online:
         sys.exit(f"❌ ADB device {preferred} is not online. Available: {', '.join(online)}")
     if not preferred and len(online) != 1:
-        sys.exit(f"❌ Multiple Android devices: {', '.join(online)}. Choose one with --serial.")
-    SERIAL = preferred or online[0]
+        from device_selector import auto_select_device
+        selected = auto_select_device(ADB, serials=online)
+        if not selected:
+            sys.exit(f"❌ Multiple distinct Android devices: {', '.join(online)}. "
+                     "Use --serial to select one.")
+        note(f"Auto-selected Android device: {selected}")
+        SERIAL = selected
+    else:
+        SERIAL = preferred or online[0]
     ok(f"Connected ADB device: {SERIAL}")
 
 
