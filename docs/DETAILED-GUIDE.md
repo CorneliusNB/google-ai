@@ -97,7 +97,7 @@ This asks for `ACTIVE` and does not infer whether prior extensions succeeded. An
 
 The active Play Store email is detected automatically; `-Email` can specify an expected account. `-Force` passes the original Python `--force` to bypass **only** the account-verification check, after you type `FORCE`. Normally it is unnecessary.
 
-For `-AllStages`, type `RUN ALL` to begin. After each attempted subscription stage, verify the result in Google Play and type `VERIFIED` to proceed; optional Step 5 needs its own `RUN 5` approval. Individual `-Step 2`, `-Step 3`, `-Step 4` or `-Step 5` executions ask for `RUN N`. The default command without options remains read-only (`-Step 1`).
+For `-AllStages`, type `RUN ALL` to begin. After each attempted subscription stage, verify the result in Google Play and type `VERIFIED` to proceed; optional Step 5 needs its own `RUN 5` approval. Individual `-Step 2`, `-Step 3`, `-Step 4` or `-Step 5` commands are **non-interactive at the PowerShell confirmation layer**: no `RUN N`, `NO ACTIVE` or `VERIFIED` input is requested. Selecting a checkout step explicitly authorizes that attempt, which may tap Subscribe automatically if the current terms appear eligible. If the device or Play account is ambiguous, the standalone step fails closed with a diagnostic rather than asking for input. Check the real subscription and renewal date after the step. The default command remains read-only (`-Step 1`).
 
 The original Python code can click **Subscribe** automatically on a screen it interprets as a zero-priced checkout. This is a real billing flow, not a simulation, and the claimed subscription extensions are not guaranteed.
 

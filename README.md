@@ -49,7 +49,9 @@ The script asks for `ACTIVE` and `RUN ALL`; it cannot prove earlier extensions s
 | 4 | Original second +6-month update (`pro6b --stack`) | `.\run-all.ps1 -Step 4` |
 | 5 | Optional +6-month offer (`pro6c --stack`) | `.\run-all.ps1 -Step 5` |
 
-Running a single checkout step requires `RUN N` (for example `RUN 2`), and the script requests subscription verification afterward. The default `.\run-all.ps1` is Step 1 (read-only).
+**Single-step commands do not ask you to type confirmation phrases.** Choosing `-Step 2`, `-Step 3`, `-Step 4` or `-Step 5` explicitly starts that step after account/device and offer checks. The underlying script may automatically tap Subscribe on an eligible checkout. After it finishes, **verify subscription activation, renewal date and any charges yourself**. It never assumes `checkout_requested` means success.
+
+If the account or device cannot be identified automatically, single-step mode stops and asks you to rerun with `-Email` or `-Serial` **as command-line arguments**, rather than prompting for input. If Step 2 has already been activated, do **not** run it again. The default `.\run-all.ps1` is still Step 1 (read-only).
 
 ### Optional arguments
 
@@ -59,7 +61,7 @@ Running a single checkout step requires `RUN N` (for example `RUN 2`), and the s
 .\run-all.ps1 -AllStages -Force                        # Bypass account verification
 ```
 
-`-Force` mirrors the author's `--force` **only for the Play account check** and asks for an additional `FORCE` confirmation. It does not override Google Play eligibility, prices or subscription-update checks. Avoid it when the account is already detected.
+`-Force` mirrors the author's `--force` **only for the Play account check**. Standalone `-Step N` runs do not prompt again; `-AllStages` still asks for `FORCE` confirmation. It does not override Google Play eligibility, prices or subscription-update checks. Avoid it when the account is already detected.
 
 ## Results and documentation
 

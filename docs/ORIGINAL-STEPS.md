@@ -39,7 +39,7 @@ Run `setup-environment.bat` to invoke the original setup helper, or use the main
 .\run-all.ps1 -AllStages -Force
 ```
 
-`-AllStages` requires `RUN ALL` at the start, `VERIFIED` after reviewing each billing result in Google Play, and `RUN 5` separately if the optional extra stage is wanted. A standalone `-Step N` asks for `RUN N`. `-Force` first requires `FORCE` and only bypasses Play Store account checking, not offer eligibility or payment validation.
+`-AllStages` requires `RUN ALL` at the start, `VERIFIED` after reviewing each billing result in Google Play, and `RUN 5` separately if the optional extra stage is wanted. A standalone `-Step N` performs its selected step without typed confirmation (`RUN N`, `NO ACTIVE`, `VERIFIED`); the selected step itself is the explicit instruction to attempt checkout. `-Force` only bypasses Play account checking, not offer eligibility or payment validation; in `-AllStages` it still requires `FORCE`, while a single step does not prompt.
 
 For the **Step 3–5** subscription replacement, the revised code rejects missing purchase tokens, expired or wrong-account database tokens, or unsupported replacement modes instead of silently falling back to a fresh standalone purchase. If the optional BillingClient query finds multiple subscriptions, it only accepts the matching original Google AI Pro product ID.
 

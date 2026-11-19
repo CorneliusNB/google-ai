@@ -17,6 +17,13 @@ class OriginalProStageTests(unittest.TestCase):
             self.assertIn('Number = %d;' % step, ps)
             self.assertIn('Plan = "%s"; Offer = "%s"' % (plan, offer), ps)
 
+    def test_single_step_does_not_require_typed_checkout_approval(self):
+        ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
+        self.assertNotIn('("RUN {0}" -f $stage.Number)', ps)
+        self.assertIn('if ($AllStages -and $stage.Number -eq 5)', ps)
+        self.assertIn('if ($AllStages) {\n            if (-not (Confirm-Exact "Only if you verified', ps)
+        self.assertIn('if ($AllStages) {\n                if (-not (Confirm-Exact "Confirm Google Play shows NO ACTIVE', ps)
+
     def test_no_checkout_by_default(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         self.assertIn("[int]$Step = 1", ps)
@@ -45,6 +52,7 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertIn('[int]$StartStep = 2', ps)
         self.assertIn('"-StartStep requires -AllStages."', ps)
         self.assertIn('Confirm-Exact "Confirm Google Play shows NO ACTIVE Google One subscription', ps)
+        self.assertIn('if ($AllStages)', ps)
         self.assertIn('Confirm-Exact "Confirm Google Play shows an ACTIVE Google AI Pro subscription', ps)
         self.assertIn('if ($Force) { $args += "--force" }', ps)
         self.assertIn('Confirm-Exact "Use original --force for this Android account?" "FORCE"', ps)
@@ -54,7 +62,13 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertIn('if ($report.status -ne "checkout_requested")', ps)
         self.assertIn('Confirm-Exact "Only if you verified the active plan', ps)
         self.assertIn('original stages starting at Step {0}, including optional Step 5?', ps)
-        self.assertIn('if (-not $AllStages -or $stage.Number -eq 5)', ps)
+        self.assertIn('if ($AllStages -and $stage.Number -eq 5)', ps)
+        self.assertIn('if (-not $AllStages) {', ps)
+        self.assertIn('if ($AllStages) {', ps)
+        self.assertIn('Single-step mode: no console confirmations', ps)
+        self.assertIn('Single step finished. Review the actual subscription', ps)
+        self.assertIn('Cannot identify the active Google Play account.', ps)
+        self.assertIn('Cannot select a single Android device automatically.', ps)
         self.assertNotIn('"I ACCEPT {0}"', ps)
 
 

@@ -6,6 +6,8 @@
   Defaults to original Step 1 (read-only). Original Steps 2-5 require explicit selection.
   -AllStages runs original Steps 2-5, with approval for each billable stage.
   -StartStep 3 with -AllStages skips Step 2 when a subscription is already active.
+  Individual -Step 2..5 commands do not require typed confirmations.
+  -AllStages retains verification prompts between potentially billable steps.
   Step 5 is the author's optional additional offer and can be skipped.
   The original ultra0.py may automatically click Subscribe during a live stage.
   Always verify the account, current charge, renewal terms and subscription in Google Play.
@@ -14,7 +16,7 @@
 .EXAMPLE
   .\run-all.ps1 -Step 1               # Original read-only offer list (default)
 .EXAMPLE
-  .\run-all.ps1 -Step 2 -Email account@example.com
+  .\run-all.ps1 -Step 2 -Email account@example.com  # No typed confirmation; may purchase
 .EXAMPLE
   .\run-all.ps1 -Step 5 -Email account@example.com
 .EXAMPLE
@@ -145,6 +147,9 @@ try {
             Note ("Auto-selected Android device: {0}" -f $Serial)
         } else {
             Note "Multiple different devices are still eligible; explicit selection is required."
+            if (-not $AllStages) {
+                Stop-Workflow "Cannot select a single Android device automatically. Rerun with -Serial <exact-adb-serial>; no checkout started."
+            }
             $Serial = Read-Host "Enter an exact device serial (example: emulator-5554)"
             if ($online -cnotcontains $Serial) {
                 Stop-Workflow "Invalid serial. Nothing was executed on any device."
@@ -233,7 +238,11 @@ try {
     Stage "Optional original Pro subscription steps (2-5)"
     Note "CAUTION: ultra0.py is not a harmless preview. It can automatically press Subscribe."
     Note "An offer with micros=0 may still have later paid phases, and stacking 12+6+6 months is UNVERIFIED."
-    Note "No live stage will run until you enter two explicit confirmations."
+    if ($AllStages) {
+        Note "AllStages requires approval and verification between transactions."
+    } else {
+        Note "Single-step mode: no console confirmations; the selected step may open and confirm a Google Play checkout."
+    }
 
     # Reuse the selected Play account. No repeated email input is required.
     if (-not $Email -and $playAccount) {
@@ -245,7 +254,12 @@ try {
         # enumeration is unavailable. No additional account is added.
         $Email = "current@device"
     }
-    if (-not $Email) { $Email = Read-Host "Google Play email (Enter to stop)" }
+    if (-not $Email) {
+        if (-not $AllStages) {
+            Stop-Workflow "Cannot identify the active Google Play account. Rerun with -Email <account-email>; no checkout started."
+        }
+        $Email = Read-Host "Google Play email (Enter to stop)"
+    }
     $Email = $Email.Trim().ToLowerInvariant()
     if ($Email -ne "current@device" -and $Email -notmatch '^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$') {
         Note "No valid email supplied; stopping before live billing."
@@ -254,8 +268,12 @@ try {
     if ($Force) {
         Write-Warning "--force bypasses only the Play Store account check, NOT Google's eligibility or payment conditions."
         Write-Warning ("Detected Play account: {0}; requested: {1}" -f $playAccount, $Email)
-        if (-not (Confirm-Exact "Use original --force for this Android account?" "FORCE")) {
-            return
+        if ($AllStages) {
+            if (-not (Confirm-Exact "Use original --force for this Android account?" "FORCE")) {
+                return
+            }
+        } else {
+            Note "The -Force switch was explicitly supplied; no additional console confirmation in single-step mode."
         }
     } elseif (-not $playAccount -or $playAccount -cne $Email) {
         $accountMismatch = ("Play account mismatch or unverified. Detected '{0}', expected '{1}'. " +
@@ -316,17 +334,21 @@ try {
             Note "Do not proceed if the prior subscription was cancelled, expired or not verified."
         } else {
             Note "Step 2 is ONLY for accounts with no active Google One subscription."
-            if (-not (Confirm-Exact "Confirm Google Play shows NO ACTIVE Google One subscription for this account" "NO ACTIVE")) {
-                Note "Skipping Step 2. For an existing plan, resume with -AllStages -StartStep 3 only after checking Google Play."
-                break
+            if ($AllStages) {
+                if (-not (Confirm-Exact "Confirm Google Play shows NO ACTIVE Google One subscription for this account" "NO ACTIVE")) {
+                    Note "Skipping Step 2. For an existing plan, resume with -AllStages -StartStep 3 only after checking Google Play."
+                    break
+                }
+            } else {
+                Note "Single-step mode: you selected Step 2 explicitly. Google Play must reject duplicate or ineligible subscriptions."
             }
         }
         Note "Inspect today's checkout price, all future pricing phases and the next charge date."
         Note "A 0-price first phase is NOT proof of free-trial eligibility or stacking."
         # Approve the main sequence once. Step 5 stays optional,
         # and a standalone -Step N run still requires explicit permission.
-        if (-not $AllStages -or $stage.Number -eq 5) {
-            if (-not (Confirm-Exact "Run this original live stage?" ("RUN {0}" -f $stage.Number))) { break }
+        if ($AllStages -and $stage.Number -eq 5) {
+            if (-not (Confirm-Exact "Run this optional original live stage?" "RUN 5")) { break }
         }
 
         $args = @("ultra0.py", "--account", $Email, "--no-add", "--no-switch",
@@ -352,8 +374,12 @@ try {
         Note "Confirm the selected Pro plan is ACTIVE and the next charge date moved as expected."
         Note "The original author's 12+6+6+6-month claims are not guaranteed."
         Note "The script's checkout_requested status is NOT proof that a subscription was created."
-        if (-not (Confirm-Exact "Only if you verified the active plan, renewal date and future price in Google Play, continue?" "VERIFIED")) {
-            break
+        if ($AllStages) {
+            if (-not (Confirm-Exact "Only if you verified the active plan, renewal date and future price in Google Play, continue?" "VERIFIED")) {
+                break
+            }
+        } else {
+            Note "Single step finished. Review the actual subscription and renewal date in Google Play."
         }
     }
 
