@@ -54,6 +54,16 @@ adb devices
 
 L'appareil doit être en état `device`, pas `offline` ni `unauthorized`. Voir le [guide de dépannage](docs/DETAILED-GUIDE.md).
 
+### Alternative : utiliser une version publiée si le code récent échoue
+
+Si l'exécution de la dernière version du dépôt provoque des erreurs, vous pouvez essayer une **version déjà publiée** depuis [GitHub Releases](https://github.com/hoangsvit/google-ai/releases). Lisez les notes de version et téléchargez un paquet Windows **s'il est joint**. Si seul le téléchargement automatique **Source code (zip)** de GitHub est disponible, téléchargez le ZIP, décompressez-le, ouvrez PowerShell dans le dossier extrait puis exécutez :
+
+```powershell
+.\run-all.ps1
+```
+
+**Source code (zip) n'est ni un `.exe` compilé ni un programme d'installation.** Conservez cette version dans un **dossier séparé** pour ne pas écraser votre copie actuelle. Une ancienne version peut ne pas inclure les derniers correctifs ; Windows, Python, MuMuPlayer, ADB/Frida et les précautions de paiement restent nécessaires. Si le problème persiste, consultez le [dépannage](docs/DETAILED-GUIDE.md) ou [ouvrez une issue](https://github.com/hoangsvit/google-ai/issues).
+
 ## 3. Interface Textual
 
 **Check Device & Offers** exécute **Step 1 — Available offers**, pour consulter les offres **sans déclencher de paiement**. Surveillez **Live Status** et **Show technical details** ; l'absence de nouveaux journaux pendant 30 secondes ne signifie pas forcément que l'outil est bloqué.
