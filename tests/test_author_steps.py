@@ -38,6 +38,18 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertIn("Copyright (c) 2026 gylive", notice)
         self.assertIn("MIT License", notice)
 
+    def test_compact_terminal_defaults_and_detailed_mode(self):
+        ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("[switch]$Detailed", ps)
+        self.assertIn('if ($Detailed)', ps)
+        self.assertIn('if ($script:RunLog)', ps)
+        self.assertIn('Show-Status "Checkout" "Submitted; verify in Google Play"', ps)
+        self.assertIn("payment_security_blocked", ps)
+        self.assertIn('if ($Detailed -or ($Step -eq 1 -and -not $AllStages))', ps)
+        self.assertIn("Run-Command $Python $args", ps)
+        self.assertIn("-Detailed", readme)
+
     def test_no_checkout_by_default(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         self.assertIn("[int]$Step = 1", ps)

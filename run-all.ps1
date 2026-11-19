@@ -40,7 +40,8 @@ param(
     [string]$ActivityMethod = "auto",
     [switch]$SetupOnly,
     [switch]$ListOnly,
-    [switch]$Help
+    [switch]$Help,
+    [switch]$Detailed
 )
 
 Set-StrictMode -Version Latest
@@ -48,28 +49,43 @@ $ErrorActionPreference = "Stop"
 
 function Show-Banner {
     Write-Host ""
-    Write-Host "  +----------------------------------------------------+" -ForegroundColor DarkCyan
-    Write-Host "  |  GOOGLE AI  /  MuMu Toolkit                       |" -ForegroundColor Cyan
-    Write-Host "  +----------------------------------------------------+" -ForegroundColor DarkCyan
-    Write-Host "  Original: @gylive   |   Maintained: @hoangsvit" -ForegroundColor DarkGray
-    $mode = if ($AllStages) { "Full flow from Step $StartStep" } else { "Step $Step" }
-    Write-Host ("  Mode: {0}" -f $mode) -ForegroundColor Gray
+    Write-Host "  GOOGLE AI  /  MuMu Toolkit" -ForegroundColor Cyan
+    Write-Host "  Original: @gylive  |  Maintained: @hoangsvit" -ForegroundColor DarkGray
+    $mode = if ($AllStages) { "All stages, from Step $StartStep" } else { "Step $Step" }
+    Write-Host ("  {0}" -f $mode) -ForegroundColor Gray
 }
 function Stage([string]$Message) {
-    Write-Host ""
-    Write-Host ("  >> {0}" -f $Message) -ForegroundColor Cyan
-    Write-Host ("  {0}" -f ("-" * 56)) -ForegroundColor DarkGray
+    if ($Detailed -or $Message -match '^Original Step [2-5]:' -or
+        $Message -eq "Original Step 1: List Google AI Pro offers") {
+        $title = $Message -replace '^Original ', '' -replace ': List Google AI Pro offers$', ': Offers'
+        Write-Host ""
+        Write-Host ("  > {0}" -f $title) -ForegroundColor Cyan
+    }
 }
 function Note([string]$Message) {
-    Write-Host ("  {0}" -f $Message) -ForegroundColor Gray
+    if ($Detailed) { Write-Host ("    {0}" -f $Message) -ForegroundColor DarkGray }
+}
+function Show-Status([string]$Label, [string]$Value, [string]$Color = "Green") {
+    Write-Host ("  {0,-11} " -f $Label) -NoNewline -ForegroundColor Gray
+    Write-Host $Value -ForegroundColor $Color
 }
 function Stop-Workflow([string]$Reason) {
     throw $Reason
 }
 function Run-Command([string]$Program, [string[]]$Arguments) {
-    & $Program @Arguments
+    # Preserve real-time output for Android manual verification, but hide
+    # routine Python/ADB diagnostics. All stdout remains in a local ignored log.
+    & $Program @Arguments | ForEach-Object {
+        $line = [string]$_
+        if ($script:RunLog) { Add-Content -LiteralPath $script:RunLog -Value $line -Encoding UTF8 }
+        if ($Detailed) {
+            Write-Host $line -ForegroundColor DarkGray
+        } elseif ($line -match 'Action required:|Press Enter to continue') {
+            Write-Host ("    {0}" -f $line.Trim()) -ForegroundColor Yellow
+        }
+    }
     if ($LASTEXITCODE -ne 0) {
-        Stop-Workflow ("Command exited with code {0}: {1}" -f $LASTEXITCODE, $Program)
+        Stop-Workflow ("A tool failed (exit {0}). See local run log; do not retry checkout blindly." -f $LASTEXITCODE)
     }
 }
 function Get-RuntimeValue([string[]]$LookupArgs) {
@@ -123,6 +139,9 @@ $startedAt = Get-Date
 Push-Location $PSScriptRoot
 try {
     Show-Banner
+    $logDir = Join-Path $PSScriptRoot "logs"
+    if (-not (Test-Path -LiteralPath $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
+    $script:RunLog = Join-Path $logDir ("run-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss-fff"))
     Stage "Preflight: Python and Android tools"
     if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
         Stop-Workflow "Python not found. Install Python 3.10+ from python.org, reopen PowerShell, then retry."
@@ -184,7 +203,7 @@ try {
             $Serial = $online[$deviceNumber - 1]
         }
     }
-    Note "Using device: $Serial"
+    Show-Status "Device" $Serial
     $AndroidVersion = ((& $Adb -s $Serial shell getprop ro.build.version.release) | Out-String).Trim()
     $AndroidSdk = ((& $Adb -s $Serial shell getprop ro.build.version.sdk) | Out-String).Trim()
     $AndroidAbi = ((& $Adb -s $Serial shell getprop ro.product.cpu.abi) | Out-String).Trim()
@@ -210,7 +229,7 @@ try {
 
     Stage "Preflight: Read active Google Play account"
     $playAccount = (Get-RuntimeValue -LookupArgs @("play-account", "--serial", $Serial)).Trim().ToLowerInvariant()
-    if ($playAccount) { Note ("Detected Play Store account: {0}" -f $playAccount) }
+    if ($playAccount) { Show-Status "Account" $playAccount }
     else { Write-Warning "Play account not visible yet. Retrying through the Step 1 offer listing." }
 
     Stage "Original Step 1: List Google AI Pro offers"
@@ -239,24 +258,27 @@ try {
     }
     if (-not $playAccount -and $listedAccount) {
         $playAccount = $listedAccount
-        Note ("Recovered verified Play Store account from Step 1: {0}" -f $playAccount)
+        Show-Status "Account" $playAccount
     }
-    Note ""
-    Note "Returned first pricing phases (NOT proof of eligibility, stacking or future charges):"
-    foreach ($offer in @($offerReport.offers)) {
-        Note ("  {0,-24} {1,-7} {2}" -f [string]$offer.id, [string]$offer.period, [string]$offer.micros)
-    }
-    Note "Offer tokens are intentionally not displayed."
-
-    Stage "Diagnostic: Read-only Android Activity inspection"
-    $googleOnePid = ((& $Adb -s $Serial shell pidof com.google.android.apps.subscriptions.red) | Out-String).Trim()
-    if ($googleOnePid -match '^\d+$') {
-        & $Python "scripts/diagnose-activity.py" "--serial" $Serial
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "ActivityThread diagnostic did not pass. This does not prove the chosen lookup method is broken."
+    Show-Status "Offers" ("{0} found" -f @($offerReport.offers).Count)
+    if ($Detailed -or ($Step -eq 1 -and -not $AllStages)) {
+        foreach ($offer in @($offerReport.offers)) {
+            $firstPhase = if ([string]$offer.micros -eq "0") { "0 (first phase)" } else { "Paid (first phase)" }
+            Write-Host ("    {0,-25} {1,-6} {2}" -f [string]$offer.id, [string]$offer.period, $firstPhase) -ForegroundColor Gray
         }
-    } else {
-        Write-Warning "Google One is not running for the optional Activity probe. Open it in MuMu and rerun this check."
+    }
+
+    # The Activity probe is diagnostic only. It is not a precondition for
+    # launchBillingFlow, so run it only when detailed diagnostics are requested.
+    if ($Detailed) {
+        Stage "Diagnostic: Read-only Android Activity inspection"
+        $googleOnePid = ((& $Adb -s $Serial shell pidof com.google.android.apps.subscriptions.red) | Out-String).Trim()
+        if ($googleOnePid -match '^\d+$') {
+            & $Python "scripts/diagnose-activity.py" "--serial" $Serial
+            if ($LASTEXITCODE -ne 0) { Write-Warning "Optional Activity probe failed." }
+        } else {
+            Write-Warning "Google One is not running for the optional Activity probe."
+        }
     }
     if ($ListOnly -or ($Step -eq 1 -and -not $AllStages)) {
         Note "Original Step 1 complete. No checkout or purchase requested."
@@ -339,6 +361,7 @@ try {
     $key = $Email.Split('@')[0]
     foreach ($stage in $selectedStages) {
         Stage ("Original Step {0}: {1}" -f $stage.Number, $stage.Name)
+        Show-Status "Offer" $stage.Offer "Cyan"
 
         # Recheck offer metadata before each transaction, not just once at
         # the beginning of a potentially long multi-step workflow.
@@ -386,22 +409,29 @@ try {
         Run-Command $Python $args
 
         $report = Read-PythonReport $key
-        Note ("Python stage status: {0}" -f $report.status)
-        if ($report.status -ne "checkout_requested") {
-            Note "No verified Subscribe action was recorded; stopping the staged workflow."
-            if ($report.PSObject.Properties.Name -contains "sheet" -and $null -ne $report.sheet) {
-                if ($report.sheet.PSObject.Properties.Name -contains "reason") {
-                    Note ("Checkout reason: {0}" -f $report.sheet.reason)
-                }
+        $reason = ""
+        if ($report.PSObject.Properties.Name -contains "sheet" -and $null -ne $report.sheet) {
+            if ($report.sheet.PSObject.Properties.Name -contains "reason") {
+                $reason = [string]$report.sheet.reason
             }
-            if ($report.PSObject.Properties.Name -contains "error") { Note ([string]$report.error) }
+        }
+        if ($report.status -eq "checkout_requested") {
+            Show-Status "Checkout" "Submitted; verify in Google Play" "Yellow"
+        } elseif ($report.status -eq "checkout_security_blocked" -or $reason -eq "payment_security_blocked") {
+            Show-Status "Checkout" "Google Play security check required (OR-REH-04)" "Red"
+        } elseif ($reason -eq "already_subscribed") {
+            Show-Status "Checkout" "Already subscribed; no extension verified" "Yellow"
+        } else {
+            Show-Status "Checkout" ("Not confirmed ({0})" -f $(if ($reason) { $reason } else { $report.status })) "Yellow"
+        }
+        if ($report.status -ne "checkout_requested") {
+            if ($Detailed -and $report.PSObject.Properties.Name -contains "error") {
+                Note ([string]$report.error)
+            }
             break
         }
 
-        Note "Check Google Play Store > Payments & subscriptions > Subscriptions."
-        Note "Confirm the selected Pro plan is ACTIVE and the next charge date moved as expected."
-        Note "The original author's 12+6+6+6-month claims are not guaranteed."
-        Note "The script's checkout_requested status is NOT proof that a subscription was created."
+        Write-Host "  Check the actual renewal date in Google Play." -ForegroundColor Yellow
         if ($AllStages) {
             if (-not (Confirm-Exact "Only if you verified the active plan, renewal date and future price in Google Play, continue?" "VERIFIED")) {
                 break
@@ -411,12 +441,12 @@ try {
         }
     }
 
-    Stage "Finished"
-    Note "Review your Google Play subscription status directly; no claimed duration is guaranteed."
+    if ($Detailed) { Note ("Local diagnostics: {0}" -f $script:RunLog) }
 }
 catch {
     Write-Host ""
-    Write-Host ("Stopped: {0}" -f $_.Exception.Message) -ForegroundColor Red
+    Write-Host ("  Error: {0}" -f $_.Exception.Message) -ForegroundColor Red
+    if ($script:RunLog) { Write-Host ("  Diagnostics: {0}" -f $script:RunLog) -ForegroundColor DarkGray }
     exit 1
 }
 finally {

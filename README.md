@@ -22,6 +22,14 @@ python setup_env.py
 
 The setup helper locates or installs ADB, configures Frida 16.5.9 and checks MuMu. Step 1 lists offers **without purchasing**. An unambiguous Android device and the active Play Store email are detected automatically; you usually do not need `-Serial` or `-Email`.
 
+**Terminal output:** The default view shows only the device, account, offers, current step, and outcome. Detailed Python/ADB output is saved locally in `logs/` (ignored by Git). Add `-Detailed` to display full diagnostics:
+
+```powershell
+.\run-all.ps1 -Step 1 -Detailed
+```
+
+Do not publish diagnostic logs without removing account identifiers and payment data.
+
 ### Run the author's full sequence
 
 ```powershell
