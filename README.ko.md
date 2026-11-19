@@ -54,6 +54,16 @@ adb devices
 
 장치 상태가 `device`여야 하며 `offline`이나 `unauthorized`이면 안 됩니다. 문제 해결은 [상세 가이드](docs/DETAILED-GUIDE.md)를 참고하세요.
 
+### 대안: 최신 소스에서 오류가 발생하면 릴리스 버전 사용
+
+최신 소스 코드 실행 중 오류가 발생한다면 [GitHub Releases](https://github.com/hoangsvit/google-ai/releases)에서 **공개된 릴리스 버전**을 사용해 볼 수 있습니다. 릴리스 노트를 확인하고 Windows용 첨부 파일이 있는 경우 해당 파일을 받으세요. GitHub에서 자동 제공하는 **Source code (zip)**만 있다면 ZIP을 다운로드하고 압축을 푼 다음, 해당 폴더에서 PowerShell을 열어 실행하세요.
+
+```powershell
+.\run-all.ps1
+```
+
+**Source code (zip)은 미리 빌드된 `.exe`나 설치 프로그램이 아닙니다.** 기존 소스 폴더를 덮어쓰지 말고 **별도 폴더**에 보관하세요. 이전 릴리스에는 최신 버그 수정이 빠져 있을 수 있습니다. Windows, Python, MuMuPlayer, ADB/Frida와 결제 관련 주의사항은 여전히 필요합니다. 문제가 계속되면 [문제 해결 가이드](docs/DETAILED-GUIDE.md) 또는 [Issues](https://github.com/hoangsvit/google-ai/issues)를 확인하세요.
+
 ## 3. 대시보드 사용법
 
 **Check Device & Offers**는 **Step 1 — Available offers**를 실행하여 프로모션을 조회합니다. **구독 결제를 시작하지 않습니다**. **Live Status**와 **Show technical details**에서 진행 상황을 확인하세요. 30초 동안 로그가 없다는 경고는 반드시 프로그램이 멈췄다는 뜻이 아닙니다.
