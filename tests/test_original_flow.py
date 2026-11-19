@@ -51,7 +51,8 @@ class OriginalFlowGuardrails(unittest.TestCase):
         self.assertIn("token", message)
 
     def test_checkout_launch_is_not_subscription_activation(self):
-        with patch.object(mod, "launch_app", return_value=123), \
+        with patch.object(mod, "current_play_account", return_value=""), \
+             patch.object(mod, "launch_app", return_value=123), \
              patch.object(mod, "run_trial", return_value={
                  "offers": [], "launched": {"code": 0}, "errors": [],
                  "purchase": None}), \

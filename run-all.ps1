@@ -7,16 +7,23 @@
   The original ultra0.py may automatically click Subscribe during a live stage.
   Always verify the account, current charge, renewal terms and subscription in Google Play.
 .EXAMPLE
-  .\run-all.ps1 -Serial emulator-5554 -Email your-address@gmail.com -ListOnly
+  .\run-all.ps1 -Step 0               # Original environment check
 .EXAMPLE
-  .\run-all.ps1 -Serial emulator-5554 -Email your-address@gmail.com
+  .\run-all.ps1 -Step 1               # Original read-only offer list (default)
 .EXAMPLE
-  .\run-all.ps1 -Serial emulator-5554 -SetupOnly
+  .\run-all.ps1 -Step 2 -Email account@example.com
+.EXAMPLE
+  .\run-all.ps1 -Step 5 -Email account@example.com
+.EXAMPLE
+  .\run-all.ps1 -AllStages -Email account@example.com   # Original steps 2,3,4; each gated
 #>
 [CmdletBinding()]
 param(
     [string]$Email = "",
     [string]$Serial = "",
+    [ValidateRange(0,5)]
+    [int]$Step = 1,
+    [switch]$AllStages,
     [ValidateSet("auto", "choose", "thread")]
     [string]$ActivityMethod = "auto",
     [switch]$SetupOnly,
@@ -72,11 +79,14 @@ if ($Help) {
     Get-Help $MyInvocation.MyCommand.Path -Detailed
     exit 0
 }
+if ($AllStages -and $PSBoundParameters.ContainsKey("Step") -and $Step -ne 1) {
+    Stop-Workflow "Choose either -AllStages or -Step 0..5, not both."
+}
 
 $startedAt = Get-Date
 Push-Location $PSScriptRoot
 try {
-    Stage "0. Tools"
+    Stage "Preflight: Python and Android tools"
     if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
         Stop-Workflow "Python not found. Install Python 3.10+ from python.org, reopen PowerShell, then retry."
     }
@@ -95,7 +105,7 @@ try {
     $env:ADB_PATH = $Adb
     Run-Command $Adb @("version")
 
-    Stage "1. Select an online Android device"
+    Stage "Preflight: Identify Android device"
     $deviceLines = @(& $Adb devices)
     if ($LASTEXITCODE -ne 0) { Stop-Workflow "ADB device discovery failed." }
     $online = @(
@@ -134,7 +144,7 @@ try {
     $AndroidAbi = ((& $Adb -s $Serial shell getprop ro.product.cpu.abi) | Out-String).Trim()
     Note ("Android {0} (SDK {1}), ABI {2}, activity lookup {3}" -f $AndroidVersion, $AndroidSdk, $AndroidAbi, $ActivityMethod)
 
-    Stage "2. Verify required apps"
+    Stage "Preflight: Verify required Android apps"
     foreach ($package in @("com.android.vending", "com.google.android.apps.subscriptions.red")) {
         $apk = ((& $Adb -s $Serial shell pm path $package) | Out-String).Trim()
         if ($apk -notmatch 'package:') {
@@ -143,21 +153,21 @@ try {
         Note ("Installed: {0}" -f $package)
     }
 
-    Stage "3. Python / ROOT / Frida / Play Store check"
+    Stage "Original Step 0: Environment check"
     Note "The original ultra0.py may repair Frida and change emulator proxy/network settings."
     Run-Command $Python @("ultra0.py", "--check", "--serial", $Serial)
 
-    if ($SetupOnly) {
-        Note "Setup complete. No offers queried; no purchase requested."
+    if ($SetupOnly -or ($Step -eq 0 -and -not $AllStages)) {
+        Note "Original Step 0 complete. No checkout or purchase requested."
         return
     }
 
-    Stage "4. Read current Google Play account"
+    Stage "Preflight: Read active Google Play account"
     $playAccount = (Get-RuntimeValue -LookupArgs @("play-account", "--serial", $Serial)).Trim().ToLowerInvariant()
     if ($playAccount) { Note ("Detected Play Store account: {0}" -f $playAccount) }
     else { Write-Warning "Could not read Google Play account. Open the Play Store profile menu in MuMu." }
 
-    Stage "5. Read-only offer listing"
+    Stage "Original Step 1: List Google AI Pro offers"
     # The script's --list mode only queries product details; it does not call launchBillingFlow.
     Run-Command $Python @("ultra0.py", "--account", "current@device", "--no-add",
                             "--list", "--plan", "pro12", "--serial", $Serial,
@@ -173,7 +183,7 @@ try {
     }
     Note "Offer tokens are intentionally not displayed."
 
-    Stage "6. Optional read-only Activity diagnostic"
+    Stage "Diagnostic: Read-only Android Activity inspection"
     $pid = ((& $Adb -s $Serial shell pidof com.google.android.apps.subscriptions.red) | Out-String).Trim()
     if ($pid -match '^\d+$') {
         & $Python "scripts/diagnose-activity.py" "--serial" $Serial
@@ -183,12 +193,12 @@ try {
     } else {
         Write-Warning "Google One is not running for the optional Activity probe. Open it in MuMu and rerun this check."
     }
-    if ($ListOnly) {
-        Note "Read-only run complete. No purchase requested."
+    if ($ListOnly -or ($Step -eq 1 -and -not $AllStages)) {
+        Note "Original Step 1 complete. No checkout or purchase requested."
         return
     }
 
-    Stage "7. Explicitly opt in to a live billing stage"
+    Stage "Optional original Pro subscription steps (2-5)"
     Note "CAUTION: ultra0.py is not a harmless preview. It can automatically press Subscribe."
     Note "An offer with micros=0 may still have later paid phases, and stacking 12+6+6 months is UNVERIFIED."
     Note "No live stage will run until you enter two explicit confirmations."
@@ -205,17 +215,52 @@ try {
         Stop-Workflow ($accountMismatch -f $playAccount, $Email)
     }
 
+    # Keep the original author's Pro 5 TB stage numbering and plan IDs.
+    # The alternative stage 5 is deliberately never included in -AllStages.
     $stages = @(
-        [pscustomobject]@{ Number = 1; Name = "Claimed 12-month offer"; Plan = "pro12"; Stack = $false },
-        [pscustomobject]@{ Number = 2; Name = "Claimed additional 6 months"; Plan = "pro6"; Stack = $true },
-        [pscustomobject]@{ Number = 3; Name = "Claimed additional 6 months"; Plan = "pro6b"; Stack = $true }
+        [pscustomobject]@{ Number = 2; Name = "Pro 12-month offer"; Plan = "pro12"; Offer = "12months-eft"; Stack = $false },
+        [pscustomobject]@{ Number = 3; Name = "Pro additional 6 months"; Plan = "pro6"; Offer = "6months-eft"; Stack = $true },
+        [pscustomobject]@{ Number = 4; Name = "Pro second additional 6 months"; Plan = "pro6b"; Offer = "6months-eft-2"; Stack = $true },
+        [pscustomobject]@{ Number = 5; Name = "Pro optional alternative 6 months"; Plan = "pro6c"; Offer = "6months-eft-ss-2026"; Stack = $true }
+    )
+    $selectedStages = @(
+        if ($AllStages) {
+            $stages | Where-Object { $_.Number -ge 2 -and $_.Number -le 4 }
+        } else {
+            $stages | Where-Object { $_.Number -eq $Step }
+        }
     )
     $key = $Email.Split('@')[0]
-    foreach ($stage in $stages) {
-        Stage ("Stage {0}: {1}" -f $stage.Number, $stage.Name)
-        Note "Before proceeding, check today's price, future charges, cancellation and renewal terms."
-        if (-not (Confirm-Exact "Run this LIVE stage?" ("RUN {0}" -f $stage.Number))) { break }
-        if (-not (Confirm-Exact "The original script MAY auto-press Subscribe and initiate charges." ("I ACCEPT {0}" -f $stage.Number))) { break }
+    foreach ($stage in $selectedStages) {
+        Stage ("Original Step {0}: {1}" -f $stage.Number, $stage.Name)
+
+        # Recheck offer metadata before each transaction, not just once at
+        # the beginning of a potentially long multi-step workflow.
+        if ($stage.Number -ne 2 -or $AllStages) {
+            Run-Command $Python @("ultra0.py", "--account", "current@device", "--no-add",
+                                  "--list", "--plan", $stage.Plan, "--serial", $Serial,
+                                  "--activity-method", $ActivityMethod)
+            $offerReport = Read-PythonReport "current"
+            if ($offerReport.status -ne "listed") {
+                Stop-Workflow ("Could not refresh the offer list for Step {0}: {1}" -f $stage.Number, $offerReport.status)
+            }
+        }
+        $available = @($offerReport.offers | Where-Object { $_.id -eq $stage.Offer -and [string]$_.micros -eq "0" })
+        if ($available.Count -eq 0) {
+            Note ("The expected offer {0} has no zero-priced first phase. Skipping this stage." -f $stage.Offer)
+            break
+        }
+
+        if ($stage.Stack) {
+            Note "The original author requires an existing ACTIVE subscription for an update."
+            Note "Do not proceed if the prior subscription was cancelled, expired or not verified."
+        } else {
+            Note "The original author requires an account with no existing Google One subscription."
+        }
+        Note "Inspect today's checkout price, all future pricing phases and the next charge date."
+        Note "A 0-price first phase is NOT proof of free-trial eligibility or stacking."
+        if (-not (Confirm-Exact "Run this LIVE original stage?" ("RUN {0}" -f $stage.Number))) { break }
+        if (-not (Confirm-Exact "The Python script MAY press Subscribe and initiate a charge." ("I ACCEPT {0}" -f $stage.Number))) { break }
 
         $args = @("ultra0.py", "--account", $Email, "--no-add", "--no-switch",
                   "--plan", $stage.Plan, "--serial", $Serial, "--activity-method", $ActivityMethod)
@@ -224,15 +269,17 @@ try {
 
         $report = Read-PythonReport $key
         Note ("Python stage status: {0}" -f $report.status)
-        if ($report.status -notin @("launched", "subscribed")) {
-            Note "Billing stage did not report a completed launch. No further stage will run."
+        if ($report.status -ne "checkout_requested") {
+            Note "No verified Subscribe action was recorded; stopping the staged workflow."
             if ($report.PSObject.Properties.Name -contains "error") { Note ([string]$report.error) }
             break
         }
+
         Note "Check Google Play Store > Payments & subscriptions > Subscriptions."
-        Note "Verify the EXACT effective end date and upcoming charge in Google's official UI."
-        Note "The script's status alone does NOT confirm the requested free period."
-        if (-not (Confirm-Exact "Only if the Google Play subscription is correct, continue?" "VERIFIED")) {
+        Note "Confirm the selected Pro plan is ACTIVE and the next charge date moved as expected."
+        Note "The original author's 12+6+6+6-month claims are not guaranteed."
+        Note "The script's checkout_requested status is NOT proof that a subscription was created."
+        if (-not (Confirm-Exact "Only if you verified the active plan, renewal date and future price in Google Play, continue?" "VERIFIED")) {
             break
         }
     }

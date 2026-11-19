@@ -901,7 +901,9 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
                    stack_mode=stack_mode, activity_method=activity_method)
     rec.update(fr)
     if list_only:
-        rec["status"] = "listed"
+        rec["status"] = "listed" if fr.get("offers") else "offer_query_failed"
+        if not fr.get("offers"):
+            rec["error"] = "No offer data returned; inspect BillingClient and Frida errors."
         return rec
     if fr["launched"] and fr["launched"].get("code") == 0:
         rec["sheet"] = confirm_zero(password=password)
