@@ -10,6 +10,7 @@ import importlib.metadata
 import json
 import re
 import shutil
+import sys
 import time
 
 
@@ -114,6 +115,18 @@ def validate_step(step: int) -> int:
 
 def command_for_step(step: int, repo: Path, shell: str | None = None) -> list[str]:
     validate_step(step)
+    if sys.platform == "darwin":
+        bridge = repo / "macos_runner.py"
+        if not bridge.is_file():
+            raise FileNotFoundError("macos_runner.py is missing")
+        command = [sys.executable, str(bridge), "--step", str(step)]
+        # The Textual app shows a separate approval modal for each paid stage.
+        # The native adapter requires explicit flags as a second fail-closed gate.
+        if step >= 2:
+            command.append("--confirmed")
+        if step >= 3:
+            command.append("--active-confirmed")
+        return command
     executable = shell or shutil.which("powershell.exe") or shutil.which("pwsh")
     if not executable:
         raise RuntimeError("PowerShell was not found. Install PowerShell or run on Windows.")

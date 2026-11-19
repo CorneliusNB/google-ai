@@ -1,5 +1,7 @@
 # Detailed setup, operations, and troubleshooting
 
+[Documentation home](README.md) · [Project overview](../README.md)
+
 This guide describes the maintained **Python + ADB + Frida** workflow. The Playwright wrapper was removed because it only delegated to the same Python script and added an unnecessary Node.js dependency. The optional **pure JavaScript test** for the Frida hook still uses Node.js in CI; end users do **not** need Node.js.
 
 [Back to README](../README.md) · [Security precautions](../SECURITY.md) · [Original stage reference (English)](ORIGINAL-STEPS.md)
@@ -144,12 +146,12 @@ On some Android 15 / API 35 x86_64 emulator builds, Frida `Java.choose()` raises
 
 | Stage | Original shortcut | Python option |
 | --- | --- | --- |
-| Claimed 12-month offer | `02-pro-12-months.bat` | `--plan pro12` |
-| Claimed additional six months | `03-pro-add-6-months.bat` | `--plan pro6 --stack` |
-| Claimed additional six months | `04-pro-add-6-months-again.bat` | `--plan pro6b --stack` |
-| Optional alternative six months | `05-pro-alternative-6-months.bat` | `--plan pro6c --stack` |
+| Claimed 12-month offer | `legacy/windows/02-pro-12-months.bat` | `--plan pro12` |
+| Claimed additional six months | `legacy/windows/03-pro-add-6-months.bat` | `--plan pro6 --stack` |
+| Claimed additional six months | `legacy/windows/04-pro-add-6-months-again.bat` | `--plan pro6b --stack` |
+| Optional alternative six months | `legacy/windows/05-pro-alternative-6-months.bat` | `--plan pro6c --stack` |
 
-The legacy-compatible `.bat` files use `--force` to bypass account verification and may initiate purchase flows. The guided PowerShell entrypoint uses `--no-switch` and verifies the detected account by default; explicit `-Force` mirrors the original account-check bypass and requires separate confirmation. The original 12+6+6 stacking claim is unverified and cannot be inferred from offer identifiers.
+The historical shortcuts are kept under `legacy/windows/` and use `--force` to bypass account verification and may initiate purchase flows. The guided PowerShell entrypoint uses `--no-switch` and verifies the detected account by default; explicit `-Force` mirrors the original account-check bypass and requires separate confirmation. The original 12+6+6 stacking claim is unverified and cannot be inferred from offer identifiers.
 
 ## Common failures
 
