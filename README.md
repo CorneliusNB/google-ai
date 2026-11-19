@@ -8,7 +8,18 @@
 
 ## Requirements
 
-- Windows with PowerShell 5.1+, Python 3.10+, and a running rooted MuMu emulator with ADB enabled.
+## Install MuMuPlayer (required)
+
+**MuMuPlayer is not bundled with ePlus AI Toolkit and is not downloaded or installed automatically.** Install and launch the emulator yourself before starting the toolkit.
+
+- **Official MuMuPlayer downloads (NetEase):** [Download MuMuPlayer](https://www.mumuplayer.com/vi/download/) (choose **Windows** for this Windows toolkit).
+- Enable Android root and ADB debugging in the emulator settings, then start the emulator and install/sign into **Google Play Store** and **Google One**.
+- You can verify the connection with `adb devices` if ADB is available in your PATH. If ADB is missing, the toolkit can locate or install **Android SDK Platform-Tools** separately; **installing ADB is not installing MuMuPlayer**.
+- For illustrated initial setup, see the [GitHub Wiki installation guide](https://github.com/hoangsvit/google-ai/wiki/Install).
+
+Avoid unofficial download mirrors. The presence of a Windows/macOS download option on the MuMuPlayer website does **not** mean this toolkit's checkout workflow has been verified on macOS.
+
+- Windows with PowerShell 5.1+, Python 3.10+, and a **separately installed**, running rooted MuMu emulator with ADB enabled.
 - Google Play Store and Google One installed; sign in to the intended Google account.
 - For a checkout stage, prepare a valid payment method in Google Play. The script does not make trial eligibility guarantees.
 
