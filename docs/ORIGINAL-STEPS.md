@@ -29,8 +29,11 @@ Run `setup-environment.bat` to invoke the original setup helper, or use the main
 # Step 5: optional alternative offer (+6 months claimed)
 .\run-all.ps1 -Step 5 -Email account@gmail.com
 
-# Guided original main sequence (Steps 2, 3 and 4 only)
-.\run-all.ps1 -AllStages -Email account@gmail.com
+# Entire original sequence: preflight, offer list, Steps 2-4, optional Step 5
+.\run-all.ps1 -AllStages
+
+# Original account-check bypass (only when necessary)
+.\run-all.ps1 -AllStages -Force
 ```
 
 For the **Step 3–5** subscription replacement, the revised code rejects missing purchase tokens, expired or wrong-account database tokens, or unsupported replacement modes instead of silently falling back to a fresh standalone purchase. If the optional BillingClient query finds multiple subscriptions, it only accepts the matching original Google AI Pro product ID.
@@ -48,7 +51,7 @@ The Python status `checkout_requested` means the script clicked Subscribe, **not
 | Original stage 3 | `04-pro-add-6-months-again.bat` | Additional claimed `--stack` flow; **possible purchase** |
 | Alternate stage | `05-pro-alternative-6-months.bat` | Claimed alternative offer; **possible purchase** |
 
-These legacy-compatible batch files preserve the original `--force` option and **do not verify the Play account**. Prefer the guided `run-all.ps1` entrypoint, which checks the account and explicitly asks for consent before each live stage.
+These legacy-compatible batch files preserve the original `--force` option and **do not verify the Play account**. The guided `run-all.ps1 -AllStages` includes optional Step 5 and checks the account by default. Add `-Force` only to mirror the author's deliberate account-check bypass; you must confirm that choice. All live stages still require confirmation and Google Play subscription verification.
 
 ## What the original script attempts
 

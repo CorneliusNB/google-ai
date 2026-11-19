@@ -4,7 +4,8 @@
   Single-entry Windows/MuMu setup, diagnostics, offer listing and optional guided stages.
 .DESCRIPTION
   Defaults to original Step 1 (read-only). Original Steps 2-5 require explicit selection.
-  -AllStages runs original Steps 2-4 with explicit opt-in for EACH live stage.
+  -AllStages runs original Steps 2-5, with approval for EACH potentially billable stage.
+  Step 5 is the author's optional additional offer and can be skipped.
   The original ultra0.py may automatically click Subscribe during a live stage.
   Always verify the account, current charge, renewal terms and subscription in Google Play.
 .EXAMPLE
@@ -16,7 +17,9 @@
 .EXAMPLE
   .\run-all.ps1 -Step 5 -Email account@example.com
 .EXAMPLE
-  .\run-all.ps1 -AllStages -Email account@example.com   # Original steps 2,3,4; each gated
+  .\run-all.ps1 -AllStages                       # Original steps 2-5, with confirmation
+.EXAMPLE
+  .\run-all.ps1 -AllStages -Force                # Author's account-check bypass (unsafe)
 #>
 [CmdletBinding()]
 param(
@@ -25,6 +28,7 @@ param(
     [ValidateRange(0,5)]
     [int]$Step = 1,
     [switch]$AllStages,
+    [switch]$Force,
     [ValidateSet("auto", "choose", "thread")]
     [string]$ActivityMethod = "auto",
     [switch]$SetupOnly,
@@ -204,20 +208,36 @@ try {
     Note "An offer with micros=0 may still have later paid phases, and stacking 12+6+6 months is UNVERIFIED."
     Note "No live stage will run until you enter two explicit confirmations."
 
-    if (-not $Email) { $Email = Read-Host "Google Play account email for LIVE operation (Enter to stop)" }
+    # Reuse the selected Play account. No repeated email input is required.
+    if (-not $Email -and $playAccount) {
+        $Email = $playAccount
+        Note ("Using detected Google Play account: {0}" -f $Email)
+    }
+    if (-not $Email -and $Force) {
+        # Mirrors the author's --account current@device --force when profile
+        # enumeration is unavailable. No additional account is added.
+        $Email = "current@device"
+    }
+    if (-not $Email) { $Email = Read-Host "Google Play email (Enter to stop)" }
     $Email = $Email.Trim().ToLowerInvariant()
-    if ($Email -notmatch '^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$') {
+    if ($Email -ne "current@device" -and $Email -notmatch '^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$') {
         Note "No valid email supplied; stopping before live billing."
         return
     }
-    if (-not $playAccount -or $playAccount -cne $Email) {
+    if ($Force) {
+        Write-Warning "--force bypasses only the Play Store account check, NOT Google's eligibility or payment conditions."
+        Write-Warning ("Detected Play account: {0}; requested: {1}" -f $playAccount, $Email)
+        if (-not (Confirm-Exact "Use original --force for this Android account?" "FORCE")) {
+            return
+        }
+    } elseif (-not $playAccount -or $playAccount -cne $Email) {
         $accountMismatch = ("Play account mismatch or unverified. Detected '{0}', expected '{1}'. " +
-                            "Open Google Play profile and rerun; --force is intentionally not used.")
+                            "Check the Play Store profile before proceeding.")
         Stop-Workflow ($accountMismatch -f $playAccount, $Email)
     }
 
     # Keep the original author's Pro 5 TB stage numbering and plan IDs.
-    # The alternative stage 5 is deliberately never included in -AllStages.
+    # Step 5 is the author's optional additional offer and requires explicit approval.
     $stages = @(
         [pscustomobject]@{ Number = 2; Name = "Pro 12-month offer"; Plan = "pro12"; Offer = "12months-eft"; Stack = $false },
         [pscustomobject]@{ Number = 3; Name = "Pro additional 6 months"; Plan = "pro6"; Offer = "6months-eft"; Stack = $true },
@@ -226,7 +246,7 @@ try {
     )
     $selectedStages = @(
         if ($AllStages) {
-            $stages | Where-Object { $_.Number -ge 2 -and $_.Number -le 4 }
+            $stages | Where-Object { $_.Number -ge 2 -and $_.Number -le 5 }
         } else {
             $stages | Where-Object { $_.Number -eq $Step }
         }
@@ -265,6 +285,7 @@ try {
 
         $args = @("ultra0.py", "--account", $Email, "--no-add", "--no-switch",
                   "--plan", $stage.Plan, "--serial", $Serial, "--activity-method", $ActivityMethod)
+        if ($Force) { $args += "--force" }
         if ($stage.Stack) { $args += "--stack" }
         Run-Command $Python $args
 

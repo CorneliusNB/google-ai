@@ -29,12 +29,17 @@ class OriginalProStageTests(unittest.TestCase):
         import re
         self.assertIsNone(re.search(r"\$pid\s*=", ps, flags=re.IGNORECASE))
 
-    def test_optional_stage_never_runs_in_all_stages(self):
+    def test_all_stages_includes_optional_step_five_and_force_is_explicit(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
-        self.assertIn('$_.Number -ge 2 -and $_.Number -le 4', ps)
+        self.assertIn('$_.Number -ge 2 -and $_.Number -le 5', ps)
+        self.assertIn('[switch]$Force', ps)
+        self.assertIn('if ($Force) { $args += "--force" }', ps)
+        self.assertIn('Confirm-Exact "Use original --force for this Android account?" "FORCE"', ps)
+        self.assertIn('if (-not $Email -and $playAccount)', ps)
         self.assertIn('if ($report.status -ne "checkout_requested")', ps)
         self.assertNotIn('"launched", "subscribed"', ps)
-        self.assertNotIn(' "--force" ', ps)
+        self.assertIn('if ($report.status -ne "checkout_requested")', ps)
+        self.assertIn('Confirm-Exact "Only if you verified the active plan', ps)
 
 
 if __name__ == "__main__":

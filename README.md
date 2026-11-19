@@ -48,11 +48,15 @@ For environment setup only:
 .\run-all.ps1 -SetupOnly
 ```
 
-For the author's **interactive main stages 2–4** (possible real checkout after explicit confirmation):
+For the author's **full original flow (Steps 0–5)** in a single guided command:
 
 ```powershell
-.\run-all.ps1 -AllStages -Email your-email@gmail.com
+.\run-all.ps1 -AllStages
 ```
+
+This reuses the Google Play account detected on the device, runs the original 12-month and additional 6-month offers in order, and offers optional Step 5 at the end. Step 5 can be skipped. Check the subscription in Google Play between billable steps; the Python code can automatically click Subscribe.
+
+To use the original author's `--force` account-check bypass, explicitly add `-Force`. It is not needed when the correct Play account is already detected and does not force eligibility or free prices.
 
 The guided script requires explicit confirmation for each live stage, validates the selected Play account, and halts between stages for subscription verification. It never uses `--force`. A CI pass **does not** prove real billing compatibility with your device.
 
@@ -67,7 +71,7 @@ The **Step numbers below match the author's MuMu guide and batch scripts**. Envi
 | **2 — Pro 12-month offer** | Original plan `pro12`, offer `12months-eft` | `.\run-all.ps1 -Step 2 -Email "account@gmail.com"` | Possible real purchase |
 | **3 — Additional 6 months** | Original `pro6 --stack`, offer `6months-eft` | `.\run-all.ps1 -Step 3 -Email "account@gmail.com"` | Possible real purchase |
 | **4 — Second additional 6 months** | Original `pro6b --stack`, offer `6months-eft-2` | `.\run-all.ps1 -Step 4 -Email "account@gmail.com"` | Possible real purchase |
-| **5 — Optional alternative 6 months** | Original `pro6c --stack`, offer `6months-eft-ss-2026` | `.\run-all.ps1 -Step 5 -Email "account@gmail.com"` | Possible real purchase |
+| **5 — Optional additional 6 months** | Original `pro6c --stack`, offer `6months-eft-ss-2026` | `.\run-all.ps1 -Step 5 -Email "account@gmail.com"` | Possible real purchase |
 
 Install tools once and inspect offers before attempting a billing stage:
 
@@ -78,13 +82,13 @@ python setup_env.py
 .\run-all.ps1 -Step 1
 ```
 
-To run the **author's main sequence (Steps 2–4)** in one guided session, use:
+To run the **full author's sequence (Steps 0–5)** in one guided session, use:
 
 ```powershell
-.\run-all.ps1 -AllStages -Email "account@gmail.com"
+.\run-all.ps1 -AllStages
 ```
 
-This guided sequence **excludes optional Step 5**. Each billing step requires you to type `RUN 2` / `I ACCEPT 2` (or the matching step number) and then `VERIFIED` only after checking the real active plan, next charge date and price in Google Play. If any offer, activity lookup, account check, or token validation fails, stop; do not bypass it with `--force`.
+Step 5 remains optional: it is offered after Steps 2–4, but requires separate approval and can be skipped. The script detects the active Play account automatically. Use `-Email` to specify one, or `-Force` only if you intentionally want the author's account-check bypass. Each billing step requires you to type `RUN 2` / `I ACCEPT 2` (or the matching step number) and then `VERIFIED` only after checking the real active plan, next charge date and price in Google Play. If any offer, activity lookup, account check, or token validation fails, stop; do not bypass it with `--force`.
 
 The default `.\run-all.ps1` is equivalent to **Step 1** (read-only). The previous `-SetupOnly` and `-ListOnly` switches remain aliases for environment-only and offer-only workflows. Auto device detection remains enabled; you can specify `-Serial emulator-5554` when needed.
 
