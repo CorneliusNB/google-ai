@@ -12,6 +12,8 @@
 - Google Play Store and Google One installed; sign in to the intended Google account.
 - For a checkout stage, prepare a valid payment method in Google Play. The script does not make trial eligibility guarantees.
 
+For installation and initial setup, see the **[Installation guide (GitHub Wiki)](https://github.com/hoangsvit/google-ai/wiki/Install)**.
+
 ## Get started: interactive dashboard
 
 Start MuMu, enable ADB, install/sign into **Google Play Store** and **Google One**, then run from the repository folder:
@@ -130,6 +132,7 @@ If the account or device cannot be identified automatically, single-step mode st
 
 Read-only offers and stage diagnostics are saved under `ultra0-report/`. A status such as `checkout_requested` is **not** confirmation of an active subscription. Check the real plan, charge, currency and renewal date at [Google Play Subscriptions](https://play.google.com/store/account/subscriptions).
 
+- [Installation guide (GitHub Wiki)](https://github.com/hoangsvit/google-ai/wiki/Install)
 - [Detailed setup and troubleshooting](docs/DETAILED-GUIDE.md)
 - [Original author's steps and batch-file mapping](docs/ORIGINAL-STEPS.md)
 - [Historical author notes](docs/AUTHOR-NOTES.md)
