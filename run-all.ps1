@@ -185,8 +185,118 @@ try {
     Note "Offer tokens are intentionally not displayed."
 
     Stage "Diagnostic: Read-only Android Activity inspection"
-    $pid = ((& $Adb -s $Serial shell pidof com.google.android.apps.subscriptions.red) | Out-String).Trim()
-    if ($pid -match '^\d+$') {
+    $googleOnePid = ((& $Adb -s $Serial shell pidof com.google.android.apps.subscriptions.red) | Out-String).Trim()
+    if ($googleOnePid -match '^\d+
+        & $Python "scripts/diagnose-activity.py" "--serial" $Serial
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "ActivityThread diagnostic did not pass. This does not prove the chosen lookup method is broken."
+        }
+    } else {
+        Write-Warning "Google One is not running for the optional Activity probe. Open it in MuMu and rerun this check."
+    }
+    if ($ListOnly -or ($Step -eq 1 -and -not $AllStages)) {
+        Note "Original Step 1 complete. No checkout or purchase requested."
+        return
+    }
+
+    Stage "Optional original Pro subscription steps (2-5)"
+    Note "CAUTION: ultra0.py is not a harmless preview. It can automatically press Subscribe."
+    Note "An offer with micros=0 may still have later paid phases, and stacking 12+6+6 months is UNVERIFIED."
+    Note "No live stage will run until you enter two explicit confirmations."
+
+    if (-not $Email) { $Email = Read-Host "Google Play account email for LIVE operation (Enter to stop)" }
+    $Email = $Email.Trim().ToLowerInvariant()
+    if ($Email -notmatch '^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$') {
+        Note "No valid email supplied; stopping before live billing."
+        return
+    }
+    if (-not $playAccount -or $playAccount -cne $Email) {
+        $accountMismatch = ("Play account mismatch or unverified. Detected '{0}', expected '{1}'. " +
+                            "Open Google Play profile and rerun; --force is intentionally not used.")
+        Stop-Workflow ($accountMismatch -f $playAccount, $Email)
+    }
+
+    # Keep the original author's Pro 5 TB stage numbering and plan IDs.
+    # The alternative stage 5 is deliberately never included in -AllStages.
+    $stages = @(
+        [pscustomobject]@{ Number = 2; Name = "Pro 12-month offer"; Plan = "pro12"; Offer = "12months-eft"; Stack = $false },
+        [pscustomobject]@{ Number = 3; Name = "Pro additional 6 months"; Plan = "pro6"; Offer = "6months-eft"; Stack = $true },
+        [pscustomobject]@{ Number = 4; Name = "Pro second additional 6 months"; Plan = "pro6b"; Offer = "6months-eft-2"; Stack = $true },
+        [pscustomobject]@{ Number = 5; Name = "Pro optional alternative 6 months"; Plan = "pro6c"; Offer = "6months-eft-ss-2026"; Stack = $true }
+    )
+    $selectedStages = @(
+        if ($AllStages) {
+            $stages | Where-Object { $_.Number -ge 2 -and $_.Number -le 4 }
+        } else {
+            $stages | Where-Object { $_.Number -eq $Step }
+        }
+    )
+    $key = $Email.Split('@')[0]
+    foreach ($stage in $selectedStages) {
+        Stage ("Original Step {0}: {1}" -f $stage.Number, $stage.Name)
+
+        # Recheck offer metadata before each transaction, not just once at
+        # the beginning of a potentially long multi-step workflow.
+        if ($stage.Number -ne 2 -or $AllStages) {
+            Run-Command $Python @("ultra0.py", "--account", "current@device", "--no-add",
+                                  "--list", "--plan", $stage.Plan, "--serial", $Serial,
+                                  "--activity-method", $ActivityMethod)
+            $offerReport = Read-PythonReport "current"
+            if ($offerReport.status -ne "listed") {
+                Stop-Workflow ("Could not refresh the offer list for Step {0}: {1}" -f $stage.Number, $offerReport.status)
+            }
+        }
+        $available = @($offerReport.offers | Where-Object { $_.id -eq $stage.Offer -and [string]$_.micros -eq "0" })
+        if ($available.Count -eq 0) {
+            Note ("The expected offer {0} has no zero-priced first phase. Skipping this stage." -f $stage.Offer)
+            break
+        }
+
+        if ($stage.Stack) {
+            Note "The original author requires an existing ACTIVE subscription for an update."
+            Note "Do not proceed if the prior subscription was cancelled, expired or not verified."
+        } else {
+            Note "The original author requires an account with no existing Google One subscription."
+        }
+        Note "Inspect today's checkout price, all future pricing phases and the next charge date."
+        Note "A 0-price first phase is NOT proof of free-trial eligibility or stacking."
+        if (-not (Confirm-Exact "Run this LIVE original stage?" ("RUN {0}" -f $stage.Number))) { break }
+        if (-not (Confirm-Exact "The Python script MAY press Subscribe and initiate a charge." ("I ACCEPT {0}" -f $stage.Number))) { break }
+
+        $args = @("ultra0.py", "--account", $Email, "--no-add", "--no-switch",
+                  "--plan", $stage.Plan, "--serial", $Serial, "--activity-method", $ActivityMethod)
+        if ($stage.Stack) { $args += "--stack" }
+        Run-Command $Python $args
+
+        $report = Read-PythonReport $key
+        Note ("Python stage status: {0}" -f $report.status)
+        if ($report.status -ne "checkout_requested") {
+            Note "No verified Subscribe action was recorded; stopping the staged workflow."
+            if ($report.PSObject.Properties.Name -contains "error") { Note ([string]$report.error) }
+            break
+        }
+
+        Note "Check Google Play Store > Payments & subscriptions > Subscriptions."
+        Note "Confirm the selected Pro plan is ACTIVE and the next charge date moved as expected."
+        Note "The original author's 12+6+6+6-month claims are not guaranteed."
+        Note "The script's checkout_requested status is NOT proof that a subscription was created."
+        if (-not (Confirm-Exact "Only if you verified the active plan, renewal date and future price in Google Play, continue?" "VERIFIED")) {
+            break
+        }
+    }
+
+    Stage "Finished"
+    Note "Review your Google Play subscription status directly; no claimed duration is guaranteed."
+}
+catch {
+    Write-Host ""
+    Write-Host ("Stopped: {0}" -f $_.Exception.Message) -ForegroundColor Red
+    exit 1
+}
+finally {
+    Pop-Location
+}
+) {
         & $Python "scripts/diagnose-activity.py" "--serial" $Serial
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "ActivityThread diagnostic did not pass. This does not prove the chosen lookup method is broken."

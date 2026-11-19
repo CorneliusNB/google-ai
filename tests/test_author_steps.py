@@ -22,6 +22,13 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertIn("[int]$Step = 1", ps)
         self.assertIn('if ($ListOnly -or ($Step -eq 1 -and -not $AllStages))', ps)
 
+    def test_diagnostic_does_not_assign_to_powershell_automatic_pid(self):
+        ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
+        self.assertIn("$googleOnePid =", ps)
+        self.assertIn("if ($googleOnePid -match", ps)
+        import re
+        self.assertIsNone(re.search(r"\\$pid\\s*=", ps, flags=re.IGNORECASE))
+
     def test_optional_stage_never_runs_in_all_stages(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         self.assertIn('$_.Number -ge 2 -and $_.Number -le 4', ps)
