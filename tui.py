@@ -335,11 +335,11 @@ class GoogleAITUI(App[None]):
     def _visible_failure(self) -> str:
         """Show a concise CLI error without exposing account emails."""
         for raw in reversed(self._run_output):
-            line = re.sub(r"\\x1b\\[[0-9;]*m", "", raw).strip()
+            line = re.sub(r"\x1b\[[0-9;]*m", "", raw).strip()
             if not line:
                 continue
             if re.search(r"error|failed|missing|not found|cannot|unable|offline|unauthorized|issue|stopped|device", line, re.I):
-                line = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[account hidden]", line)
+                line = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[account hidden]", line)
                 return line[:220]
         return ""
 
