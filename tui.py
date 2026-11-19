@@ -71,60 +71,91 @@ class GoogleAITUI(App[None]):
     Screen { background: #081424; color: #e8f2fc; }
     Header, Footer { background: #11243e; color: #d7e8fa; }
     #screen { height: 1fr; min-height: 0; padding: 0 1; }
-    #brand { height: 3; background: #122741; border: round #28628d; color: #f0f8ff; text-style: bold; padding: 0 2; }
+    #brand {
+        height: 3; background: #122741; border: round #28628d;
+        color: #f0f8ff; text-style: bold; padding: 0 2;
+    }
     #credit { height: 1; color: #87b8d4; }
     #credit Static { width: auto; height: 1; color: #87b8d4; }
     #credit Link { width: auto; height: 1; color: #75d8ff; text-style: underline; }
     #credit Link:hover { color: #e6f8ff; }
     #details { height: 3; margin-bottom: 1; }
-    #device, #account { width: 1fr; height: 3; background: #12263d; border: round #295a7e; padding: 0 1; }
+    #device, #account {
+        width: 1fr; height: 3; background: #12263d;
+        border: round #295a7e; padding: 0 1;
+    }
     #account { margin-left: 1; }
     #content { height: 1fr; min-height: 0; }
-    #controls { width: 32; min-width: 27; min-height: 0; overflow-y: auto; scrollbar-size: 1 1; background: #101f35; border: round #2b5577; padding: 0 1; }
-    #results { width: 1fr; min-width: 23; min-height: 0; background: #081424; margin-left: 1; }
-    .section { color: #6cdbf8; text-style: bold; margin-top: 1; }
-    #controls Button { width: 100%; margin: 0; height: 3; }
-    #nav_home { background: #1a4e7e; }
-    #nav_home, #nav_quick { display: none; }
-    #workflow_actions { height: auto; border: round #2a5a7b; padding: 0 1; margin: 0 0 1 0; }
-    #mode_hint { color: #a5c8df; height: auto; }
-    #mode_label { height: 1; margin-top: 1; color: #79d8ef; text-style: bold; }
-    #mode { margin: 0; }
-    #run { width: 100%; height: 3; margin: 1 0 0 0; }
-    #run_all, #sequence { display: none; }
-    #debug { margin-top: 1; }
-    #stop { margin-top: 1; }
-    #nav_help { height: 1; }
-    #controls .section { margin-top: 0; }
-    #advanced { display: none; height: auto; }
-    #advanced_label { margin-top: 1; }
-    #advanced_label { margin: 0; }
-    #advanced Select { margin: 0; }
-    #next, #stop { display: none; }
-    #exit { width: 100%; height: 3; }
-    #workflow { height: auto; margin-top: 1; border-top: solid #28506b; }
-    .workflow-step { height: 1; color: #b4cbe0; }
-    #welcome_panel { height: auto; border: round #2b97bc; background: #112b49; padding: 0 2; margin-bottom: 1; }
-    #welcome { color: #91e3ff; text-style: bold; height: 1; margin-top: 1; }
-    #quick_hint { color: #afcce3; height: auto; margin-bottom: 1; }
-    #quickstart { display: none; }
-    #read_only { color: #81c6df; height: 1; }
-    #status_panel { height: 1fr; min-height: 0; border: round #285a80; background: #101f35; padding: 0 1; }
-    #state { color: #f2f9ff; text-style: bold; margin-top: 1; }
+    #controls {
+        width: 26; min-width: 26; min-height: 0;
+        border: round #2b5577; background: #101f35;
+        padding: 0 1; overflow-y: auto; scrollbar-size: 1 1;
+    }
+    #results { width: 1fr; min-width: 26; min-height: 0; margin-left: 1; }
+    .section { color: #6cdbf8; text-style: bold; margin: 0 0 1 0; }
+    #workflow { height: auto; margin-bottom: 1; }
+    .workflow-step { color: #b4cbe0; height: 1; }
+    #nav_help, #debug, #exit {
+        width: 100%; height: 3; margin: 0;
+    }
+    #quickstart, #nav_home, #nav_quick, #advanced, #sequence, #run_all {
+        display: none;
+    }
+    #welcome_panel {
+        height: auto; border: round #2b97bc;
+        background: #112b49; padding: 1 2; margin-bottom: 1;
+    }
+    #welcome { color: #91e3ff; text-style: bold; height: 1; }
+    #quick_hint { color: #afcce3; height: auto; margin: 0 0 1 0; }
+    #read_only { color: #81c6df; height: auto; margin-top: 1; }
+    #workflow_actions { height: auto; }
+    #form_row { height: auto; }
+    .field { width: 1fr; min-width: 12; height: auto; }
+    #step_field { margin-left: 1; }
+    #mode_label, #advanced_label {
+        color: #8edff1; text-style: bold; height: 1; margin: 0 0 1 0;
+    }
+    #mode, #step { width: 100%; margin: 0; }
+    #run_row { height: auto; margin-top: 1; }
+    #run { width: 25; min-width: 17; height: 3; margin: 0; }
+    #mode_hint {
+        width: 1fr; height: auto; color: #a5c8df;
+        padding: 0 1;
+    }
+    #next, #stop { display: none; width: 100%; height: 3; margin-top: 1; }
+    #status_panel {
+        height: 1fr; min-height: 0; border: round #285a80;
+        background: #101f35; padding: 0 1;
+    }
+    #state { color: #f2f9ff; text-style: bold; margin: 1 0 0 0; }
     #message { color: #c5ddee; }
     #step_result { color: #8cdfbb; }
     #elapsed, #activity { color: #95c4dd; }
-    #debug_log { display: none; height: 1fr; min-height: 3; border: round #294b67; background: #071528; }
+    #debug_log {
+        display: none; height: 1fr; min-height: 3;
+        border: round #294b67; background: #071528;
+    }
     #manual { display: none; width: 100%; height: 3; }
     #hint { color: #83b1cf; height: auto; margin-top: 1; }
     Screen.compact #brand { height: 1; border: none; padding: 0 1; }
-    Screen.compact #credit, Screen.compact #workflow, Screen.compact #hint { display: none; }
+    Screen.compact #credit, Screen.compact #hint { display: none; }
     Screen.compact #details { height: 1; }
     Screen.compact #device, Screen.compact #account { height: 1; border: none; }
     Screen.compact #welcome_panel { padding: 0 1; }
-    Screen.compact #welcome { margin: 0; }
-    Screen.narrow #controls { width: 27; min-width: 25; }
-    Screen.narrow #quick_hint, Screen.narrow #read_only { display: none; }
+    Screen.compact #quick_hint { display: none; }
+    Screen.narrow #form_row { layout: vertical; }
+    Screen.narrow #step_field { margin: 1 0 0 0; }
+    Screen.narrow #run_row { layout: vertical; }
+    Screen.narrow #run { width: 100%; }
+    Screen.narrow #mode_hint { padding: 1 0 0 0; }
+    Screen.narrow #controls { width: 21; min-width: 21; }
+    Screen.tiny #content { layout: vertical; }
+    Screen.tiny #controls {
+        width: 100%; min-width: 0; height: auto;
+        max-height: 11; overflow-y: auto; margin-bottom: 1;
+    }
+    Screen.tiny #workflow { display: none; }
+    Screen.tiny #results { width: 100%; min-width: 0; margin-left: 0; }
     """
 
     def __init__(self, *, repo: Path, selected_step: int = 1,
@@ -156,64 +187,69 @@ class GoogleAITUI(App[None]):
             with Horizontal(id="credit"):
                 yield Static("  Original ")
                 yield Link("@gylive", url="https://github.com/gylive",
-                           tooltip="Open original author on GitHub", id="original_author")
+                           tooltip="Original author on GitHub", id="original_author")
                 yield Static("  |  Maintained ")
                 yield Link("@hoangsvit", url="https://github.com/hoangsvit",
-                           tooltip="Open maintainer on GitHub", id="maintainer")
-                yield Static("  |  ePlus.DEV")
+                           tooltip="Maintainer on GitHub", id="maintainer")
             with Horizontal(id="details"):
-                yield Static("ANDROID DEVICE\nMuMu • Auto-detect", id="device")
-                yield Static("GOOGLE ACCOUNT\nNot checked", id="account")
+                yield Static("ANDROID DEVICE\\nMuMu • Auto-detect", id="device")
+                yield Static("GOOGLE ACCOUNT\\nNot checked", id="account")
             with Horizontal(id="content"):
                 with Vertical(id="controls"):
-                    yield Static("RUN WORKFLOW", classes="section")
-                    with Vertical(id="workflow_actions"):
-                        yield Static("Mode", id="mode_label")
-                        yield Select([
-                            ("One step only", "single"),
-                            ("From selected step", "from"),
-                            ("Run all: Steps 2-5", "all"),
-                        ], value="single", id="mode", allow_blank=False)
-                        yield Static("Runs only the selected step.", id="mode_hint")
-                        yield Static("Starting step", id="advanced_label", classes="section")
-                        yield Select(
-                            [(f"{stage.number}. {stage.label}", stage.number) for stage in STAGES],
-                            value=self.initial_step, id="step", allow_blank=False)
-                        yield Button("Run selected step", id="run", variant="primary")
-                        yield Button("Run sequence from step", id="sequence")
-                        yield Button("Run all", id="run_all")
-                    yield Button("Help & Guide", id="nav_help")
-                    yield Button("Show technical details", id="debug")
-                    yield Button("Exit toolkit", id="exit")
-                    yield Button("Verified in Google Play → Next", id="next", disabled=True)
-                    yield Button("Stop after current step", id="stop", disabled=True)
+                    yield Static("STEPS", classes="section")
                     with Vertical(id="workflow"):
-                        yield Static("STEPS", classes="section")
                         for stage in STAGES:
                             yield Static(f"○  {stage.number}. {stage.label}",
                                          id=f"stage_{stage.number}", classes="workflow-step")
+                    yield Button("Help & Guide", id="nav_help")
+                    yield Button("Show technical details", id="debug")
+                    yield Button("Exit toolkit", id="exit")
                 with Vertical(id="results"):
                     with Vertical(id="welcome_panel"):
-                        yield Static("HOW TO USE", id="welcome")
-                        yield Static("Choose a mode and press Run on the left. Step 1 safely lists offers.", id="quick_hint")
-                        yield Button("Check Device & Offers", id="quickstart", variant="primary")
-                        yield Static("Steps 2-5 require approval and can request real checkout.", id="read_only")
+                        yield Static("RUN WORKFLOW", id="welcome")
+                        yield Static("Choose a run mode, then select the starting step.", id="quick_hint")
+                        with Vertical(id="workflow_actions"):
+                            with Horizontal(id="form_row"):
+                                with Vertical(classes="field", id="mode_field"):
+                                    yield Static("Run mode", id="mode_label")
+                                    yield Select([
+                                        ("One step only", "single"),
+                                        ("From selected step", "from"),
+                                        ("All: Steps 2–5", "all"),
+                                    ], value="single", id="mode", allow_blank=False)
+                                with Vertical(classes="field", id="step_field"):
+                                    yield Static("Step", id="advanced_label")
+                                    yield Select(
+                                        [(f"{stage.number}. {stage.label}", stage.number)
+                                         for stage in STAGES],
+                                        value=self.initial_step, id="step", allow_blank=False)
+                            with Horizontal(id="run_row"):
+                                yield Button("Run selected step", id="run", variant="primary")
+                                yield Static("Runs one step; no next step is automatic.", id="mode_hint")
+                            yield Button("Run sequence from step", id="sequence")
+                            yield Button("Run all", id="run_all")
+                            yield Button("Verified in Google Play → Next",
+                                         id="next", disabled=True)
+                            yield Button("Stop after current step", id="stop", disabled=True)
+                            yield Button("Check Device & Offers", id="quickstart")
+                            yield Static("Checkout steps require explicit confirmation.", id="read_only")
                     with Vertical(id="status_panel"):
                         yield Static("LIVE STATUS", classes="section")
                         yield Static("Ready — no check started", id="state")
-                        yield Static("Select Check Device & Offers above to begin.", id="message")
+                        yield Static("Choose a run mode and press Run above.", id="message")
                         yield Static("", id="step_result")
                         yield Static("Elapsed: --", id="elapsed")
                         yield Static("Waiting for your action.", id="activity")
                         yield Button("Completed action on Android", id="manual", disabled=True)
                         yield RichLog(id="debug_log", wrap=True, highlight=False, markup=False)
-                        yield Static("Steps 2-5 may request a real Google Play checkout. Verify "
-                                     "pricing and renewal terms first.", id="hint")
+                        yield Static("Review Google Play pricing and renewal terms "
+                                     "before each checkout.", id="hint")
         yield Footer()
 
     def on_resize(self, event) -> None:
         self.screen.set_class(event.size.height < 27, "compact")
         self.screen.set_class(event.size.width < 90, "narrow")
+        self.screen.set_class(event.size.width < 62, "tiny")
 
     @on(Button.Pressed, "#nav_home")
     def home_pressed(self) -> None:
