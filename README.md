@@ -12,7 +12,7 @@
 
 **MuMuPlayer is not bundled with ePlus AI Toolkit and is not downloaded or installed automatically.** Install and launch the emulator yourself before starting the toolkit.
 
-- **Official MuMuPlayer downloads (NetEase):** [Download MuMuPlayer](https://www.mumuplayer.com/vi/download/) (choose **Windows** for this Windows toolkit).
+- **Official MuMuPlayer downloads (NetEase):** [Download MuMuPlayer](https://www.mumuplayer.com/download/) (choose **Windows** for this Windows toolkit).
 - Enable Android root and ADB debugging in the emulator settings, then start the emulator and install/sign into **Google Play Store** and **Google One**.
 - You can verify the connection with `adb devices` if ADB is available in your PATH. If ADB is missing, the toolkit can locate or install **Android SDK Platform-Tools** separately; **installing ADB is not installing MuMuPlayer**.
 - For illustrated initial setup, see the [GitHub Wiki installation guide](https://github.com/hoangsvit/google-ai/wiki/Install).
