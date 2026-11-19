@@ -69,32 +69,32 @@ class GoogleAITUI(App[None]):
     Screen { background: #0b1220; color: #d9e8f6; }
     Header { background: #172741; color: #dbeeff; }
     Footer { background: #172741; color: #c6d9ee; }
-    #screen { padding: 1 2; }
+    #screen { height: 1fr; min-height: 0; padding: 0 1; }
     #brand {
         height: 3; padding: 0 1; color: #ecf8ff; text-style: bold;
         background: #15283e; border: solid #2f5c79;
     }
-    #credit { color: #8db6ce; margin: 1 0; height: 1; }
-    #details { height: 3; margin-bottom: 1; }
+    #credit { color: #8db6ce; margin: 0; height: 1; }
+    #details { height: 1; margin-bottom: 1; }
     #device, #account { width: 1fr; padding: 0 1; background: #142238; }
-    #content { height: 1fr; }
+    #content { height: 1fr; min-height: 0; }
     #controls {
-        width: 37; min-width: 30; border: round #35536e;
-        background: #111f32; padding: 1;
+        width: 37; min-width: 28; min-height: 0; overflow-y: auto;
+        border: round #35536e; background: #111f32; padding: 0 1;
     }
     #results {
-        width: 1fr; border: round #35536e;
-        background: #111f32; padding: 1 2; margin-left: 1;
+        width: 1fr; min-width: 24; min-height: 0; overflow-y: auto;
+        border: round #35536e; background: #111f32; padding: 0 1; margin-left: 1;
     }
-    .section { color: #78cfe8; text-style: bold; margin-bottom: 1; }
-    #step { margin-bottom: 2; }
-    #controls Button { width: 100%; margin-bottom: 1; }
-    #state { color: #f3f8ff; text-style: bold; margin: 2 0 1 0; }
+    .section { color: #78cfe8; text-style: bold; margin: 1 0 0 0; }
+    #step { margin-bottom: 0; }
+    #controls Button { width: 100%; margin-bottom: 0; }
+    #state { color: #f3f8ff; text-style: bold; margin: 1 0 0 0; }
     #message { color: #b9d0e2; margin-bottom: 1; }
     #step_result { color: #8dd6b7; margin: 1 0; }
     #manual { display: none; margin: 1 0; }
     #debug_log { display: none; height: 1fr; border: solid #29465e; }
-    #hint { color: #91adc0; margin-top: 2; }
+    #hint { color: #91adc0; margin-top: 1; }
     """
 
     def __init__(self, *, repo: Path, selected_step: int = 1,
@@ -109,6 +109,7 @@ class GoogleAITUI(App[None]):
         self.current_step: int | None = None
         self._child: subprocess.Popen[str] | None = None
         self._last_output: deque[str] = deque(maxlen=350)
+        self._run_output: deque[str] = deque(maxlen=35)
         self._stop_after_step = False
         self._last_outcome: Outcome | None = None
 
@@ -252,6 +253,7 @@ class GoogleAITUI(App[None]):
         self.current_step = step
         self._stop_after_step = False
         self._last_outcome = None
+        self._run_output.clear()
         self.query_one("#run", Button).disabled = True
         self.query_one("#sequence", Button).disabled = True
         self.query_one("#step", Select).disabled = True
@@ -315,6 +317,7 @@ class GoogleAITUI(App[None]):
         if not line:
             return
         self._last_output.append(line)
+        self._run_output.append(line)
         if self.debug_visible:
             self.query_one("#debug_log", RichLog).write(line)
         if re.search(r"Action required:|Press Enter to continue", line, re.I):
@@ -329,6 +332,17 @@ class GoogleAITUI(App[None]):
             if match:
                 self.query_one("#account", Static).update("Account  •  " + escape(mask_email(match.group(1))))
 
+    def _visible_failure(self) -> str:
+        """Show a concise CLI error without exposing account emails."""
+        for raw in reversed(self._run_output):
+            line = re.sub(r"\\x1b\\[[0-9;]*m", "", raw).strip()
+            if not line:
+                continue
+            if re.search(r"error|failed|missing|not found|cannot|unable|offline|unauthorized|issue|stopped|device", line, re.I):
+                line = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[account hidden]", line)
+                return line[:220]
+        return ""
+
     def _finished(self, step: int, outcome: Outcome, report: dict | None) -> None:
         self.busy = False
         self._last_outcome = outcome
@@ -339,7 +353,12 @@ class GoogleAITUI(App[None]):
         self.query_one("#step", Select).disabled = False
         self.query_one("#stop", Button).disabled = True
         self._set_status(outcome.title)
-        self._set_message(outcome.instruction)
+        instruction = outcome.instruction
+        if outcome.code in ("tool_error", "exception", "missing_report", "setup_failed"):
+            diagnostic = self._visible_failure()
+            if diagnostic:
+                instruction = f"{instruction}  Last CLI message: {diagnostic}"
+        self._set_message(instruction)
         if step == 1:
             self.query_one("#step_result", Static).update(report_summary(report))
         if outcome.can_review and self.sequence and step < 5 and not self._stop_after_step:
