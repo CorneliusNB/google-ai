@@ -18,7 +18,7 @@ Requirements:
 WARNING: non-list mode can open Google Play checkout and tap Subscribe.
 Offer metadata does not prove eligibility or subscription activation.
 """
-import argparse, base64, hashlib, hmac, json, os, re, select, struct, subprocess, sys, threading, time
+import argparse, base64, hashlib, hmac, json, os, re, struct, subprocess, sys, threading, time
 from pathlib import Path
 import tempfile
 
@@ -36,26 +36,50 @@ WAITING = {"on": False, "msg": ""}
 
 
 def wait_human(msg: str, timeout: int = 600) -> bool:
-    """Pause for manual verification or an unfamiliar Android screen."""
+    """Wait for explicit Enter/approval; never assume success on timeout.
+
+    Windows select.select() cannot poll regular console/pipe stdin, while the
+    Textual "Completed action on Android" button writes a newline to the pipe.
+    Reading on a daemon thread supports both Windows and other platforms.
+    """
     WAITING["on"] = True
     WAITING["msg"] = msg
-    print(f"\n⏸  Action required: {msg}")
-    print("   Press Enter to continue after completing the step on Android.", flush=True)
     HUMAN_EVENT.clear()
-    end = time.time() + timeout
-    while time.time() < end:
-        if HUMAN_EVENT.is_set():
-            break
+    received = threading.Event()
+    closed = threading.Event()
+
+    def _read_confirmation():
         try:
-            r, _, _ = select.select([sys.stdin], [], [], 0.5)
-            if r:
-                sys.stdin.readline()
+            value = sys.stdin.readline()
+            if value:
+                received.set()
+            else:
+                closed.set()
+        except (OSError, ValueError, UnicodeError):
+            closed.set()
+
+    print(f"\n⏸  Action required: {msg}", flush=True)
+    print("   Press Enter to continue after completing the step on Android.", flush=True)
+    reader = threading.Thread(target=_read_confirmation, daemon=True)
+    reader.start()
+    deadline = time.monotonic() + max(0, timeout)
+    approved = False
+    try:
+        while time.monotonic() < deadline:
+            if HUMAN_EVENT.is_set() or received.is_set():
+                approved = True
                 break
-        except Exception:
-            time.sleep(0.5)
-    WAITING["on"] = False
-    print("▶  Continuing", flush=True)
-    return True
+            if closed.is_set():
+                break
+            time.sleep(0.1)
+    finally:
+        WAITING["on"] = False
+        WAITING["msg"] = ""
+    if approved:
+        print("▶  Manual confirmation received; continuing", flush=True)
+    else:
+        warn("Manual verification was not confirmed before timeout/EOF; stopping this operation")
+    return approved
 
 # ---------- Constants ----------
 PKG = "com.google.android.apps.subscriptions.red"   # Google One
@@ -519,7 +543,8 @@ def add_account(email, password, totp_secret="") -> bool:
                 tap(*find_edit()); type_text(code); time.sleep(1)
                 tap_text("\u4e0b\u4e00\u6b65", "Next"); time.sleep(8)
                 continue
-            wait_human("Two-step verification required; complete the check on Android.", 300)
+            if not wait_human("Two-step verification required; complete the check on Android.", 300):
+                return False
             continue
 
         if tap_text("\u4ee5\u540e\u518d\u8bf4", "Not now"):
@@ -530,12 +555,14 @@ def add_account(email, password, totp_secret="") -> bool:
             time.sleep(2); continue
 
         if any(k in text for k in ("\u8bc1\u660e\u60a8\u4e0d\u662f\u81ea\u52a8\u7a0b\u5e8f", "\u9a8c\u8bc1\u8eab\u4efd", "\u8bf7\u8f93\u5165\u7535\u8bdd\u53f7\u7801", "\u65e0\u6cd5\u9a8c\u8bc1", "\u786e\u8ba4\u662f\u60a8\u672c\u4eba")):
-            wait_human("Complete the CAPTCHA or identity verification on Android.", 300)
+            if not wait_human("Complete the CAPTCHA or identity verification on Android.", 300):
+                return False
             continue
 
         unknown_rounds += 1
         if unknown_rounds >= 8:
-            wait_human("Unrecognized Android screen; finish account setup manually.", 300)
+            if not wait_human("Unrecognized Android screen; finish account setup manually.", 300):
+                return False
             unknown_rounds = 0
         time.sleep(2)
 
@@ -558,23 +585,24 @@ def add_card(card: dict) -> bool:
         warn("Could not find the add-card entry; enter the payment method manually")
         return False
     time.sleep(9)
-    # Field order: card number, month, year, CVC, name, street, and city.
-    edits = [n for n in nodes(ui_xml()) if "EditText" in n["cls"]]
+    # Fill only supplied card information. Never invent a billing address or
+    # cardholder name: a real address must be entered and reviewed on Android.
     mm = re.sub(r"\D", "", card["exp"])[:2] or "01"
     yy = re.sub(r"\D", "", card["exp"])[2:][-2:] or "30"
-    seq = [card["number"], mm, yy, card["cvc"], card["holder"] or "CARD HOLDER",
-           "123 Main St", "Portland"]
+    seq = [card["number"], mm, yy, card["cvc"]]
+    if card.get("holder"):
+        seq.append(card["holder"])
     for i, val in enumerate(seq):
         edits = [n for n in nodes(ui_xml()) if "EditText" in n["cls"]]
         if i >= len(edits):
             break
         tap(edits[i]["x"], edits[i]["y"]); time.sleep(0.6)
         type_text(val); time.sleep(0.5)
-    if not tap_text("Save", "\u4fdd\u5b58"):
-        wait_human("Tap Save in Google Pay manually, then continue.", 240)
-    else:
-        time.sleep(8)
-    ok("Payment method form submitted")
+    note("Review and complete the actual cardholder/billing address on Android.")
+    if not wait_human("Enter your real billing details, save the card on Android, then press Enter.", 240):
+        warn("Payment method could not be confirmed")
+        return False
+    ok("Manual payment-method step acknowledged (not independently verified)")
     return True
 
 
@@ -990,9 +1018,13 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
             return rec
     if card:
         try:
-            add_card(card)
+            if not add_card(card):
+                rec["status"] = "payment_method_not_confirmed"
+                return rec
         except Exception as e:
-            warn(f"Could not add payment card: {e}")
+            warn(f"Could not add payment card: {type(e).__name__}")
+            rec["status"] = "payment_method_not_confirmed"
+            return rec
     if globals().get("SKIP_ACCOUNT_CHECK"):
         ok("WARNING: Play Store account check bypassed (--force)")
     elif list_only:
