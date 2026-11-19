@@ -92,11 +92,11 @@ function Read-PythonReport([string]$AccountKey) {
     return (Get-Content -LiteralPath $reportFile -Raw -Encoding UTF8 | ConvertFrom-Json)
 }
 function Confirm-Exact([string]$Prompt, [string]$Phrase) {
-    # All approvals are numeric; 2/0/invalid inputs stop the current flow.
+    # All approvals are numeric; 2 ends the run rather than skipping to a later paid stage.
     Write-Host ""
     Write-Host ("  ?  {0}" -f $Prompt) -ForegroundColor Yellow
     Write-Host "     [1] Continue" -ForegroundColor Green
-    Write-Host "     [2] Skip" -ForegroundColor Yellow
+    Write-Host "     [2] Skip / End run" -ForegroundColor Yellow
     Write-Host "     [0] Stop" -ForegroundColor DarkGray
     $answer = Read-Host "     Choose 1/2/0"
     if ($null -eq $answer) { return $false }

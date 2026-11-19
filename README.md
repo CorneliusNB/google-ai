@@ -28,7 +28,7 @@ The setup helper locates or installs ADB, configures Frida 16.5.9 and checks MuM
 .\run-all.ps1 -AllStages
 ```
 
-This runs the environment check, offer listing, and the original Pro stages **2 → 3 → 4**, then offers optional **Step 5**. All guided prompts now use **1 = Continue, 2 = Skip, 0 = Stop**. You no longer need to type `RUN ALL`, `VERIFIED`, `RUN 5`, `NO ACTIVE`, or `ACTIVE`. After an attempted transaction, check Google Play and choose 1 only if the subscription changed as expected. Step 5 is optional, and Step 2 requires confirming that no subscription is already active.
+This runs the environment check, offer listing, and the original Pro stages **2 → 3 → 4**, then offers optional **Step 5**. All guided prompts now use **1 = Continue, 2 = Skip / End run, 0 = Stop**. You no longer need to type `RUN ALL`, `VERIFIED`, `RUN 5`, `NO ACTIVE`, or `ACTIVE`. After an attempted transaction, check Google Play and choose 1 only if the subscription changed as expected. Step 5 is optional, and Step 2 requires confirming that no subscription is already active.
 
 **Already subscribed after Step 2?** Do not rerun Step 2. To start at Step 3 without replaying Step 2, first verify the active plan and next renewal date in Google Play:
 
