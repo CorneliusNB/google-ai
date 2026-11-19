@@ -125,6 +125,8 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory))
             with patch("tui.subprocess.Popen") as popen:
                 async with app.run_test(size=(90, 20)) as pilot:
+                    self.assertFalse(app.query_one("#workflow_actions").display)
+                    self.assertTrue(app.query_one("#quickstart", Button).display)
                     self.assertEqual(app.query_one("#mode", Select).value, "single")
                     self.assertEqual(app.query_one("#step", Select).value, 1)
                     self.assertFalse(app.query_one("#stop", Button).display)
@@ -145,12 +147,15 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
             with patch("tui.subprocess.Popen") as popen:
                 async with app.run_test(size=(110, 35)) as pilot:
                     await pilot.pause()
+                    app.advanced_pressed()
+                    await pilot.pause()
                     sidebar = app.query_one("#controls").region
                     for selector in ("#mode", "#step", "#run"):
                         widget = app.query_one(selector)
                         self.assertGreaterEqual(widget.region.x, sidebar.right)
                         self.assertGreater(widget.region.width, 15)
-                    self.assertTrue(app.query_one("#run", Button).display)
+                    self.assertFalse(app.query_one("#run", Button).display)
+                    self.assertTrue(app.query_one("#quickstart", Button).display)
                     self.assertEqual(app.query_one("#mode", Select).value, "single")
                 popen.assert_not_called()
 
@@ -160,8 +165,10 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory))
             async with app.run_test(size=(90, 20)) as pilot:
                 await pilot.pause()
-                self.assertGreater(app.query_one("#run").region.width, 15)
-                self.assertGreater(app.query_one("#mode").region.width, 15)
+                self.assertTrue(app.query_one("#quickstart").display)
+                self.assertFalse(app.query_one("#workflow_actions").display)
+                self.assertGreater(app.query_one("#quickstart").region.width, 15)
+                self.assertGreater(app.query_one("#status_panel").region.height, 3)
 
     async def test_all_and_from_modes_route_to_expected_step(self):
         from textual.widgets import Select
@@ -248,6 +255,31 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(app._cancel_requested)
                     stop.assert_called_once()
 
+    async def test_quick_check_starts_readonly_step_without_approval(self):
+        from textual.widgets import Button
+        from tui import GoogleAITUI
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch.object(GoogleAITUI, "_confirm_stage") as confirm:
+                async with app.run_test(size=(110, 35)) as pilot:
+                    await pilot.click("#quickstart")
+                    await pilot.pause()
+                    confirm.assert_called_once_with(1, False)
+                    self.assertFalse(app.query_one("#workflow_actions").display)
+                    self.assertTrue(app.query_one("#status_panel").display)
+
+    async def test_advanced_controls_are_explicitly_opt_in(self):
+        from tui import GoogleAITUI
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                self.assertFalse(app.query_one("#workflow_actions").display)
+                await pilot.click("#advanced_toggle")
+                await pilot.pause()
+                self.assertTrue(app.query_one("#workflow_actions").display)
+                app.advanced_pressed()
+                self.assertFalse(app.query_one("#workflow_actions").display)
+
     async def test_step_click_requires_approval_before_subprocess(self):
         from tui import GoogleAITUI, Approval
 
@@ -255,6 +287,8 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory), selected_step=3)
             with patch("tui.subprocess.Popen") as popen:
                 async with app.run_test(size=(110, 35)) as pilot:
+                    await pilot.click("#advanced_toggle")
+                    await pilot.pause()
                     await pilot.click("#run")
                     await pilot.pause()
                     self.assertIsInstance(app.screen, Approval)
