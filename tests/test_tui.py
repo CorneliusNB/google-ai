@@ -56,6 +56,39 @@ class CoreTests(unittest.TestCase):
             result = outcome_for_stage(3, 0, None)
             self.assertFalse(result.can_review)
 
+    def test_recent_previous_report_cannot_authorize_checkout(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p = Path(folder)
+            report = p / "account.json"
+            report.write_text(json.dumps({"status": "checkout_requested"}))
+            started_at = time.time()
+            # A completed run 0.5 seconds earlier must not be treated as
+            # belonging to a new request just because file mtime is recent.
+            import os
+            os.utime(report, (started_at - 0.5, started_at - 0.5))
+            self.assertIsNone(read_fresh_report(p, 3, started_at))
+
+    def test_conflicting_account_reports_fail_closed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p = Path(folder)
+            started_at = time.time() - 10
+            (p / "account-a.json").write_text(
+                json.dumps({"status": "checkout_requested"}))
+            (p / "account-b.json").write_text(
+                json.dumps({"status": "checkout_requested"}))
+            self.assertIsNone(read_fresh_report(p, 3, started_at))
+            self.assertFalse(outcome_for_stage(3, 0, None).can_review)
+
+    def test_one_fresh_checkout_report_can_be_reviewed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p = Path(folder)
+            started_at = time.time() - 10
+            (p / "account.json").write_text(
+                json.dumps({"status": "checkout_requested"}))
+            report = read_fresh_report(p, 3, started_at)
+            self.assertIsNotNone(report)
+            self.assertTrue(outcome_for_stage(3, 0, report).can_review)
+
     def test_security_block_and_duplicate_cannot_continue(self):
         for reason in ("payment_security_blocked", "already_subscribed",
                        "trial_duration_unverified"):
