@@ -192,8 +192,8 @@ class GoogleAITUI(App[None]):
                 yield Link("@hoangsvit", url="https://github.com/hoangsvit",
                            tooltip="Maintainer on GitHub", id="maintainer")
             with Horizontal(id="details"):
-                yield Static("ANDROID DEVICE\\nMuMu • Auto-detect", id="device")
-                yield Static("GOOGLE ACCOUNT\\nNot checked", id="account")
+                yield Static("ANDROID DEVICE\nMuMu • Auto-detect", id="device")
+                yield Static("GOOGLE ACCOUNT\nNot checked", id="account")
             with Horizontal(id="content"):
                 with Vertical(id="controls"):
                     yield Static("STEPS", classes="section")
