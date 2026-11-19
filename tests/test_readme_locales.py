@@ -65,6 +65,24 @@ class ReadmeLocalesTests(unittest.TestCase):
                 self.assertIn("MuMuPlayer", text)
                 self.assertIn("ADB/Frida", text)
 
+    def test_community_support_and_related_muse_project(self):
+        # Support is a community link, not an official Google help desk.
+        # Muse invite codes belong to another service, never Google AI Pro.
+        urls = (
+            "https://t.me/eplus_news/29",
+            "https://github.com/hoangsvit/google-ai/issues",
+            "https://github.com/ePlus-DEV/muse-invite-hub",
+            "https://muse.eplus.dev/",
+        )
+        for path in DOCS:
+            with self.subTest(file=path):
+                text = (ROOT / path).read_text(encoding="utf-8")
+                for url in urls:
+                    self.assertIn(url, text)
+                self.assertIn("Muse", text)
+                self.assertIn("Google AI Pro", text)
+                self.assertIn("2FA", text)
+
     def test_local_markdown_links_resolve(self):
         for path in DOCS:
             source = ROOT / path
