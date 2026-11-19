@@ -80,6 +80,11 @@ class CoreTests(unittest.TestCase):
 
 
 class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_application_branding(self):
+        from tui import GoogleAITUI
+        self.assertEqual(GoogleAITUI.TITLE, "ePlus AI Toolkit")
+        self.assertEqual(GoogleAITUI.SUB_TITLE, "ePlus.DEV")
+
     async def test_tui_loads_without_starting_any_checkout(self):
         from textual.widgets import Button, Select, Static
         from tui import GoogleAITUI
