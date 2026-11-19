@@ -135,8 +135,8 @@ class GoogleAITUI(App[None]):
             yield Static("  GOOGLE AI  /  MuMu Toolkit   |   ePlus.DEV", id="brand")
             yield Static("  Original @gylive  |  Maintained @hoangsvit  |  https://eplus.dev", id="credit")
             with Horizontal(id="details"):
-                yield Static("ANDROID DEVICE\\nMuMu • Auto-detect", id="device")
-                yield Static("GOOGLE ACCOUNT\\nNot checked", id="account")
+                yield Static("ANDROID DEVICE\nMuMu • Auto-detect", id="device")
+                yield Static("GOOGLE ACCOUNT\nNot checked", id="account")
             with Horizontal(id="content"):
                 with Vertical(id="controls"):
                     yield Static("NAVIGATION", classes="section")
