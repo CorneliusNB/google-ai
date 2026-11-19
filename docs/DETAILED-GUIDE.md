@@ -93,11 +93,11 @@ For the complete original sequence (environment check, offer listing, Steps 2–
 .\run-all.ps1 -AllStages -StartStep 3
 ```
 
-This asks for `ACTIVE` and does not infer whether prior extensions succeeded. An `already_subscribed` checkout error means there is no verified extra subscription period; stop instead of trying later stages.
+This asks you to choose 1 (Continue), 2 (Skip) or 0 (Stop), and does not infer whether prior extensions succeeded. An `already_subscribed` checkout error means there is no verified extra subscription period; stop instead of trying later stages.
 
-The active Play Store email is detected automatically; `-Email` can specify an expected account. `-Force` passes the original Python `--force` to bypass **only** the account-verification check, after you type `FORCE`. Normally it is unnecessary.
+The active Play Store email is detected automatically; `-Email` can specify an expected account. `-Force` passes the original Python `--force` to bypass **only** the account-verification check, after a numbered approval prompt. Normally it is unnecessary.
 
-For `-AllStages`, type `RUN ALL` to begin. After each attempted subscription stage, verify the result in Google Play and type `VERIFIED` to proceed; optional Step 5 needs its own `RUN 5` approval. Individual `-Step 2`, `-Step 3`, `-Step 4` or `-Step 5` commands are **non-interactive at the PowerShell confirmation layer**: no `RUN N`, `NO ACTIVE` or `VERIFIED` input is requested. Selecting a checkout step explicitly authorizes that attempt, which may tap Subscribe automatically if the current terms appear eligible. If the device or Play account is ambiguous, the standalone step fails closed with a diagnostic rather than asking for input. Check the real subscription and renewal date after the step. The default command remains read-only (`-Step 1`).
+For `-AllStages`, all approvals use **1 = Continue, 2 = Skip, 0 = Stop**. After each attempted subscription stage, review the Google Play plan, next payment date, and price before selecting 1. Optional Step 5 requires another numeric approval. Individual `-Step 2`, `-Step 3`, `-Step 4` or `-Step 5` commands are **non-interactive at the PowerShell confirmation layer**: no `RUN N`, `NO ACTIVE` or `VERIFIED` input is requested. Selecting a checkout step explicitly authorizes that attempt, which may tap Subscribe automatically if the current terms appear eligible. If the device or Play account is ambiguous, the standalone step fails closed with a diagnostic rather than asking for input. Check the real subscription and renewal date after the step. The default command remains read-only (`-Step 1`).
 
 The original Python code can click **Subscribe** automatically on a screen it interprets as a zero-priced checkout. This is a real billing flow, not a simulation, and the claimed subscription extensions are not guaranteed.
 

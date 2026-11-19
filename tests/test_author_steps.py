@@ -22,6 +22,8 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertNotIn('("RUN {0}" -f $stage.Number)', ps)
         self.assertIn('if ($AllStages -and $stage.Number -eq 5)', ps)
         self.assertIn('if ($AllStages) {\n            if (-not (Confirm-Exact "Only if you verified', ps)
+        self.assertIn('Read-Host "     Choose 1/2/0"', ps)
+        self.assertIn('Write-Host "     [1] Continue"', ps)
         self.assertIn('if ($AllStages) {\n                if (-not (Confirm-Exact "Confirm Google Play shows NO ACTIVE', ps)
 
     def test_no_checkout_by_default(self):

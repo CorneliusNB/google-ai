@@ -56,6 +56,9 @@ jobs:
         run: node --test tests/test_subscription_update.test.mjs
       - name: Dependency-free Frida Activity fallback JavaScript tests
         run: node --test tests/test_activity_lookup.test.mjs
+      - name: PowerShell numbered prompt tests (offline)
+        shell: pwsh
+        run: ./tests/test_terminal_prompts.ps1
       - name: PowerShell end-to-end script parse and help check
         shell: pwsh
         run: |
