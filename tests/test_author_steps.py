@@ -40,6 +40,9 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertNotIn('"launched", "subscribed"', ps)
         self.assertIn('if ($report.status -ne "checkout_requested")', ps)
         self.assertIn('Confirm-Exact "Only if you verified the active plan', ps)
+        self.assertIn('Confirm-Exact "Run original Steps 2-4, with optional Step 5?" "RUN ALL"', ps)
+        self.assertIn('if (-not $AllStages -or $stage.Number -eq 5)', ps)
+        self.assertNotIn('"I ACCEPT {0}"', ps)
 
 
 if __name__ == "__main__":

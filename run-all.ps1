@@ -251,6 +251,12 @@ try {
             $stages | Where-Object { $_.Number -eq $Step }
         }
     )
+    if ($AllStages) {
+        Note "The full original sequence can initiate multiple real Google Play transactions."
+        if (-not (Confirm-Exact "Run original Steps 2-4, with optional Step 5?" "RUN ALL")) {
+            return
+        }
+    }
     $key = $Email.Split('@')[0]
     foreach ($stage in $selectedStages) {
         Stage ("Original Step {0}: {1}" -f $stage.Number, $stage.Name)
@@ -280,8 +286,11 @@ try {
         }
         Note "Inspect today's checkout price, all future pricing phases and the next charge date."
         Note "A 0-price first phase is NOT proof of free-trial eligibility or stacking."
-        if (-not (Confirm-Exact "Run this LIVE original stage?" ("RUN {0}" -f $stage.Number))) { break }
-        if (-not (Confirm-Exact "The Python script MAY press Subscribe and initiate a charge." ("I ACCEPT {0}" -f $stage.Number))) { break }
+        # Approve the main sequence once. Step 5 stays optional,
+        # and a standalone -Step N run still requires explicit permission.
+        if (-not $AllStages -or $stage.Number -eq 5) {
+            if (-not (Confirm-Exact "Run this original live stage?" ("RUN {0}" -f $stage.Number))) { break }
+        }
 
         $args = @("ultra0.py", "--account", $Email, "--no-add", "--no-switch",
                   "--plan", $stage.Plan, "--serial", $Serial, "--activity-method", $ActivityMethod)
