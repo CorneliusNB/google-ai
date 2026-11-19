@@ -6,6 +6,38 @@ This repository contains the **original author's Python + ADB + Frida implementa
 
 > **Read before running:** The author's 12 + 6 + 6-month Google AI Pro offer/stacking claim is **unverified**. Google decides offer eligibility, price, renewal date, and subscription status. The original script uses `--force` to skip its account-check guard and may **automatically tap Subscribe**. A displayed zero price is not proof of free service or a completed purchase. Review the account, all charges and renewal terms in Google Play. Do not run this with your primary account or store login/password/2FA/payment-card details in plaintext.
 
+## Quick start: one Windows PowerShell script
+
+`run-all.ps1` runs the complete **guided** workflow without Playwright: validate Python, ADB and device selection, check root/Frida/Google Play, read the Play account, query offers, optionally probe Android Activity, then *offer* each subscription stage behind separate explicit user confirmations.
+
+**Default recommendation — diagnostic/listing only (no checkout):**
+
+```powershell
+cd C:\Users\david\Downloads\google-ai
+git pull --ff-only
+.\run-all.ps1 -Serial emulator-5554 -ListOnly
+```
+
+**Full guided workflow (possible live purchases):**
+
+```powershell
+.\run-all.ps1 -Serial emulator-5554 -Email your-email@gmail.com -ActivityMethod auto
+```
+
+Live stages **never run automatically**. You must type `RUN 1` and `I ACCEPT 1` before starting stage 1. The script requires manual verification of the actual Google Play subscription before it even offers stage 2, and repeats the checks for stage 3. Press Enter at any gate to stop. This is necessary because the original Python code may automatically confirm checkout, and the author's 12+6+6-month stacking claims are unverified. No use of `--force`, no credential or card storage, and no claims of free entitlement.
+
+Optional:
+
+```powershell
+.\run-all.ps1 -Serial emulator-5554 -SetupOnly
+.\run-all.ps1 -Serial emulator-5554 -ListOnly -ActivityMethod thread
+```
+
+The script supports Windows PowerShell 5.1+ and selects exactly one online ADB device. If execution policy blocks local scripts, review the file and use an allowed process-scoped PowerShell policy according to your Windows administrator settings. It can invoke the original `setup_env.py` when ADB is missing, which may install dependencies and modify emulator network settings.
+
+**Always independently verify the terms and status at Google Play Store → Payments & subscriptions → Subscriptions.** The full workflow is not exercised against live Google Play billing in GitHub Actions.
+
+---
 ## 1. Prerequisites
 
 - **Windows** with [MuMu Android emulator](https://www.mumuplayer.com/) or another compatible rooted Android device/emulator.

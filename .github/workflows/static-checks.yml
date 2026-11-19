@@ -36,3 +36,12 @@ jobs:
         run: node --test tests/playwright-runner.test.mjs
       - name: Playwright CLI dry run
         run: node scripts/playwright-android.mjs run --step 1 --email example@example.com --dry-run
+
+      - name: PowerShell end-to-end script parse and help check
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("run-all.ps1", [ref]$tokens, [ref]$parseErrors) | Out-Null
+          if ($parseErrors.Count -gt 0) { $parseErrors | ForEach-Object { Write-Error $_.Message }; exit 1 }
+          ./run-all.ps1 -Help | Out-Null
