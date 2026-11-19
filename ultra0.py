@@ -328,7 +328,8 @@ def read_purchase_token(sku_short: str, expected_account: str = "") -> str:
             except (sqlite3.Error, OSError, ValueError) as error:
                 warn(f"Failed to inspect Google Play database: {type(error).__name__}")
             return ""
-    except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+    except Exception as error:
+        # ADB may be unavailable during diagnostics; fail closed and still clean up.
         warn(f"Could not read Google Play purchase token: {type(error).__name__}")
         return ""
     finally:
