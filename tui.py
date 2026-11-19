@@ -180,6 +180,7 @@ class GoogleAITUI(App[None]):
         self._cancel_requested = False
         self._exit_after_step = False
         self._last_outcome: Outcome | None = None
+        self._verified_account: str | None = None
         self._started_at: float | None = None
         self._last_activity_at: float | None = None
         self.advanced_visible = False
@@ -507,6 +508,7 @@ class GoogleAITUI(App[None]):
         self._cancel_requested = False
         self._exit_after_step = False
         self._last_outcome = None
+        self._verified_account = None
         self._last_output.clear()
         self._run_output.clear()
         self.query_one("#debug_log", RichLog).clear()
@@ -592,7 +594,8 @@ class GoogleAITUI(App[None]):
             if self._cancel_requested:
                 self.call_from_thread(self._finished, step, Outcome("cancelled", "Check stopped", "Cancelled read-only check."), None)
                 return
-            report = read_fresh_report(self.repo / "ultra0-report", step, started)
+            report = read_fresh_report(self.repo / "ultra0-report", step, started,
+                                       expected_account=self._verified_account)
             result = outcome_for_stage(step, return_code, report)
             self.call_from_thread(self._finished, step, result, report)
         except Exception as error:
@@ -629,10 +632,17 @@ class GoogleAITUI(App[None]):
             self._set_message("Complete the requested action on Android, then click Completed.")
         if re.search(r"\bDevice\s+(emulator-\d+|[0-9.]+:\d+)\s*$", line):
             self.query_one("#device", Static).update("Device  •  " + escape(line.split()[-1]))
-        if re.search(r"\bAccount\s+[^\s]+@[^\s]+", line):
-            match = re.search(r"([^\s]+@[^\s]+)", line)
-            if match:
-                self.query_one("#account", Static).update("Account  •  " + escape(mask_email(match.group(1))))
+        # Trust only the structured PowerShell "Account <email>" status line,
+        # not arbitrary log messages containing an email address.
+        account = re.match(
+            r"^\s*Account\s+([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})\s*$",
+            line,
+        )
+        if account:
+            self._verified_account = account.group(1).lower()
+            self.query_one("#account", Static).update(
+                "Account  •  " + escape(mask_email(self._verified_account))
+            )
 
     def _visible_failure(self) -> str:
         """Show a concise CLI error without exposing account emails."""
