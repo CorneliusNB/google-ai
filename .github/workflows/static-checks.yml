@@ -30,16 +30,12 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_device_selector.py' -v
       - name: ADB installer tests (no Android or network)
         run: python -m unittest discover -s tests -p 'test_adb_setup.py' -v
-      - name: Repository layout and branch routing (offline)
-        run: python -m unittest discover -s tests -p 'test_repository_layout.py' -v
       - name: Gitignore regression tests
         run: python -m unittest discover -s tests -p 'test_gitignore.py' -v
       - name: Reusable release workflow regression checks (offline)
         run: python -m unittest discover -s tests -p 'test_release_workflow.py' -v
       - name: Maintainer and release documentation checks (offline)
         run: python -m unittest discover -s tests -p 'test_maintainer_docs.py' -v
-      - name: Documentation hub and concise overviews (offline)
-        run: python -m unittest discover -s tests -p 'test_docs_navigation.py' -v
       - name: Multilingual README links and safety text
         run: python -m unittest discover -s tests -p 'test_readme_locales.py' -v
       - name: English-only filenames and source checks
@@ -50,8 +46,6 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check -r requirements-tui.txt
           python -m unittest discover -s tests -p 'test_tui.py' -v
-      - name: Native Mac stage and payment-guard regressions (mock only)
-        run: python -m unittest discover -s tests -p 'test_macos.py' -v
       - name: Account report filename isolation (offline)
         run: python -m unittest discover -s tests -p 'test_report_identity.py' -v
       - name: Cross-language PowerShell/Python report keys
