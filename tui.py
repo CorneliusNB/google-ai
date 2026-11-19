@@ -298,10 +298,45 @@ class GoogleAITUI(App[None]):
 
     @on(Button.Pressed, "#stop")
     def stop_pressed(self) -> None:
-        # Terminating an in-flight Play checkout can leave its result unknown.
-        # Do not kill the subprocess during a billing operation.
+        if not self.busy:
+            return
+        if self.current_step in (0, 1):
+            self._cancel_readonly()
+        else:
+            self._stop_after_step = True
+            self._set_message("No later step will run. Finish or review the checkout on Android; the current transaction cannot be force-stopped.")
+            self.query_one("#stop", Button).disabled = True
+
+    def _cancel_readonly(self) -> None:
+        if not self.busy or self.current_step not in (0, 1) or self._cancel_requested:
+            return
+        self._cancel_requested = True
         self._stop_after_step = True
-        self._set_message("Will stop after this step. Check Google Play before restarting.")
+        self._set_status("Stopping read-only check...")
+        self._set_message("Stopping the local check; no checkout was started.")
+        self.query_one("#stop", Button).disabled = True
+        self.terminate_readonly_child()
+
+    @work(thread=True, exclusive=True, group="read-only-cancel")
+    def terminate_readonly_child(self) -> None:
+        child = self._child
+        if child is None or child.poll() is not None:
+            return
+        try:
+            if os.name == "nt":
+                result = subprocess.run(["taskkill", "/PID", str(child.pid), "/T", "/F"],
+                                        capture_output=True, text=True, timeout=8, check=False)
+                if result.returncode != 0 and child.poll() is None:
+                    raise OSError("taskkill failed")
+            else:
+                os.killpg(child.pid, signal.SIGTERM)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            self.call_from_thread(self._set_message,
+                                  f"Cannot stop the check: {error}. Open technical details.")
+
+    @on(Button.Pressed, "#exit")
+    def exit_pressed(self) -> None:
+        self.action_quit_safely()
 
     @on(Button.Pressed, "#manual")
     def manual_pressed(self) -> None:
@@ -333,10 +368,18 @@ class GoogleAITUI(App[None]):
         self._confirm_stage(self._selected(), False)
 
     def action_quit_safely(self) -> None:
-        if self.busy:
-            self._set_message("A step is running. Wait for it to finish; do not interrupt checkout.")
-        else:
+        if not self.busy:
             self.exit()
+            return
+        self._exit_after_step = True
+        if self.current_step in (0, 1):
+            self._cancel_readonly()
+            self._set_message("Stopping read-only check; toolkit will exit when it stops.")
+        else:
+            self._stop_after_step = True
+            self._set_message("Exit queued after the current checkout. Review Google Play on Android; no later step will start.")
+            self.query_one("#stop", Button).disabled = True
+            self.query_one("#exit", Button).disabled = True
 
     def _start(self, step: int, sequence: bool) -> None:
         if self.busy:
