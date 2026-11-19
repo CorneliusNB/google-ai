@@ -46,12 +46,21 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Show-Banner {
+    Write-Host ""
+    Write-Host "  +----------------------------------------------------+" -ForegroundColor DarkCyan
+    Write-Host "  |  GOOGLE AI  /  MuMu Toolkit                       |" -ForegroundColor Cyan
+    Write-Host "  +----------------------------------------------------+" -ForegroundColor DarkCyan
+    $mode = if ($AllStages) { "Full flow from Step $StartStep" } else { "Step $Step" }
+    Write-Host ("  Mode: {0}" -f $mode) -ForegroundColor Gray
+}
 function Stage([string]$Message) {
     Write-Host ""
-    Write-Host ("=== {0} ===" -f $Message) -ForegroundColor Cyan
+    Write-Host ("  >> {0}" -f $Message) -ForegroundColor Cyan
+    Write-Host ("  {0}" -f ("-" * 56)) -ForegroundColor DarkGray
 }
 function Note([string]$Message) {
-    Write-Host $Message
+    Write-Host ("  {0}" -f $Message) -ForegroundColor Gray
 }
 function Stop-Workflow([string]$Reason) {
     throw $Reason
@@ -83,8 +92,19 @@ function Read-PythonReport([string]$AccountKey) {
     return (Get-Content -LiteralPath $reportFile -Raw -Encoding UTF8 | ConvertFrom-Json)
 }
 function Confirm-Exact([string]$Prompt, [string]$Phrase) {
-    $answer = Read-Host ("{0} (type exactly: {1}; anything else stops)" -f $Prompt, $Phrase)
-    return ($answer -ceq $Phrase)
+    # All approvals are numeric; 2/0/invalid inputs stop the current flow.
+    Write-Host ""
+    Write-Host ("  ?  {0}" -f $Prompt) -ForegroundColor Yellow
+    Write-Host "     [1] Continue" -ForegroundColor Green
+    Write-Host "     [2] Skip" -ForegroundColor Yellow
+    Write-Host "     [0] Stop" -ForegroundColor DarkGray
+    $answer = Read-Host "     Choose 1/2/0"
+    if ($null -eq $answer) { return $false }
+    if ($answer.Trim() -eq "1") { return $true }
+    if ($answer.Trim() -notin @("0", "2")) {
+        Write-Host "     Invalid choice; stopping safely." -ForegroundColor Yellow
+    }
+    return $false
 }
 
 if ($Help) {
@@ -101,6 +121,7 @@ if ($PSBoundParameters.ContainsKey("StartStep") -and -not $AllStages) {
 $startedAt = Get-Date
 Push-Location $PSScriptRoot
 try {
+    Show-Banner
     Stage "Preflight: Python and Android tools"
     if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
         Stop-Workflow "Python not found. Install Python 3.10+ from python.org, reopen PowerShell, then retry."
@@ -150,10 +171,16 @@ try {
             if (-not $AllStages) {
                 Stop-Workflow "Cannot select a single Android device automatically. Rerun with -Serial <exact-adb-serial>; no checkout started."
             }
-            $Serial = Read-Host "Enter an exact device serial (example: emulator-5554)"
-            if ($online -cnotcontains $Serial) {
-                Stop-Workflow "Invalid serial. Nothing was executed on any device."
+            for ($i = 0; $i -lt $online.Count; $i++) {
+                Note ("[{0}] {1}" -f ($i + 1), $online[$i])
             }
+            $deviceAnswer = Read-Host "  Device number (0 to stop)"
+            $deviceNumber = 0
+            if (-not [int]::TryParse($deviceAnswer, [ref]$deviceNumber) -or
+                $deviceNumber -lt 1 -or $deviceNumber -gt $online.Count) {
+                Stop-Workflow "Invalid device number; no checkout started."
+            }
+            $Serial = $online[$deviceNumber - 1]
         }
     }
     Note "Using device: $Serial"
@@ -239,7 +266,7 @@ try {
     Note "CAUTION: ultra0.py is not a harmless preview. It can automatically press Subscribe."
     Note "An offer with micros=0 may still have later paid phases, and stacking 12+6+6 months is UNVERIFIED."
     if ($AllStages) {
-        Note "AllStages requires approval and verification between transactions."
+        Note "Choose: 1 = Continue | 2 = Skip | 0 = Stop."
     } else {
         Note "Single-step mode: no console confirmations; the selected step may open and confirm a Google Play checkout."
     }
