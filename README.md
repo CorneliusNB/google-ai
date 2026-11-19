@@ -10,6 +10,26 @@ A Windows toolkit for inspecting Google AI Pro offers through Google One, ADB an
 - Google Play Store and Google One installed; sign in to the intended Google account.
 - For a checkout stage, prepare a valid payment method in Google Play. The script does not make trial eligibility guarantees.
 
+## Interactive terminal (Textual)
+
+Run the full-screen terminal interface with keyboard navigation and clickable buttons:
+
+```powershell
+git pull --ff-only
+.\run-all.ps1 -Tui
+```
+
+Textual is installed from `requirements-tui.txt` automatically on first launch.
+Select Step 0–5, or choose **Run sequence** starting at Step 2–5. The original
+PowerShell/Python billing engine is reused; the UI does not bypass ADB/Frida,
+account, offer or checkout checks. The interface **never automatically advances**
+after a checkout request: check Google Play Subscriptions and click
+**Verified in Google Play → Next** only when the actual renewal date changed.
+Step 5 remains optional. Use **D** to toggle technical output and **Q** to exit
+when no step is running.
+
+You can still run the existing individual CLI steps as before; Textual is optional.
+
 ## Quick start
 
 Run from the repository directory:

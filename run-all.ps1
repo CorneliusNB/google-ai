@@ -40,6 +40,7 @@ param(
     [string]$ActivityMethod = "auto",
     [switch]$SetupOnly,
     [switch]$ListOnly,
+    [switch]$Tui,
     [switch]$Help
 )
 
@@ -139,6 +140,27 @@ if ($PSBoundParameters.ContainsKey("StartStep") -and -not $AllStages) {
     Stop-Workflow "-StartStep requires -AllStages."
 }
 
+if ($Tui) {
+    if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+        Write-Error "Python is required for the terminal interface."
+        exit 1
+    }
+    $pythonPath = (Get-Command python -ErrorAction Stop).Source
+    $textualInstalled = & $pythonPath -c "import importlib.util; print('1' if importlib.util.find_spec('textual') else '0')"
+    if ($textualInstalled -ne "1") {
+        Write-Host "Installing Textual for the terminal interface..." -ForegroundColor Cyan
+        & $pythonPath -m pip install --disable-pip-version-check -r (Join-Path $PSScriptRoot "requirements-tui.txt")
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Unable to install Textual. Try: python -m pip install -r requirements-tui.txt"
+            exit 1
+        }
+    }
+    $tuiArgs = @((Join-Path $PSScriptRoot "tui.py"), "--step", [string]$(if ($AllStages) { $StartStep } else { $Step }))
+    if ($AllStages) { $tuiArgs += "--sequence" }
+    if ($ShowDebug) { $tuiArgs += "--debug" }
+    & $pythonPath @tuiArgs
+    exit $LASTEXITCODE
+}
 $startedAt = Get-Date
 Push-Location $PSScriptRoot
 try {
