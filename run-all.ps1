@@ -52,6 +52,20 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+# Python stdout is piped into Windows PowerShell in Run-Command. Without a
+# UTF-8 child stream, non-ASCII status symbols (e.g. ✓ / ✅) raise
+# UnicodeEncodeError on Windows locales such as cp1252.
+# Set the encoding BEFORE any Python subprocess, for both CLI and TUI paths.
+$env:PYTHONIOENCODING = "utf-8:backslashreplace"
+$env:PYTHONUTF8 = "1"
+$utf8Output = New-Object System.Text.UTF8Encoding($false)
+$OutputEncoding = $utf8Output
+try {
+    [Console]::OutputEncoding = $utf8Output
+} catch {
+    # Some non-interactive PowerShell hosts do not expose Console.OutputEncoding.
+    # The child process still uses UTF-8; avoid failing before preflight.
+}
 # -Debug is a built-in PowerShell common parameter when CmdletBinding is used.
 # Do not declare a second Debug switch; simply read its caller-supplied value.
 $ShowDebug = $PSBoundParameters.ContainsKey("Debug") -and [bool]$PSBoundParameters["Debug"]
