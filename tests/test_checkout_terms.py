@@ -28,6 +28,11 @@ class CheckoutTests(unittest.TestCase):
             "Google AI Pro Subscribe Today $19.99 12-month offer", "pro12")
         self.assertNotEqual(result["reason"], "zero_today_and_duration_verified")
 
+    def test_fractional_price_is_not_zero(self):
+        terms = app.assess_checkout_terms(
+            "Google AI Pro Subscribe Today $0.99 12-month free trial", "pro12")
+        self.assertEqual(terms["reason"], "today_price_unverified")
+
     def test_wrong_duration_is_blocked(self):
         result = app.assess_checkout_terms(
             "Google AI Pro Subscribe Today $0 1 month free trial", "pro12")
@@ -44,7 +49,7 @@ class CheckoutTests(unittest.TestCase):
 
     def test_chinese_free_today_and_period(self):
         result = app.assess_checkout_terms(
-            "Google AI Pro 订阅 今天 JP¥0 12个月免费试用 开始日期2028年 JP¥2900/月", "pro12")
+            "Google AI Pro \u8ba2\u9605 \u4eca\u5929 JP¥0 12\u4e2a\u6708\u514d\u8d39\u8bd5\u7528 \u5f00\u59cb\u65e5\u671f2028\u5e74 JP¥2900/\u6708", "pro12")
         self.assertEqual(result["reason"], "zero_today_and_duration_verified")
 
     def test_do_not_tap_ambiguous_checkout(self):

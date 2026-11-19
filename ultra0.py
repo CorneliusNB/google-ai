@@ -842,23 +842,23 @@ def assess_checkout_terms(text: str, expected_plan: str = "auto") -> dict:
     clean = " ".join(text.split())
     low = clean.lower()
     result = {"reason": "checkout_not_visible", "today_price": None, "text": clean[:400]}
-    if any(x in low for x in ("backup payment methods", "备用付款方式",
+    if any(x in low for x in ("backup payment methods", "\u5907\u7528\u4ed8\u6b3e\u65b9\u5f0f",
                                "phương thức thanh toán dự phòng")):
         result["reason"] = "backup_payment_methods_prompt"
         return result
-    if any(x in low for x in ("not eligible", "ineligible", "不符合免费试用条件",
+    if any(x in low for x in ("not eligible", "ineligible", "\u4e0d\u7b26\u5408\u514d\u8d39\u8bd5\u7528\u6761\u4ef6",
                                "không đủ điều kiện dùng thử")):
         result["reason"] = "ineligible"
         return result
     if "processing" in low and "subscribe" not in low:
         result["reason"] = "processing"
         return result
-    if not (any(x in low for x in ("subscribe", "订阅", "đăng ký")) and
+    if not (any(x in low for x in ("subscribe", "\u8ba2\u9605", "đăng ký")) and
             any(x in low for x in ("google ai", "google one", "ultra", "pro"))):
         return result
     currency = r"(?:US\$|HK\$|NT\$|CA\$|AU\$|JP¥|¥|￥|\$|€|£|₫|VND\s*)"
-    zero = currency + r"\s*0(?:[.,]0{1,2})?(?!\d)"
-    today = r"(?:today|due today|pay today|total today|charged today|今天|今日|本日|hôm nay)"
+    zero = currency + r"\s*0(?:[.,]0{1,2})?(?![\d.,])"
+    today = r"(?:today|due today|pay today|total today|charged today|\u4eca\u5929|\u4eca\u65e5|\u672c\u65e5|hôm nay)"
     zero_today = bool(re.search(today + r"\s*[:：–-]?\s*" + zero, clean, re.I) or
                       re.search(zero + r"\s*(?:due\s*)?" + today, clean, re.I))
     result["prices"] = re.findall(currency + r"\s*\d[\d,.]*", clean, re.I)[:8]
@@ -867,10 +867,10 @@ def assess_checkout_terms(text: str, expected_plan: str = "auto") -> dict:
         return result
     result["today_price"] = "0"
     patterns = {
-        "pro12": r"(?:12\s*[- ]?\s*months?|1\s*[- ]?\s*year|one year|365\s*days|12\s*个\s*月|一年|12\s*か月)",
-        "pro6": r"(?:6\s*[- ]?\s*months?|6\s*个\s*月|半年|6\s*か月)",
-        "pro6b": r"(?:6\s*[- ]?\s*months?|6\s*个\s*月|半年|6\s*か月)",
-        "pro6c": r"(?:6\s*[- ]?\s*months?|6\s*个\s*月|半年|6\s*か月)",
+        "pro12": r"(?:12\s*[- ]?\s*months?|1\s*[- ]?\s*year|one year|365\s*days|12\s*\u4e2a\s*\u6708|\u4e00\u5e74|12\s*\u304b\u6708)",
+        "pro6": r"(?:6\s*[- ]?\s*months?|6\s*\u4e2a\s*\u6708|\u534a\u5e74|6\s*\u304b\u6708)",
+        "pro6b": r"(?:6\s*[- ]?\s*months?|6\s*\u4e2a\s*\u6708|\u534a\u5e74|6\s*\u304b\u6708)",
+        "pro6c": r"(?:6\s*[- ]?\s*months?|6\s*\u4e2a\s*\u6708|\u534a\u5e74|6\s*\u304b\u6708)",
     }
     if not re.search(patterns.get(expected_plan, r"(?!x)x"), clean, re.I):
         result["reason"] = "trial_duration_unverified"
@@ -898,7 +898,7 @@ def confirm_zero(wait=40, password="", expected_plan="auto") -> dict:
             warn("Google Play backup-payment prompt needs manual review; not enabling it automatically.")
             return out
         if reason == "zero_today_and_duration_verified":
-            if tap_text("订阅", "Subscribe", "Đăng ký"):
+            if tap_text("\u8ba2\u9605", "Subscribe", "Đăng ký"):
                 out["confirmed"] = True
                 ok("Tapped Subscribe after verifying today's zero total and expected trial period.")
             else:
