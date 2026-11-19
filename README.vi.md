@@ -144,6 +144,12 @@ Chỉ sử dụng serial thực tế từ ADB. Tránh `-Force` vì nó bỏ qua 
 
 Log được lưu trong `logs/`, báo cáo trong `ultra0-report/`. **Không chia sẻ log/report chưa ẩn email, token hoặc dữ liệu thanh toán**. CI chỉ kiểm thử tĩnh/mock, không kiểm chứng mua hàng thật. **macOS chưa được hỗ trợ đầy đủ**.
 
+## Hỗ trợ cộng đồng và dự án liên quan
+
+Nếu gặp vấn đề khi cài đặt hoặc sử dụng ePlus AI Toolkit, hãy truy cập [bài đăng hỗ trợ trên Telegram ePlus](https://t.me/eplus_news/29) để liên lạc, trao đổi kinh nghiệm và nhờ cộng đồng hỗ trợ. Với lỗi kỹ thuật có thể tái hiện, bạn cũng có thể [tạo GitHub Issue](https://github.com/hoangsvit/google-ai/issues). **Không chia sẻ mật khẩu, mã OTP/2FA, offer/purchase token, log chưa che thông tin cá nhân hoặc dữ liệu thẻ thanh toán.** Đây là hỗ trợ cộng đồng, không phải kênh hỗ trợ chính thức của Google.
+
+**Không tham gia được chương trình Google AI Pro?** Bạn có thể tham khảo [Muse Invite Hub](https://github.com/ePlus-DEV/muse-invite-hub), một dự án khác của ePlus.DEV để [tìm kiếm hoặc chia sẻ mã mời Muse](https://muse.eplus.dev/). **Muse là dịch vụ riêng**, mã mời Muse **không kích hoạt và không thay thế** quyền đăng ký Google AI Pro. Mã mời có thể hết lượt hoặc bị giới hạn theo khu vực/tài khoản.
+
 ## Tài liệu và tác giả
 
 [README tiếng Anh](README.md) · [Wiki Install](https://github.com/hoangsvit/google-ai/wiki/Install) · [Hướng dẫn kỹ thuật](docs/DETAILED-GUIDE.md) · [Các bước gốc](docs/ORIGINAL-STEPS.md) · [Disclaimer](DISCLAIMER.md) · [Bảo mật](SECURITY.md) · [Đóng góp](CONTRIBUTING.md) · [Thông báo bản quyền](THIRD_PARTY_NOTICES.md)
