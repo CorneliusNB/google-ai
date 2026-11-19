@@ -192,8 +192,9 @@ try {
         Stop-Workflow "Invalid Play Store account returned by Step 1. Verify the Play Store profile."
     }
     if ($playAccount -and $listedAccount -and $playAccount -cne $listedAccount) {
-        Stop-Workflow ("Play Store account changed: preflight '{0}', Step 1 '{1}'. " +
-                       "Verify the Play Store profile before any checkout.") -f $playAccount, $listedAccount
+        $accountMismatch = ("Play Store account changed: preflight '{0}', Step 1 '{1}'. " +
+                            "Verify the Play Store profile before any checkout.")
+        Stop-Workflow ($accountMismatch -f $playAccount, $listedAccount)
     }
     if (-not $playAccount -and $listedAccount) {
         $playAccount = $listedAccount
