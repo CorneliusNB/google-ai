@@ -85,6 +85,24 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(GoogleAITUI.TITLE, "ePlus AI Toolkit")
         self.assertEqual(GoogleAITUI.SUB_TITLE, "ePlus.DEV")
 
+    async def test_github_credits_are_clickable_links(self):
+        from textual.widgets import Link
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch("tui.subprocess.Popen") as popen:
+                async with app.run_test(size=(110, 35)):
+                    self.assertEqual(
+                        app.query_one("#original_author", Link).url,
+                        "https://github.com/gylive",
+                    )
+                    self.assertEqual(
+                        app.query_one("#maintainer", Link).url,
+                        "https://github.com/hoangsvit",
+                    )
+                popen.assert_not_called()
+
     async def test_tui_loads_without_starting_any_checkout(self):
         from textual.widgets import Button, Select, Static
         from tui import GoogleAITUI
