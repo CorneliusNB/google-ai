@@ -8,16 +8,35 @@ Python + ADB + Frida utilities for inspecting Google Play promotional offers, di
 
 ## Quick start (Windows / PowerShell)
 
-1. Start MuMu or a compatible Android device; enable ADB/root if required, then sign in to Google Play.
-2. Install Python 3.10+ and Android platform-tools. The original setup helper can help install Frida 16.5.9.
-3. In the repository root:
+1. Install **Python 3.10+** and start MuMu with ADB debugging enabled. Sign in to the Google Play account you intend to inspect.
+2. In the repository folder, update and run the environment installer **before using `adb`**:
 
 ```powershell
 git pull --ff-only
 python --version
+python setup_env.py
+```
+
+   The installer looks for a working ADB in MuMu, PATH, the repository or your user profile. It downloads [official Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) only when needed. It also checks Frida/root and may change emulator network settings; review the setup script first.
+
+3. If PowerShell reports **`adb : The term 'adb' is not recognized`**, ADB exists but may not be in PATH. Enable the detected installation **in the current PowerShell session only**:
+
+```powershell
+$adbPath = (python -c 'import setup_env; print(setup_env.find_adb())' | Select-Object -Last 1).Trim()
+$env:Path = "$(Split-Path -Parent $adbPath);$env:Path"
+adb version
 adb devices
+```
+
+   Alternatively use `& $adbPath devices` without changing PATH. Administrator permissions are not required for the temporary PATH change.
+
+4. Use the serial shown by `adb devices` (for example, `emulator-5554`) to run the **read-only workflow**:
+
+```powershell
 .\run-all.ps1 -Serial emulator-5554 -ListOnly
 ```
+
+**Windows `PermissionError: [Errno 13] ... platform-tools\\adb.exe`:** If ADB is in use or the project directory is not writable, the updated installer reuses a working copy or extracts new files into a temporary folder and installs them under `%LOCALAPPDATA%\google-ai\platform-tools`. Run `git pull --ff-only` and retry `python setup_env.py`. Do not force-delete a running ADB executable or disable antivirus. Manual installation into a writable directory is also supported by setting `$env:ADB_PATH` to the complete path to `adb.exe`.
 
 For environment setup only:
 
@@ -46,7 +65,7 @@ google-ai/
 │   ├── frida/billing.js           # Android Java/BillingClient Frida hook
 │   └── modules/module_521.b64     # Bundled original DEX package (Base64)
 ├── scripts/
-│   ├── diagnose-activity.py       # Read-only ActivityThread diagnostic
+│   └── diagnose-activity.py       # Read-only ActivityThread diagnostic
 ├── tests/                         # Python unit tests + pure Node.js Frida-JS tests, no live purchases
 ├── docs/DETAILED-GUIDE.md         # Comprehensive usage and troubleshooting
 ├── .github/workflows/             # CI syntax + simulated tests

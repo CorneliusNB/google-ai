@@ -26,10 +26,33 @@ cd google-ai
 git pull --ff-only
 ```
 
-Check your device:
+### Install ADB first (Windows PowerShell)
+
+Run the setup helper from the repository directory:
 
 ```powershell
 python --version
+python setup_env.py
+```
+
+The helper searches `ADB_PATH`, existing `platform-tools` folders, known MuMu locations, and PATH. It verifies `adb.exe version` works. If it needs to download Google's official Platform-Tools, it extracts them in a fresh temporary directory and installs into the project or, if that directory is locked, `%LOCALAPPDATA%\google-ai\platform-tools`.
+
+**If `adb` is not recognized in PowerShell:**
+
+```powershell
+$adbPath = (python -c 'import setup_env; print(setup_env.find_adb())' | Select-Object -Last 1).Trim()
+$env:Path = "$(Split-Path -Parent $adbPath);$env:Path"
+adb version
+adb devices
+```
+
+This changes PATH only for the current terminal. To avoid modifying PATH, run `& $adbPath devices`. To select a known Android SDK, use `$env:ADB_PATH = 'C:\path\to\platform-tools\adb.exe'`.
+
+**If `setup_env.py` previously raised `PermissionError: [Errno 13] ... platform-tools\\adb.exe`:** The file may be locked by an emulator/ADB process or protected by directory permissions. Update the repository with `git pull --ff-only` and rerun setup. The installer now avoids overwriting working ADB files and falls back to the per-user directory if the project folder cannot be updated. Do not force-delete the file or disable antivirus.
+
+Then inspect the device:
+
+```powershell
 adb devices
 adb -s emulator-5554 shell getprop ro.build.version.release
 adb -s emulator-5554 shell getprop ro.build.version.sdk
