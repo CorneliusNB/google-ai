@@ -32,18 +32,20 @@ python setup_env.py
 
    Older versions of `run-all.ps1` could break `python -c` quoting and raise `UnicodeEncodeError: cp1252`. The current version calls `scripts/runtime-lookup.py` for machine-readable ADB and Google Play account discovery, avoiding both issues.
 
-4. Use the serial shown by `adb devices` (for example, `emulator-5554`) to run the **read-only workflow**:
+4. Run the **read-only workflow** without choosing a serial manually:
 
 ```powershell
-.\run-all.ps1 -Serial emulator-5554 -ListOnly
+.\run-all.ps1 -ListOnly
 ```
+
+   The script checks whether the ADB transports belong to the same Android device using its kernel boot UUID. If several distinct Android devices are connected, it can automatically select the only one running Google One (or the only one with Google One installed). **It asks you to enter a serial only if the selection remains ambiguous.** You can always override the selection with `-Serial emulator-5554`.
 
 **Windows `PermissionError: [Errno 13] ... platform-tools\\adb.exe`:** If ADB is in use or the project directory is not writable, the updated installer reuses a working copy or extracts new files into a temporary folder and installs them under `%LOCALAPPDATA%\google-ai\platform-tools`. Run `git pull --ff-only` and retry `python setup_env.py`. Do not force-delete a running ADB executable or disable antivirus. Manual installation into a writable directory is also supported by setting `$env:ADB_PATH` to the complete path to `adb.exe`.
 
 For environment setup only:
 
 ```powershell
-.\run-all.ps1 -Serial emulator-5554 -SetupOnly
+.\run-all.ps1 -SetupOnly
 ```
 
 For **interactive** stages that can open Google Play checkout (only after reviewing the original source and the Play Store terms):
@@ -82,7 +84,7 @@ python setup_env.py
 .\\run-all.ps1 -Serial emulator-5554 -Email "your-email@gmail.com"
 ```
 
-Replace `emulator-5554` with the online device serial returned by `adb devices`. The interactive command verifies the target account and requires **two explicit confirmations for each stage** (`RUN 1` / `I ACCEPT 1`, and so on). It also asks you to verify the subscription in Google Play before offering the next stage. Press Enter without the requested phrase to stop.
+The guided workflow auto-selects an unambiguous Android device. Use `-Serial emulator-5554` to override the selection. The interactive command verifies the target account and requires **two explicit confirmations for each stage** (`RUN 1` / `I ACCEPT 1`, and so on). It also asks you to verify the subscription in Google Play before offering the next stage. Press Enter without the requested phrase to stop.
 
 **Do not assume 12 + 6 + 6 months can be combined.** The original author's offer names and price phases do not guarantee eligibility, billing dates, trial stacking or renewal costs. Non-list mode may automatically click Subscribe; always check the real terms and active subscription at **Google Play Store → Payments & subscriptions → Subscriptions**. Avoid running legacy `.bat` checkout shortcuts, which use `--force` and bypass account checks.
 
@@ -93,6 +95,7 @@ google-ai/
 ├── ultra0.py                      # Original Python CLI / device and billing orchestration
 ├── run-all.ps1                    # Guided Windows entry point
 ├── setup_env.py                   # Original environment installer
+├── device_selector.py             # Detect duplicate ADB transports and choose safely
 ├── query_sku.py                   # Product/offer query CLI
 ├── requirements.txt               # Pinned Frida dependency
 ├── assets/

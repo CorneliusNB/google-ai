@@ -61,16 +61,18 @@ adb -s emulator-5554 shell getprop ro.product.cpu.abi
 
 Replace `emulator-5554` with the serial from `adb devices`. If no device is online, start MuMu, enable ADB debugging, approve device authorization and use the ADB endpoint documented by your emulator. Do not assume a universal port number. A device in `offline` or `unauthorized` state is not ready.
 
-**One command for setup and diagnostics:**
+**One command for setup and diagnostics (automatic device selection):**
 
 ```powershell
-.\run-all.ps1 -Serial emulator-5554 -ListOnly
+.\run-all.ps1 -ListOnly
 ```
+
+If `adb devices` lists several connections such as `127.0.0.1:16384`, `127.0.0.1:7555`, and `emulator-5554`, these may all point to the same Android instance. The tool checks each instance's boot UUID and treats matching UUIDs as aliases. If several different Android kernels are connected, it selects the one uniquely running Google One or the only one with Google One installed. It does **not** guess if the identification is inconclusive: specify `-Serial emulator-5554` or answer the prompt only in that case.
 
 For setup only:
 
 ```powershell
-.\run-all.ps1 -Serial emulator-5554 -SetupOnly
+.\run-all.ps1 -SetupOnly
 ```
 
 For explicit guided checkout (can result in a real purchase):
