@@ -136,6 +136,54 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(app.query_one("#advanced").display)
                 popen.assert_not_called()
 
+    async def test_stop_is_real_only_for_read_only_checks(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch.object(GoogleAITUI, "terminate_readonly_child") as stop:
+                async with app.run_test(size=(110, 35)):
+                    app.busy = True
+                    app.current_step = 1
+                    app.stop_pressed()
+                    self.assertTrue(app._cancel_requested)
+                    stop.assert_called_once()
+                    app._cancel_requested = False
+                    app.current_step = 3
+                    app.stop_pressed()
+                    self.assertTrue(app._stop_after_step)
+                    self.assertFalse(app._cancel_requested)
+                    self.assertTrue(app.query_one("#stop", Button).disabled)
+
+    async def test_quit_during_checkout_queues_exit_without_killing_process(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch.object(GoogleAITUI, "terminate_readonly_child") as stop:
+                async with app.run_test(size=(110, 35)):
+                    app.busy = True
+                    app.current_step = 3
+                    app.action_quit_safely()
+                    self.assertTrue(app._exit_after_step)
+                    self.assertTrue(app._stop_after_step)
+                    self.assertFalse(app._cancel_requested)
+                    self.assertTrue(app.query_one("#exit", Button).disabled)
+                    stop.assert_not_called()
+
+    async def test_quit_during_readonly_requests_stop(self):
+        from tui import GoogleAITUI
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch.object(GoogleAITUI, "terminate_readonly_child") as stop:
+                async with app.run_test(size=(110, 35)):
+                    app.busy = True
+                    app.current_step = 0
+                    app.action_quit_safely()
+                    self.assertTrue(app._exit_after_step)
+                    self.assertTrue(app._cancel_requested)
+                    stop.assert_called_once()
+
     async def test_step_click_requires_approval_before_subprocess(self):
         from tui import GoogleAITUI, Approval
 

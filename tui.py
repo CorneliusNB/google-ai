@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import signal
 from collections import deque
 from pathlib import Path
 import re
@@ -85,6 +86,7 @@ class GoogleAITUI(App[None]):
     #advanced_label { margin: 0; }
     #advanced Select { margin: 0; }
     #next, #stop { display: none; }
+    #exit { width: 100%; height: 3; }
     #workflow { height: auto; margin-top: 1; border-top: solid #28506b; }
     .workflow-step { height: 1; color: #b4cbe0; }
     #welcome_panel { height: auto; border: round #2b97bc; background: #112b49; padding: 0 2; margin-bottom: 1; }
@@ -124,6 +126,8 @@ class GoogleAITUI(App[None]):
         self._last_output: deque[str] = deque(maxlen=350)
         self._run_output: deque[str] = deque(maxlen=35)
         self._stop_after_step = False
+        self._cancel_requested = False
+        self._exit_after_step = False
         self._last_outcome: Outcome | None = None
         self._started_at: float | None = None
         self._last_activity_at: float | None = None
@@ -152,6 +156,7 @@ class GoogleAITUI(App[None]):
                         yield Button("Run sequence from step", id="sequence")
                     yield Button("Help & Guide", id="nav_help")
                     yield Button("Show technical details", id="debug")
+                    yield Button("Exit toolkit", id="exit")
                     yield Button("Verified in Google Play → Next", id="next", disabled=True)
                     yield Button("Stop after this step", id="stop", disabled=True)
                     with Vertical(id="workflow"):
@@ -293,10 +298,45 @@ class GoogleAITUI(App[None]):
 
     @on(Button.Pressed, "#stop")
     def stop_pressed(self) -> None:
-        # Terminating an in-flight Play checkout can leave its result unknown.
-        # Do not kill the subprocess during a billing operation.
+        if not self.busy:
+            return
+        if self.current_step in (0, 1):
+            self._cancel_readonly()
+        else:
+            self._stop_after_step = True
+            self._set_message("No later step will run. Finish or review the checkout on Android; the current transaction cannot be force-stopped.")
+            self.query_one("#stop", Button).disabled = True
+
+    def _cancel_readonly(self) -> None:
+        if not self.busy or self.current_step not in (0, 1) or self._cancel_requested:
+            return
+        self._cancel_requested = True
         self._stop_after_step = True
-        self._set_message("Will stop after this step. Check Google Play before restarting.")
+        self._set_status("Stopping read-only check...")
+        self._set_message("Stopping the local check; no checkout was started.")
+        self.query_one("#stop", Button).disabled = True
+        self.terminate_readonly_child()
+
+    @work(thread=True, exclusive=True, group="read-only-cancel")
+    def terminate_readonly_child(self) -> None:
+        child = self._child
+        if child is None or child.poll() is not None:
+            return
+        try:
+            if os.name == "nt":
+                result = subprocess.run(["taskkill", "/PID", str(child.pid), "/T", "/F"],
+                                        capture_output=True, text=True, timeout=8, check=False)
+                if result.returncode != 0 and child.poll() is None:
+                    raise OSError("taskkill failed")
+            else:
+                os.killpg(child.pid, signal.SIGTERM)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            self.call_from_thread(self._set_message,
+                                  f"Cannot stop the check: {error}. Open technical details.")
+
+    @on(Button.Pressed, "#exit")
+    def exit_pressed(self) -> None:
+        self.action_quit_safely()
 
     @on(Button.Pressed, "#manual")
     def manual_pressed(self) -> None:
@@ -328,10 +368,18 @@ class GoogleAITUI(App[None]):
         self._confirm_stage(self._selected(), False)
 
     def action_quit_safely(self) -> None:
-        if self.busy:
-            self._set_message("A step is running. Wait for it to finish; do not interrupt checkout.")
-        else:
+        if not self.busy:
             self.exit()
+            return
+        self._exit_after_step = True
+        if self.current_step in (0, 1):
+            self._cancel_readonly()
+            self._set_message("Stopping read-only check; toolkit will exit when it stops.")
+        else:
+            self._stop_after_step = True
+            self._set_message("Exit queued after the current checkout. Review Google Play on Android; no later step will start.")
+            self.query_one("#stop", Button).disabled = True
+            self.query_one("#exit", Button).disabled = True
 
     def _start(self, step: int, sequence: bool) -> None:
         if self.busy:
@@ -340,6 +388,8 @@ class GoogleAITUI(App[None]):
         self.sequence = sequence
         self.current_step = step
         self._stop_after_step = False
+        self._cancel_requested = False
+        self._exit_after_step = False
         self._last_outcome = None
         self._run_output.clear()
         self._started_at = time.monotonic()
@@ -352,6 +402,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#step", Select).disabled = True
         self.query_one("#next", Button).disabled = True
         self.query_one("#stop", Button).disabled = False
+        self.query_one("#stop", Button).label = "Stop check" if step <= 1 else "Stop after this step"
         self.query_one("#stop", Button).display = True
         self.query_one("#next", Button).display = False
         self.query_one("#step_result", Static).update(f"Step {step} · {STAGES[step].label}")
@@ -367,10 +418,14 @@ class GoogleAITUI(App[None]):
         child_env = os.environ.copy()
         child_env["PYTHONIOENCODING"] = "utf-8"
         child_env["PYTHONUTF8"] = "1"
+        if self._cancel_requested:
+            return -1
+        options = ({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+                   if os.name == "nt" else {"start_new_session": True})
         with subprocess.Popen(
             command, cwd=self.repo, env=child_env, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-            text=True, encoding="utf-8", errors="replace", bufsize=1
+            text=True, encoding="utf-8", errors="replace", bufsize=1, **options
         ) as child:
             self._child = child
             if child.stdout:
@@ -391,7 +446,11 @@ class GoogleAITUI(App[None]):
                 setup = self.repo / "setup_env.py"
                 if not setup.is_file():
                     raise FileNotFoundError("setup_env.py is missing from the project directory")
-                if self._execute([sys.executable, str(setup)]) != 0:
+                setup_code = self._execute([sys.executable, str(setup)])
+                if self._cancel_requested:
+                    self.call_from_thread(self._finished, step, Outcome("cancelled", "Check stopped", "Cancelled read-only check."), None)
+                    return
+                if setup_code != 0:
                     self.call_from_thread(
                         self._finished, step,
                         Outcome("setup_failed", "Setup did not finish",
@@ -401,9 +460,15 @@ class GoogleAITUI(App[None]):
 
             # Never treat a report from setup or a previous invocation as the
             # outcome of the selected step.
+            if self._cancel_requested:
+                self.call_from_thread(self._finished, step, Outcome("cancelled", "Check stopped", "Cancelled read-only check."), None)
+                return
             started = time.time()
             command = command_for_step(step, self.repo)
             return_code = self._execute(command)
+            if self._cancel_requested:
+                self.call_from_thread(self._finished, step, Outcome("cancelled", "Check stopped", "Cancelled read-only check."), None)
+                return
             report = read_fresh_report(self.repo / "ultra0-report", step, started)
             result = outcome_for_stage(step, return_code, report)
             self.call_from_thread(self._finished, step, result, report)
@@ -468,6 +533,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#step", Select).disabled = False
         self.query_one("#stop", Button).disabled = True
         self.query_one("#stop", Button).display = False
+        self.query_one("#exit", Button).disabled = False
         self._started_at = None
         self.query_one("#activity", Static).update("Step finished. Review the result above.")
         self._set_workflow(step, "done" if outcome.code in ("listed", "environment_ok") else "review")
@@ -487,9 +553,12 @@ class GoogleAITUI(App[None]):
             self.query_one("#next", Button).disabled = True
             self.query_one("#next", Button).display = False
             self.sequence = False
+        if self._exit_after_step:
+            self.exit()
+            return
         if outcome.code == "checkout_requested":
             self.notify("Review the actual subscription in Google Play.", severity="warning")
-        elif outcome.code not in ("listed", "environment_ok"):
+        elif outcome.code not in ("listed", "environment_ok", "cancelled"):
             self.notify("Step stopped; check the result before another attempt.", severity="warning")
 
 
