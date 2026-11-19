@@ -573,25 +573,24 @@ def add_card(card: dict) -> bool:
         warn("Could not find the add-card entry; enter the payment method manually")
         return False
     time.sleep(9)
-    # Field order: card number, month, year, CVC, name, street, and city.
-    edits = [n for n in nodes(ui_xml()) if "EditText" in n["cls"]]
+    # Fill only supplied card information. Never invent a billing address or
+    # cardholder name: a real address must be entered and reviewed on Android.
     mm = re.sub(r"\D", "", card["exp"])[:2] or "01"
     yy = re.sub(r"\D", "", card["exp"])[2:][-2:] or "30"
-    seq = [card["number"], mm, yy, card["cvc"], card["holder"] or "CARD HOLDER",
-           "123 Main St", "Portland"]
+    seq = [card["number"], mm, yy, card["cvc"]]
+    if card.get("holder"):
+        seq.append(card["holder"])
     for i, val in enumerate(seq):
         edits = [n for n in nodes(ui_xml()) if "EditText" in n["cls"]]
         if i >= len(edits):
             break
         tap(edits[i]["x"], edits[i]["y"]); time.sleep(0.6)
         type_text(val); time.sleep(0.5)
-    if not tap_text("Save", "\u4fdd\u5b58"):
-        if not wait_human("Tap Save in Google Pay manually, then continue.", 240):
-            warn("Payment method could not be confirmed")
-            return False
-    else:
-        time.sleep(8)
-    ok("Payment method form submitted")
+    note("Review and complete the actual cardholder/billing address on Android.")
+    if not wait_human("Enter your real billing details, save the card on Android, then press Enter.", 240):
+        warn("Payment method could not be confirmed")
+        return False
+    ok("Manual payment-method step acknowledged (not independently verified)")
     return True
 
 
