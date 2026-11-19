@@ -90,37 +90,82 @@ def install_frida():
         die(f"Failed to install Frida: {e}\n   Run: pip install frida==16.5.9")
 
 
-def download_platform_tools():
-    dest = BASE / "platform-tools"
-    print(f"   Downloading Android platform-tools to {dest}")
-    tmp = Path(tempfile.gettempdir()) / "platform-tools.zip"
-    with urllib.request.urlopen(PLATFORM_TOOLS_URL, timeout=180) as r, open(tmp, "wb") as f:
-        f.write(r.read())
-    with zipfile.ZipFile(tmp) as z:
-        z.extractall(BASE)
-    tmp.unlink(missing_ok=True)
-    adb = dest / "adb.exe"
-    if adb.exists():
-        ok(f"Android platform-tools ready: {adb}")
-        return str(adb)
-    die("adb.exe was missing from the extracted platform-tools archive")
+def adb_is_working(adb: Path | str) -> bool:
+    """Verify a file actually runs as ADB (not a partial installation)."""
+    path = Path(adb)
+    if not path.is_file():
+        return False
+    try:
+        result = subprocess.run([str(path), "version"], capture_output=True,
+                                text=True, timeout=10, errors="replace")
+        return result.returncode == 0 and "Android Debug Bridge" in result.stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return False
 
 
-def find_adb():
+def user_platform_tools() -> Path:
+    """Store a fallback copy under the current user's writable profile."""
+    parent = os.environ.get("LOCALAPPDATA")
+    return (Path(parent) if parent else Path.home() / ".cache") / "google-ai" / "platform-tools"
+
+
+def download_platform_tools() -> str:
+    """Do not extract over an adb.exe that Windows may currently have locked."""
+    preferred = BASE / "platform-tools"
+    fallback = user_platform_tools()
+    for directory in (preferred, fallback):
+        adb = directory / "adb.exe"
+        if adb_is_working(adb):
+            ok(f"Reusing existing Android platform-tools: {adb}")
+            return str(adb)
+
+    step("Downloading official Android platform-tools")
+    try:
+        with tempfile.TemporaryDirectory(prefix="google-ai-platform-tools-") as temp_dir:
+            temp_root = Path(temp_dir)
+            archive = temp_root / "platform-tools.zip"
+            with urllib.request.urlopen(PLATFORM_TOOLS_URL, timeout=180) as response, open(archive, "wb") as target:
+                shutil.copyfileobj(response, target)
+            with zipfile.ZipFile(archive) as z:
+                if "platform-tools/adb.exe" not in z.namelist():
+                    raise RuntimeError("Official platform-tools archive did not contain adb.exe")
+                z.extractall(temp_root)
+            source = temp_root / "platform-tools"
+
+            for target in (preferred, fallback):
+                try:
+                    shutil.copytree(source, target, dirs_exist_ok=True)
+                    adb = target / "adb.exe"
+                    if adb_is_working(adb):
+                        ok(f"Android platform-tools installed: {adb}")
+                        return str(adb)
+                    warn(f"ADB could not run from {target}; trying another location.")
+                except OSError as exc:
+                    warn(f"Cannot update {target}: {exc}. Trying the per-user location.")
+    except (OSError, zipfile.BadZipFile, RuntimeError, TimeoutError) as exc:
+        die(f"Could not install Android platform-tools: {exc}. "
+            "Install the official package from "
+            "https://developer.android.com/tools/releases/platform-tools "
+            "or set ADB_PATH to an existing adb.exe.")
+
+    die("ADB is still unusable. Close processes locking adb.exe, "
+        "or set ADB_PATH to a working SDK platform-tools installation.")
+
+
+def find_adb() -> str:
     step("Locating ADB")
-    for c in ADB_CANDIDATES:
-        if not c:
-            continue
-        if c in ("adb", "adb.exe"):
-            continue
-        if Path(c).exists():
-            ok(f"Using {c}")
-            return c
-    w = shutil.which("adb")
-    if w:
-        ok(f"Using ADB from PATH: {w}")
-        return w
-    warn("ADB was not found; attempting to download platform-tools")
+    candidates = [
+        os.environ.get("ADB_PATH", ""),
+        str(BASE / "platform-tools" / "adb.exe"),
+        str(user_platform_tools() / "adb.exe"),
+        *ADB_CANDIDATES,
+        shutil.which("adb") or "",
+    ]
+    for candidate in candidates:
+        if candidate and adb_is_working(candidate):
+            ok(f"Using existing ADB: {candidate}")
+            return str(candidate)
+    warn("No usable ADB installation found; downloading official platform-tools.")
     return download_platform_tools()
 
 
@@ -144,7 +189,7 @@ def run_check(adb, serial):
     env = dict(os.environ)
     env["ADB_PATH"] = adb
     env["PYTHONIOENCODING"] = "utf-8"
-    r = subprocess.run([sys.executable, "ultra0.py", "--check"], cwd=str(BASE),
+    r = subprocess.run([sys.executable, "ultra0.py", "--check", "--serial", serial], cwd=str(BASE),
                        env=env, capture_output=True, encoding="utf-8", errors="ignore")
     print(r.stdout.strip() or r.stderr.strip())
     return r.returncode == 0
@@ -157,6 +202,7 @@ def main():
     check_python()
     install_frida()
     adb = find_adb()
+    os.environ["ADB_PATH"] = str(adb)
     serial = connect_emulator(adb)
 
     if serial:
