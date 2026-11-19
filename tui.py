@@ -234,7 +234,7 @@ class GoogleAITUI(App[None]):
                                     yield Static("Step", id="advanced_label")
                                     yield Select(
                                         [(f"{stage.number}. {stage.label}", stage.number)
-                                         for stage in (STAGES[:2] if self.macos_mode else STAGES)],
+                                         for stage in STAGES],
                                         value=self.initial_step, id="step", allow_blank=False)
                             with Horizontal(id="run_row"):
                                 yield Button("Run selected step", id="run", variant="primary")
