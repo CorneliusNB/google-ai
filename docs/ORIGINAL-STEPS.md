@@ -32,6 +32,9 @@ Run `setup-environment.bat` to invoke the original setup helper, or use the main
 # Entire original sequence: preflight, offer list, Steps 2-4, optional Step 5
 .\run-all.ps1 -AllStages
 
+# Resume from Step 3 without replaying Step 2 on an already-active plan
+.\run-all.ps1 -AllStages -StartStep 3
+
 # Original account-check bypass (only when necessary)
 .\run-all.ps1 -AllStages -Force
 ```

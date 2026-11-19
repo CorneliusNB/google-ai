@@ -87,6 +87,14 @@ For the complete original sequence (environment check, offer listing, Steps 2–
 .\run-all.ps1 -AllStages
 ```
 
+**Resume after an active 12-month plan:** Do not repeat Step 2. The wrapper now requires `NO ACTIVE` before any Step 2 checkout. After reviewing the active Google AI Pro plan and next renewal date in Google Play, you can explicitly start at Step 3:
+
+```powershell
+.\run-all.ps1 -AllStages -StartStep 3
+```
+
+This asks for `ACTIVE` and does not infer whether prior extensions succeeded. An `already_subscribed` checkout error means there is no verified extra subscription period; stop instead of trying later stages.
+
 The active Play Store email is detected automatically; `-Email` can specify an expected account. `-Force` passes the original Python `--force` to bypass **only** the account-verification check, after you type `FORCE`. Normally it is unnecessary.
 
 For `-AllStages`, type `RUN ALL` to begin. After each attempted subscription stage, verify the result in Google Play and type `VERIFIED` to proceed; optional Step 5 needs its own `RUN 5` approval. Individual `-Step 2`, `-Step 3`, `-Step 4` or `-Step 5` executions ask for `RUN N`. The default command without options remains read-only (`-Step 1`).

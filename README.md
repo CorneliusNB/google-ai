@@ -28,7 +28,15 @@ The setup helper locates or installs ADB, configures Frida 16.5.9 and checks MuM
 .\run-all.ps1 -AllStages
 ```
 
-This runs the environment check, offer listing, and the original Pro stages **2 → 3 → 4**, then offers optional **Step 5**. Type `RUN ALL` once to start, then `VERIFIED` only after checking each attempted transaction in Google Play. Step 5 requires a separate `RUN 5` approval; otherwise it is skipped. Stopping at any prompt prevents subsequent stages.
+This runs the environment check, offer listing, and the original Pro stages **2 → 3 → 4**, then offers optional **Step 5**. Type `RUN ALL` once to start, then `VERIFIED` only after checking each attempted transaction in Google Play. Step 5 requires a separate `RUN 5` approval; otherwise it is skipped. Stopping at any prompt prevents subsequent stages. Step 2 requires confirming `NO ACTIVE` before opening its checkout.
+
+**Already subscribed after Step 2?** Do not rerun Step 2. To start at Step 3 without replaying Step 2, first verify the active plan and next renewal date in Google Play:
+
+```powershell
+.\run-all.ps1 -AllStages -StartStep 3
+```
+
+The script asks for `ACTIVE` and `RUN ALL`; it cannot prove earlier extensions succeeded. **If Step 3 displays "You're already subscribed", stop.** No additional six months have been verified, and proceeding to Steps 4–5 is not recommended.
 
 ### Run one step
 
