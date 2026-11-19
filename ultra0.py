@@ -68,6 +68,18 @@ FRIDA_REMOTE = "/data/local/tmp/frida-server"
 FRIDA_REQUIRED = "16.5.9"
 REPORT_DIR = Path("ultra0-report")
 
+def report_filename(email: str) -> str:
+    """Use the complete account identity without leaking it into filenames.
+
+    The original local-part-only name overwrote reports for accounts at
+    different domains (e.g. alice@gmail.com and alice@yahoo.com).
+    """
+    normalized = email.strip().lower()
+    if normalized == "current@device":
+        return "current.json"  # Stable identifier for read-only offer listing.
+    return "account-" + hashlib.sha256(normalized.encode("utf-8")).hexdigest() + ".json"
+
+
 ADB_CANDIDATES = [
     os.environ.get("ADB_PATH", ""),
     # Windows / MuMu
@@ -1157,7 +1169,7 @@ def main():
             rec = {"email": email, "status": "exception", "error": str(e)[:320],
                    "exception_type": type(e).__name__}
         results.append(rec)
-        (REPORT_DIR / f"{email.split('@')[0]}.json").write_text(
+        (REPORT_DIR / report_filename(email)).write_text(
             json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"   Result: {rec.get('status')}")
 
