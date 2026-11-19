@@ -17,3 +17,9 @@ python -m unittest discover -s tests -v
 ```
 
 Documentation and terminal usability fixes are welcome. Preserve attribution to upstream authors and retain their MIT notice.
+
+## Translations
+
+The root [English README](README.md) is the maintained reference. Translated guides are [Vietnamese](README.vi.md), [Simplified Chinese](README.zh-CN.md), [Japanese](README.ja.md), [Korean](README.ko.md), [Spanish](README.es.md), and [French](README.fr.md).
+
+When changing the installation requirements, stage/CLI behavior, or billing/security warnings, update all localized READMEs in the same PR. Keep PowerShell commands, code identifiers, original attribution, disclaimer links and safety boundaries identical in meaning. Do not translate executable flags or UI labels that remain in English. Run `python -m unittest discover -s tests -p 'test_readme_locales.py' -v` to check links and key safety text. Other detailed documentation is maintained in English unless explicitly localized.
