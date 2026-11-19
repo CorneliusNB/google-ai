@@ -75,8 +75,9 @@ class CoreTests(unittest.TestCase):
             (p / "account-a.json").write_text(
                 json.dumps({"status": "checkout_requested", "email": "alice@example.com"}))
             (p / "account-b.json").write_text(
-                json.dumps({"status": "checkout_requested"}))
-            self.assertIsNone(read_fresh_report(p, 3, started_at))
+                json.dumps({"status": "checkout_requested", "email": "alice@example.com"}))
+            self.assertIsNone(read_fresh_report(
+                p, 3, started_at, expected_account="alice@example.com"))
             self.assertFalse(outcome_for_stage(3, 0, None).can_review)
 
     def test_one_fresh_checkout_report_can_be_reviewed(self):
@@ -84,7 +85,7 @@ class CoreTests(unittest.TestCase):
             p = Path(folder)
             started_at = time.time() - 10
             (p / "account.json").write_text(
-                json.dumps({"status": "checkout_requested"}))
+                json.dumps({"status": "checkout_requested", "email": "alice@example.com"}))
             report = read_fresh_report(p, 3, started_at, expected_account="alice@example.com")
             self.assertIsNotNone(report)
             self.assertTrue(outcome_for_stage(3, 0, report).can_review)
