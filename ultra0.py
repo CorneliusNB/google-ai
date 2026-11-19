@@ -665,10 +665,42 @@ def build_js(plan: str = "auto", list_only: bool = False, stack: bool = False, o
     return js
 
 
-def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_token="", stack_mode=None, activity_method="auto") -> dict:
+def get_target_frida_device(pid: int, serial: str):
+    """Select the Frida transport for the ADB target; never pick an arbitrary USB device."""
     import frida
+    candidates = [dev for dev in frida.get_device_manager().enumerate_devices()
+                  if getattr(dev, "type", None) == "usb"]
+    exact = [dev for dev in candidates if getattr(dev, "id", None) == serial]
+    if len(exact) == 1:
+        selected = exact[0]
+    elif len(candidates) == 1:
+        selected = candidates[0]
+    else:
+        available = ", ".join(str(dev.id) for dev in candidates) or "none"
+        raise RuntimeError(
+            f"Cannot map ADB serial {serial!r} to a unique Frida device. "
+            f"Frida USB devices: {available}. Check frida-ls-devices and use --serial.")
+
+    # Frida PID integers are scoped to a device: the same PID can represent
+    # unrelated processes on different phones. Confirm the package before attach.
+    try:
+        process = selected.get_process(pid)
+        name = str(process.name)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Cannot verify PID {pid} on Frida device {selected.id}; "
+            "refusing to attach to an unverified Android process.") from exc
+    if name not in (PKG, "Google One") and not name.startswith(PKG + ":"):
+        raise RuntimeError(
+            f"Frida device {selected.id} PID {pid} is {name!r}, not Google One. "
+            f"Selected ADB device is {serial!r}; refusing to attach.")
+    return selected
+
+
+def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_token="", stack_mode=None, activity_method="auto") -> dict:
     step("Injecting billing module to inspect introductory offers")
-    dev = frida.get_usb_device(timeout=10)
+    dev = get_target_frida_device(pid, SERIAL)
+    note(f"Using Frida device: {dev.id} (ADB: {SERIAL})")
     sess = dev.attach(pid)
     res = {"offers": [], "launched": None, "purchase": None, "activity": None, "errors": []}
 
@@ -708,6 +740,11 @@ def diagnose_launch_failure(fr: dict) -> tuple:
     """Explain why billing UI was not opened, without retrying purchases."""
     events = fr.get("errors") or []
     ev_names = {e.get("ev") for e in events if isinstance(e, dict)}
+    if ev_names.intersection({"no_purchase", "stack_query_err", "stack_outer_err",
+                              "stack_param_err", "mode_err"}):
+        return ("subscription_update_unavailable",
+                "Existing subscription token or replacement parameters were unavailable. "
+                "No safe subscription update was launched. Inspect the Play subscription state.")
     if "choose_err" in ev_names and ("activity_thread_err" in ev_names or "no_activity" in ev_names):
         return ("activity_lookup_failed",
                 "Both Java.choose and ActivityThread failed to locate a usable Activity. "
@@ -869,7 +906,10 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
     if fr["launched"] and fr["launched"].get("code") == 0:
         rec["sheet"] = confirm_zero(password=password)
         rec["subscription_page"] = verify()
-        rec["status"] = "subscribed" if "Ultra" in rec["subscription_page"] else "launched"
+        # launchBillingFlow code 0 and seeing a product name on the Play page
+        # DO NOT prove the subscription is active or a free trial is applied.
+        rec["status"] = ("checkout_requested" if rec["sheet"].get("confirmed")
+                         else "checkout_not_confirmed")
     else:
         rec["status"], rec["error"] = diagnose_launch_failure(fr)
         warn(f"Checkout not opened: {rec['status']}: {rec['error']}")

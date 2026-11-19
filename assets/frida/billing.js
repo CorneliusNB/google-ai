@@ -164,16 +164,16 @@ function launchWithStack(pd, offer){
       try{
         var list=Java.cast(purchases, Java.use("java.util.List"));
         S({ev:"purchases", n:list.size(), code:String(br.getResponseCode())});
-        if(list.size()===0){ S({ev:"no_purchase"}); launch(pd, offer); return; }
+        if(list.size()===0){ S({ev:"no_purchase"}); return; }
         var pu=Java.cast(list.get(0), Java.use("com.android.billingclient.api.Purchase"));
         var tok=String(pu.getPurchaseToken());
         S({ev:"old_purchase", head:tok.slice(0,16), products:String(pu.getProducts())});
         launch(pd, offer, tok);
-      }catch(e){ S({ev:"stack_query_err", m:String(e).slice(0,200)}); launch(pd, offer); }
+      }catch(e){ S({ev:"stack_query_err", m:String(e).slice(0,200)}); return; }
     }}});
   var qp=QP.newBuilder().setProductType("subs").build();
   clientRef.queryPurchasesAsync(qp, cls.$new());
- }catch(e){ S({ev:"stack_outer_err", m:String(e).slice(0,200)}); launch(pd, offer); }
+ }catch(e){ S({ev:"stack_outer_err", m:String(e).slice(0,200)}); return; }
 }
 
 function launch(pd, offer, oldTok){
@@ -199,10 +199,11 @@ function launch(pd, offer, oldTok){
         catch(e2){ S({ev:"mode_err", m:String(e2).slice(0,120)}); }
       }
       S({ev:"mode_applied", mode:md, ok:mode_set});
+      if(!mode_set){ S({ev:"stack_param_err", m:"Subscription replacement mode unavailable"}); return; }
       var sup=sb.setOldPurchaseToken(String(oldTok)).build();
       b=b.setSubscriptionUpdateParams(sup);
       S({ev:"stack_mode", mode:md, old: String(oldTok).slice(0,16)});
-    }catch(e){ S({ev:"stack_param_err", m:String(e).slice(0,160)}); }
+    }catch(e){ S({ev:"stack_param_err", m:String(e).slice(0,160)}); return; }
   }
   var params=b.build();
   var act=getActivity();
