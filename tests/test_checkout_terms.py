@@ -38,6 +38,43 @@ class CheckoutTests(unittest.TestCase):
             "Google AI Pro Subscribe Today $0 1 month free trial", "pro12")
         self.assertEqual(result["reason"], "trial_duration_unverified")
 
+    def test_google_play_or_reh_04_is_a_security_block_not_trial_error(self):
+        checkout = (
+            "Google AI Pro Subscribe Today $0.00 6 months free trial "
+            "Error Your transaction can't be completed. To continue this "
+            "transaction, secure your account. [OR-REH-04] Got it"
+        )
+        result = app.assess_checkout_terms(checkout, "pro6")
+        self.assertEqual(result["reason"], "payment_security_blocked")
+        self.assertEqual(result["error_code"], "OR-REH-04")
+        self.assertIsNone(result["today_price"])
+
+    def test_checkout_security_block_never_taps_subscribe(self):
+        with patch.object(app, "ui_xml", return_value=(
+                 "Error Your transaction can't be completed. "
+                 "Secure your account [OR-REH-04] Got it")), \
+             patch.object(app, "nodes", side_effect=lambda xml: [
+                 {"text": xml, "desc": ""}]), \
+             patch.object(app, "tap_text") as tapped:
+            result = app.confirm_zero(wait=2, expected_plan="pro6")
+        self.assertFalse(result["confirmed"])
+        self.assertEqual(result["reason"], "payment_security_blocked")
+        tapped.assert_not_called()
+
+    def test_checkout_security_block_sets_distinct_status(self):
+        fr = {"launched": {"code": 0}, "offers": [{"id": "6months-eft", "micros": "0"}]}
+        with patch.object(app, "current_play_account", return_value="test@example.com"), \
+             patch.object(app, "launch_app", return_value=123), \
+             patch.object(app, "run_trial", return_value=fr), \
+             patch.object(app, "confirm_zero", return_value={
+                 "confirmed": False, "reason": "payment_security_blocked",
+                 "error_code": "OR-REH-04"
+             }), \
+             patch.object(app, "verify") as verify:
+            result = app.process("test@example.com", add=False, no_switch=True, plan="pro6", stack=True)
+        self.assertEqual(result["status"], "checkout_security_blocked")
+        verify.assert_not_called()
+
     def test_already_subscribed_is_not_extension_success(self):
         result = app.assess_checkout_terms(
             "Error You're already subscribed to Google AI Pro (5 TB) (Google One). Got it", "pro6")

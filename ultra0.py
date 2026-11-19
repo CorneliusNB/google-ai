@@ -842,6 +842,14 @@ def assess_checkout_terms(text: str, expected_plan: str = "auto") -> dict:
     clean = " ".join(text.split())
     low = clean.lower()
     result = {"reason": "checkout_not_visible", "today_price": None, "text": clean[:400]}
+    # A payment security refusal overrides any $0/trial wording that may
+    # still be visible in the background behind Google's error dialog.
+    if "or-reh-04" in low or (
+            "your transaction can't be completed" in low and
+            "secure your account" in low):
+        result["reason"] = "payment_security_blocked"
+        result["error_code"] = "OR-REH-04" if "or-reh-04" in low else None
+        return result
     if any(x in low for x in ("backup payment methods", "\u5907\u7528\u4ed8\u6b3e\u65b9\u5f0f",
                                "phương thức thanh toán dự phòng")):
         result["reason"] = "backup_payment_methods_prompt"
@@ -897,6 +905,13 @@ def confirm_zero(wait=40, password="", expected_plan="auto") -> dict:
         if reason == "ineligible":
             out["ineligible"] = True
             warn("Google Play says this account is not eligible; no Subscribe tap.")
+            return out
+        if reason == "payment_security_blocked":
+            out["error_code"] = assessment.get("error_code")
+            warn("Google Play blocked this payment pending account security checks "
+                 "(OR-REH-04). This is NOT a trial-duration issue. "
+                 "Do not retry checkout or use --force; check Google Account "
+                 "and Google Payments notices. Leaving the error dialog open.")
             return out
         if reason == "already_subscribed":
             warn("Google Play reports this plan is already subscribed. "
@@ -1007,8 +1022,11 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
             note("Checkout not confirmed; Google Play remains open for inspection.")
         # launchBillingFlow code 0 and seeing a product name on the Play page
         # DO NOT prove the subscription is active or a free trial is applied.
-        rec["status"] = ("checkout_requested" if rec["sheet"].get("confirmed")
-                         else "checkout_not_confirmed")
+        if rec["sheet"].get("reason") == "payment_security_blocked":
+            rec["status"] = "checkout_security_blocked"
+        else:
+            rec["status"] = ("checkout_requested" if rec["sheet"].get("confirmed")
+                             else "checkout_not_confirmed")
     else:
         rec["status"], rec["error"] = diagnose_launch_failure(fr)
         warn(f"Checkout not opened: {rec['status']}: {rec['error']}")

@@ -211,3 +211,11 @@ python scripts/diagnose-activity.py --serial emulator-5554
 The Google Play popup **Turn on backup payment methods?** asks permission to charge alternate saved payment methods if a primary method fails. It does not itself prove a subscription offer was accepted, and this toolkit does not turn it on. See https://support.google.com/googleplay/answer/4646404.
 
 A displayed amount such as **US$19.99** may be a later renewal price, not the amount payable today. The checkout parser distinguishes these by requiring an explicit **today $0** amount and the expected trial duration on the *live checkout screen*. It no longer assumes the first monetary amount is today's payment. If either detail cannot be checked, it records a reason in `ultra0-report/<account>.json`, leaves the Google Play UI open for review, and does not tap Subscribe. The original BillingClient offer's first phase is not proof of actual account eligibility. Avoid `-Force` when the checkout price is unclear.
+
+## Google Play payment security error OR-REH-04
+
+If the Play checkout shows **"Your transaction can't be completed. To continue this transaction, secure your account"** with **OR-REH-04**, this is a Google Play/payment-account security block, not a missing Frida Activity, a missing offer, or an unverified trial duration. A `launchBillingFlow` code of 0 means the checkout was opened, **not** that the purchase was accepted.
+
+The script records `checkout_security_blocked` with checkout reason `payment_security_blocked`, **does not tap Subscribe**, leaves the Google Play dialog visible, and stops the stage sequence. It never uses `--force` to bypass Google payment restrictions.
+
+Use Google's official [payment troubleshooting](https://support.google.com/googleplay/answer/1267137) and check alerts or verification requests in [Google Payments](https://payments.google.com/) and [Google Account Security](https://myaccount.google.com/security). Confirm the exact payment profile and billing-address information are correct; contact Google support if the restriction remains. Do not repeatedly retry billing stages or attempt later stacking steps until the issue is resolved and the actual subscription/renewal date is confirmed.
