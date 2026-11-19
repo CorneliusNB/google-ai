@@ -126,6 +126,18 @@ function Get-RuntimeValue([string[]]$LookupArgs) {
     return [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded))
 }
 
+function Get-AccountReportKey([string]$Email) {
+    $normalized = $Email.Trim().ToLowerInvariant()
+    if ($normalized -eq "current@device") { return "current" }
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $digest = $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($normalized))
+        return "account-" + [System.BitConverter]::ToString($digest).Replace("-", "").ToLowerInvariant()
+    } finally {
+        $sha.Dispose()
+    }
+}
+
 function Read-PythonReport([string]$AccountKey) {
     $reportFile = Join-Path $PSScriptRoot ("ultra0-report\{0}.json" -f $AccountKey)
     if (-not (Test-Path -LiteralPath $reportFile)) {
@@ -411,7 +423,7 @@ try {
             return
         }
     }
-    $key = $Email.Split('@')[0]
+    $key = Get-AccountReportKey $Email
     foreach ($stage in $selectedStages) {
         Stage ("Original Step {0}: {1}" -f $stage.Number, $stage.Name)
         Show-Status "Offer" $stage.Offer "Cyan"
