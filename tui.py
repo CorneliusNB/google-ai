@@ -89,7 +89,7 @@ class GoogleAITUI(App[None]):
     .section { color: #78cfe8; text-style: bold; margin-bottom: 1; }
     #step { margin-bottom: 2; }
     #controls Button { width: 100%; margin-bottom: 1; }
-    #state { color: #f3f8ff; text-style: bold; margin: 2 0 1; }
+    #state { color: #f3f8ff; text-style: bold; margin: 2 0 1 0; }
     #message { color: #b9d0e2; margin-bottom: 1; }
     #step_result { color: #8dd6b7; margin: 1 0; }
     #manual { display: none; margin: 1 0; }
