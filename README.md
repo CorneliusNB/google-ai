@@ -1,5 +1,7 @@
 # ePlus AI Toolkit
 
+<img width="1902" height="912" alt="image" src="https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3" />
+
 **ePlus AI Toolkit** is a Windows-focused, interactive terminal interface for inspecting Google AI Pro offers on an Android emulator (including MuMu). It uses the upstream Python/ADB/Frida/Google Play workflow rather than replacing or bypassing those checks.
 
 > **Important:** This is not an official Google product. Displaying an offer, a price of 0, or a checkout request does **not** prove that an account is eligible or that a subscription has been activated. Steps 2–5 may open Google Play checkout and automatically press **Subscribe**, potentially incurring charges. Confirm the Google Play account, the amount due today, recurring price and renewal date before starting any checkout.
