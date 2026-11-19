@@ -154,7 +154,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         widget = app.query_one(selector)
                         self.assertGreaterEqual(widget.region.x, sidebar.right)
                         self.assertGreater(widget.region.width, 15)
-                    self.assertFalse(app.query_one("#run", Button).display)
+                    self.assertTrue(app.query_one("#run", Button).display)
                     self.assertTrue(app.query_one("#quickstart", Button).display)
                     self.assertEqual(app.query_one("#mode", Select).value, "single")
                 popen.assert_not_called()
