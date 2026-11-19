@@ -7,6 +7,14 @@ A Windows-focused terminal toolkit for inspecting Google AI Pro offers through a
 > [!CAUTION]
 > **Unofficial project. Potential billing charges.** Steps **2–5** can open a real Google Play checkout and may automatically tap **Subscribe**. An offer appearing in a list, a displayed first-phase price of zero, or a `checkout_requested` report does **not** establish eligibility, an active subscription, a free subscription, or a changed renewal date. Verify the exact account, today's charge, future pricing and renewal date directly in Google Play before any checkout.
 
+## Disclaimer
+
+**ePlus AI Toolkit is an independent, unofficial project** and is not affiliated with, endorsed by or supported by Google, Google Play, Google One, NetEase or MuMuPlayer.
+
+The software is provided **as is**, without guarantees of Google AI Pro eligibility, free or extended subscriptions, payment outcomes, account safety or emulator compatibility. **Steps 2–5 can initiate real charges**, and setup may alter Android, Frida or network settings. Use it only with authorized accounts and devices, comply with applicable terms and laws, and verify every payment and renewal directly in Google Play. Stop/Exit does not undo a submitted checkout.
+
+Read the **[full disclaimer](DISCLAIMER.md)** and [security precautions](SECURITY.md) before use. These notices do not remove any liability that cannot legally be excluded.
+
 ## Install and prepare
 
 ### Requirements
@@ -168,6 +176,7 @@ Verify subscription, payment amount, currency and renewal terms under **[Google 
 - [Detailed setup and troubleshooting](docs/DETAILED-GUIDE.md)
 - [Original author's stage and batch-file reference](docs/ORIGINAL-STEPS.md)
 - [Historical author notes](docs/AUTHOR-NOTES.md)
+- [Full disclaimer](DISCLAIMER.md)
 - [Security and billing precautions](SECURITY.md)
 - [Contributing](CONTRIBUTING.md) · [AI agent guidelines](AGENTS.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
