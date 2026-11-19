@@ -48,11 +48,11 @@ class CoreTests(unittest.TestCase):
             p = Path(folder) / "report"
             p.mkdir()
             f = p / "test.json"
-            f.write_text(json.dumps({"status": "checkout_requested"}))
+            f.write_text(json.dumps({"status": "checkout_requested", "email": "alice@example.com"}))
             now = time.time()
             import os
             os.utime(f, (now - 600, now - 600))
-            self.assertIsNone(read_fresh_report(p, 3, now))
+            self.assertIsNone(read_fresh_report(p, 3, now, expected_account="alice@example.com"))
             result = outcome_for_stage(3, 0, None)
             self.assertFalse(result.can_review)
 
@@ -60,23 +60,24 @@ class CoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             p = Path(folder)
             report = p / "account.json"
-            report.write_text(json.dumps({"status": "checkout_requested"}))
+            report.write_text(json.dumps({"status": "checkout_requested", "email": "alice@example.com"}))
             started_at = time.time()
             # A completed run 0.5 seconds earlier must not be treated as
             # belonging to a new request just because file mtime is recent.
             import os
             os.utime(report, (started_at - 0.5, started_at - 0.5))
-            self.assertIsNone(read_fresh_report(p, 3, started_at))
+            self.assertIsNone(read_fresh_report(p, 3, started_at, expected_account="alice@example.com"))
 
     def test_conflicting_account_reports_fail_closed(self):
         with tempfile.TemporaryDirectory() as folder:
             p = Path(folder)
             started_at = time.time() - 10
             (p / "account-a.json").write_text(
-                json.dumps({"status": "checkout_requested"}))
+                json.dumps({"status": "checkout_requested", "email": "alice@example.com"}))
             (p / "account-b.json").write_text(
-                json.dumps({"status": "checkout_requested"}))
-            self.assertIsNone(read_fresh_report(p, 3, started_at))
+                json.dumps({"status": "checkout_requested", "email": "alice@example.com"}))
+            self.assertIsNone(read_fresh_report(
+                p, 3, started_at, expected_account="alice@example.com"))
             self.assertFalse(outcome_for_stage(3, 0, None).can_review)
 
     def test_one_fresh_checkout_report_can_be_reviewed(self):
@@ -84,10 +85,32 @@ class CoreTests(unittest.TestCase):
             p = Path(folder)
             started_at = time.time() - 10
             (p / "account.json").write_text(
-                json.dumps({"status": "checkout_requested"}))
-            report = read_fresh_report(p, 3, started_at)
+                json.dumps({"status": "checkout_requested", "email": "alice@example.com"}))
+            report = read_fresh_report(p, 3, started_at, expected_account="alice@example.com")
             self.assertIsNotNone(report)
             self.assertTrue(outcome_for_stage(3, 0, report).can_review)
+
+    def test_foreign_checkout_report_is_never_eligible_for_review(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p = Path(folder)
+            (p / "account-foreign.json").write_text(json.dumps({
+                "email": "other@example.com", "status": "checkout_requested",
+            }))
+            started_at = time.time() - 10
+            self.assertIsNone(read_fresh_report(
+                p, 3, started_at, expected_account="alice@example.com"))
+            self.assertIsNone(read_fresh_report(p, 3, started_at))
+            # The account matches, but the report belongs to another person.
+            self.assertIsNotNone(read_fresh_report(
+                p, 3, started_at, expected_account="other@example.com"))
+
+    def test_step_one_remains_account_independent(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p = Path(folder)
+            (p / "current.json").write_text(json.dumps({
+                "email": "current@device", "status": "listed", "offers": [],
+            }))
+            self.assertIsNotNone(read_fresh_report(p, 1, time.time() - 10))
 
     def test_security_block_and_duplicate_cannot_continue(self):
         for reason in ("payment_security_blocked", "already_subscribed",
@@ -262,6 +285,20 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 app.action_toggle_debug()  # Reopen with the full current-run buffer
                 await pilot.pause()
                 self.assertEqual(len(app.query_one("#debug_log", RichLog).lines), 2)
+
+    async def test_verified_account_captured_only_from_structured_status(self):
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch.object(GoogleAITUI, "run_stage"):
+                async with app.run_test(size=(110, 35)):
+                    app._received("Message about Account other@example.com")
+                    self.assertIsNone(app._verified_account)
+                    app._received("  Account      Alice@Example.com")
+                    self.assertEqual(app._verified_account, "alice@example.com")
+                    app._start(3, True)
+                    self.assertIsNone(app._verified_account)
 
     async def test_busy_state_locks_run_controls_but_keeps_help_available(self):
         from textual.widgets import Button, Select
