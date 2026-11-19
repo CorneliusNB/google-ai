@@ -10,7 +10,7 @@ This repository is **not an official Google or NetEase product** and is not affi
 
 - The toolkit **does not provide, sell or guarantee free Google AI Pro subscriptions**, promotional eligibility, additional subscription months, successful transactions or future renewal terms.
 - **Steps 2–5 are potentially billable**. Depending on the Google Play screen, the original underlying script can open checkout and automatically tap **Subscribe**. The user is responsible for reviewing the correct Google account, amount due today, recurring charges, currency, renewal date and cancellation terms **before** initiating a live stage.
-- A price of zero, an offer identifier, a successful BillingClient response, or a `checkout_requested` status does **not** prove an active subscription or an entitlement. Verify charges and subscription status directly in [Google Play Subscriptions](https://play.google.com/store/account/subscriptions).
+- A price of zero, an offer identifier, a successful BillingClient response, or a locally reported checkout submission does **not** prove an active subscription or an entitlement. Verify charges and subscription status directly in [Google Play Subscriptions](https://play.google.com/store/account/subscriptions).
 - **Stop/Exit cannot reverse a purchase already submitted.** Interrupting a checkout can leave its result unknown. Confirm the outcome in Google Play rather than retrying blindly.
 
 ## Device, account and data risks
