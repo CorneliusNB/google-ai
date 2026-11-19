@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
-const source = readFileSync(new URL('../ultra0.py', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../assets/frida/billing.js', import.meta.url), 'utf8');
 const begin = source.indexOf('function activityUsable(activity)');
 const end = source.indexOf('function boot(){', begin);
-assert.ok(begin > 0 && end > begin, 'Original embedded Frida functions not found');
+assert.ok(begin > 0 && end > begin, 'Frida Activity lookup functions not found');
 const lookup = source.slice(begin, end);
 
 function simulate({ mode = 'auto', choose = 'success', thread = 'success' } = {}) {
