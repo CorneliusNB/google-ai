@@ -27,7 +27,7 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertIn("$googleOnePid =", ps)
         self.assertIn("if ($googleOnePid -match", ps)
         import re
-        self.assertIsNone(re.search(r"\\$pid\\s*=", ps, flags=re.IGNORECASE))
+        self.assertIsNone(re.search(r"\$pid\s*=", ps, flags=re.IGNORECASE))
 
     def test_optional_stage_never_runs_in_all_stages(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
