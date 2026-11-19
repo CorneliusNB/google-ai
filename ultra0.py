@@ -18,7 +18,8 @@ Requirements:
 WARNING: non-list mode can open Google Play checkout and tap Subscribe.
 Offer metadata does not prove eligibility or subscription activation.
 """
-import argparse, base64, hashlib, hmac, json, os, re, select, shlex, struct, subprocess, sys, threading, time
+import argparse, base64, hashlib, hmac, json, os, re, select, struct, subprocess, sys, threading, time
+import shlex
 from pathlib import Path
 import tempfile
 
