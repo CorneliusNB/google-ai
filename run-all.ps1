@@ -195,8 +195,9 @@ try {
         return
     }
     if (-not $playAccount -or $playAccount -cne $Email) {
-        Stop-Workflow ("Play account mismatch or unverified. Detected '{0}', expected '{1}'. "
-                       + "Open Google Play profile and rerun; --force is intentionally not used." -f $playAccount, $Email)
+        $accountMismatch = ("Play account mismatch or unverified. Detected '{0}', expected '{1}'. " +
+                            "Open Google Play profile and rerun; --force is intentionally not used.")
+        Stop-Workflow ($accountMismatch -f $playAccount, $Email)
     }
 
     $stages = @(
