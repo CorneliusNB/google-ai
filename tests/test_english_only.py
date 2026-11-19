@@ -38,6 +38,10 @@ class EnglishOnlyTest(unittest.TestCase):
             if file.parent == ROOT and file.name in LOCALIZED_READMES:
                 continue  # Explicitly localized guides; source and other docs stay English-only.
             content = file.read_text(encoding="utf-8")
+            if file.parent == ROOT and file.name == "README.md":
+                # Allow native-language names only in the English README switcher.
+                content = "\n".join(line for line in content.splitlines()
+                                    if not line.startswith("**Languages:**"))
             if has_non_english_script(content):
                 bad.append(str(file.relative_to(ROOT)))
         self.assertEqual([], bad, "Translate comments, documentation and CLI strings")
