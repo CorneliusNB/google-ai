@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import signal
 from collections import deque
 from pathlib import Path
 import re
@@ -85,6 +86,7 @@ class GoogleAITUI(App[None]):
     #advanced_label { margin: 0; }
     #advanced Select { margin: 0; }
     #next, #stop { display: none; }
+    #exit { width: 100%; height: 3; }
     #workflow { height: auto; margin-top: 1; border-top: solid #28506b; }
     .workflow-step { height: 1; color: #b4cbe0; }
     #welcome_panel { height: auto; border: round #2b97bc; background: #112b49; padding: 0 2; margin-bottom: 1; }
@@ -124,6 +126,8 @@ class GoogleAITUI(App[None]):
         self._last_output: deque[str] = deque(maxlen=350)
         self._run_output: deque[str] = deque(maxlen=35)
         self._stop_after_step = False
+        self._cancel_requested = False
+        self._exit_after_step = False
         self._last_outcome: Outcome | None = None
         self._started_at: float | None = None
         self._last_activity_at: float | None = None
@@ -152,6 +156,7 @@ class GoogleAITUI(App[None]):
                         yield Button("Run sequence from step", id="sequence")
                     yield Button("Help & Guide", id="nav_help")
                     yield Button("Show technical details", id="debug")
+                    yield Button("Exit toolkit", id="exit")
                     yield Button("Verified in Google Play → Next", id="next", disabled=True)
                     yield Button("Stop after this step", id="stop", disabled=True)
                     with Vertical(id="workflow"):
@@ -340,6 +345,8 @@ class GoogleAITUI(App[None]):
         self.sequence = sequence
         self.current_step = step
         self._stop_after_step = False
+        self._cancel_requested = False
+        self._exit_after_step = False
         self._last_outcome = None
         self._run_output.clear()
         self._started_at = time.monotonic()
@@ -352,6 +359,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#step", Select).disabled = True
         self.query_one("#next", Button).disabled = True
         self.query_one("#stop", Button).disabled = False
+        self.query_one("#stop", Button).label = "Stop check" if step <= 1 else "Stop after this step"
         self.query_one("#stop", Button).display = True
         self.query_one("#next", Button).display = False
         self.query_one("#step_result", Static).update(f"Step {step} · {STAGES[step].label}")
