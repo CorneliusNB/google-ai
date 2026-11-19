@@ -95,6 +95,24 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(app.debug_visible)
                 popen.assert_not_called()
 
+    async def test_first_run_shows_simple_action_and_hides_advanced(self):
+        from textual.containers import Vertical
+        from textual.widgets import Button, Static
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch("tui.subprocess.Popen") as popen:
+                async with app.run_test(size=(90, 20)) as pilot:
+                    self.assertFalse(app.query_one("#advanced", Vertical).display)
+                    self.assertFalse(app.query_one("#stop", Button).display)
+                    self.assertFalse(app.query_one("#next", Button).display)
+                    self.assertIn("Ready", str(app.query_one("#state", Static).render()))
+                    await pilot.click("#advanced_toggle")
+                    await pilot.pause()
+                    self.assertTrue(app.query_one("#advanced", Vertical).display)
+                popen.assert_not_called()
+
     async def test_step_click_requires_approval_before_subprocess(self):
         from tui import GoogleAITUI, Approval
 
@@ -102,6 +120,9 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory), selected_step=3)
             with patch("tui.subprocess.Popen") as popen:
                 async with app.run_test(size=(110, 35)) as pilot:
+                    await pilot.click("#advanced_toggle")
+                    await pilot.pause()
+                    self.assertTrue(app.advanced_visible)
                     await pilot.click("#run")
                     await pilot.pause()
                     self.assertIsInstance(app.screen, Approval)

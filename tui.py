@@ -90,8 +90,14 @@ class GoogleAITUI(App[None]):
     .section { color: #78cfe8; text-style: bold; margin: 1 0 0 0; }
     #step { margin-bottom: 0; }
     #controls Button { width: 100%; margin-bottom: 0; }
-    #quickstart { margin: 1 0; }
-    #advanced_label { color: #78cfe8; margin-top: 1; }
+    #quickstart { margin: 0; }
+    #advanced_label { color: #78cfe8; margin: 0; }
+    #advanced { display: none; height: auto; }
+    #next, #stop { display: none; }
+    #advanced Button { margin-bottom: 0; }
+    #welcome { text-style: bold; margin: 0; height: 1; }
+    #elapsed, #activity { color: #9dbcd2; }
+    #quick_hint { margin: 0; height: 1; }
     #controls { scrollbar-size: 1 1; }
     #state { color: #f3f8ff; text-style: bold; margin: 1 0 0 0; }
     #message { color: #b9d0e2; margin-bottom: 1; }
@@ -116,6 +122,9 @@ class GoogleAITUI(App[None]):
         self._run_output: deque[str] = deque(maxlen=35)
         self._stop_after_step = False
         self._last_outcome: Outcome | None = None
+        self._started_at: float | None = None
+        self._last_activity_at: float | None = None
+        self.advanced_visible = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -127,23 +136,28 @@ class GoogleAITUI(App[None]):
                 yield Static("Account  •  Waiting", id="account")
             with Horizontal(id="content"):
                 with Vertical(id="controls"):
-                    yield Static("GET STARTED", classes="section")
-                    yield Button("1. Check device & offers", id="quickstart", variant="success")
-                    yield Static("No subscription or payment is initiated.", id="quick_hint")
-                    yield Static("ADVANCED STEPS", id="advanced_label", classes="section")
-                    yield Select(
-                        [(f"{stage.number}  ·  {stage.label}", stage.number) for stage in STAGES],
-                        value=self.initial_step, id="step", allow_blank=False)
-                    yield Button("Run selected step", id="run")
-                    yield Button("Run sequence from selected step", id="sequence")
+                    yield Static("WELCOME", classes="section")
+                    yield Static("Check your Google AI offers. Start below.", id="welcome")
+                    yield Button("Check device & offers", id="quickstart", variant="success")
+                    yield Static("Read-only: no subscription or payment is initiated.", id="quick_hint")
+                    yield Button("Advanced options  +", id="advanced_toggle")
+                    with Vertical(id="advanced"):
+                        yield Static("CHOOSE A STEP", id="advanced_label", classes="section")
+                        yield Select(
+                            [(f"{stage.number}  ·  {stage.label}", stage.number) for stage in STAGES],
+                            value=self.initial_step, id="step", allow_blank=False)
+                        yield Button("Run selected step", id="run")
+                        yield Button("Run sequence from selected step", id="sequence")
                     yield Button("Verified in Google Play → Next", id="next", disabled=True)
                     yield Button("Stop after this step", id="stop", disabled=True)
-                    yield Button("Show Debug", id="debug")
+                    yield Button("Show technical details", id="debug")
                 with Vertical(id="results"):
-                    yield Static("STATUS", classes="section")
-                    yield Static("Ready to check device and offers", id="state")
-                    yield Static("Click 1. Check device & offers to begin. Use Advanced Steps only when needed.", id="message")
+                    yield Static("CURRENT STATUS", classes="section")
+                    yield Static("Ready — no check started", id="state")
+                    yield Static("Click Check device & offers on the left to begin.", id="message")
                     yield Static("", id="step_result")
+                    yield Static("Elapsed: --", id="elapsed")
+                    yield Static("Nothing is running.", id="activity")
                     yield Button("Completed action on Android", id="manual", disabled=True)
                     yield Static("Steps 2–5 may open real Google Play checkout. "
                                  "A checkout request is not proof of activation.", id="hint")
@@ -151,10 +165,35 @@ class GoogleAITUI(App[None]):
         yield Footer()
 
     def on_mount(self) -> None:
+        self.set_interval(1, self._refresh_elapsed)
         self.query_one("#debug_log", RichLog).display = self.debug_visible
-        self.query_one("#debug", Button).label = "Hide Debug" if self.debug_visible else "Show Debug"
+        self.query_one("#debug", Button).label = "Hide technical details" if self.debug_visible else "Show technical details"
         if self.start_sequence:
+            self.action_toggle_advanced()
             self._set_message("Sequence mode selected. Review the starting step, then click Run sequence.")
+
+    @on(Button.Pressed, "#advanced_toggle")
+    def advanced_pressed(self) -> None:
+        self.action_toggle_advanced()
+
+    def action_toggle_advanced(self) -> None:
+        self.advanced_visible = not self.advanced_visible
+        self.query_one("#advanced", Vertical).display = self.advanced_visible
+        self.query_one("#advanced_toggle", Button).label = (
+            "Advanced options  -" if self.advanced_visible else "Advanced options  +"
+        )
+
+    def _refresh_elapsed(self) -> None:
+        if not self.busy or self._started_at is None:
+            return
+        elapsed = int(time.monotonic() - self._started_at)
+        self.query_one("#elapsed", Static).update(f"Elapsed: {elapsed // 60:02d}:{elapsed % 60:02d}")
+        if self._last_activity_at is not None:
+            idle = int(time.monotonic() - self._last_activity_at)
+            if idle >= 30:
+                self.query_one("#activity", Static).update(
+                    f"No new output for {idle}s. Check MuMu or technical details."
+                )
 
     def _set_message(self, value: str) -> None:
         self.query_one("#message", Static).update(value)
@@ -265,14 +304,20 @@ class GoogleAITUI(App[None]):
         self._stop_after_step = False
         self._last_outcome = None
         self._run_output.clear()
+        self._started_at = time.monotonic()
+        self._last_activity_at = self._started_at
+        self.query_one("#elapsed", Static).update("Elapsed: 00:00")
+        self.query_one("#activity", Static).update("Connecting to MuMu and preparing tools...")
         self.query_one("#quickstart", Button).disabled = True
         self.query_one("#run", Button).disabled = True
         self.query_one("#sequence", Button).disabled = True
         self.query_one("#step", Select).disabled = True
         self.query_one("#next", Button).disabled = True
         self.query_one("#stop", Button).disabled = False
+        self.query_one("#stop", Button).display = True
+        self.query_one("#next", Button).display = False
         self.query_one("#step_result", Static).update(f"Step {step} · {STAGES[step].label}")
-        self._set_status("Running...")
+        self._set_status("Running — check MuMu if prompted")
         self._set_message("Preparing tools and checking Google Play. Missing dependencies are installed automatically.")
         self.run_stage(step)
 
@@ -335,6 +380,19 @@ class GoogleAITUI(App[None]):
             return
         self._last_output.append(line)
         self._run_output.append(line)
+        self._last_activity_at = time.monotonic()
+        lower = line.lower()
+        if "frida" in lower or "setup" in lower:
+            phase = "Preparing Android tools..."
+        elif "adb" in lower or "device" in lower:
+            phase = "Checking Android device..."
+        elif "offer" in lower or "billing" in lower or "google one" in lower:
+            phase = "Checking available offers..."
+        elif "account" in lower or "play store" in lower:
+            phase = "Checking Google Play account..."
+        else:
+            phase = "Process responding. Details available in technical log."
+        self.query_one("#activity", Static).update(phase)
         if self.debug_visible:
             self.query_one("#debug_log", RichLog).write(line)
         if re.search(r"Action required:|Press Enter to continue", line, re.I):
@@ -370,6 +428,9 @@ class GoogleAITUI(App[None]):
         self.query_one("#sequence", Button).disabled = False
         self.query_one("#step", Select).disabled = False
         self.query_one("#stop", Button).disabled = True
+        self.query_one("#stop", Button).display = False
+        self._started_at = None
+        self.query_one("#activity", Static).update("Step finished. Review the result above.")
         self._set_status(outcome.title)
         instruction = outcome.instruction
         if outcome.code in ("tool_error", "exception", "missing_report", "setup_failed"):
@@ -381,8 +442,10 @@ class GoogleAITUI(App[None]):
             self.query_one("#step_result", Static).update(report_summary(report))
         if outcome.can_review and self.sequence and step < 5 and not self._stop_after_step:
             self.query_one("#next", Button).disabled = False
+            self.query_one("#next", Button).display = True
         else:
             self.query_one("#next", Button).disabled = True
+            self.query_one("#next", Button).display = False
             self.sequence = False
         if outcome.code == "checkout_requested":
             self.notify("Review the actual subscription in Google Play.", severity="warning")
