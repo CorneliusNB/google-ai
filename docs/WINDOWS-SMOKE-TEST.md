@@ -42,4 +42,17 @@ A missing offer or an ineligible account is **not by itself a toolkit failure**;
 - Results A–F with pass / fail / not tested, plus sanitized error type if failing
 - An explicit statement: **No live Google Play checkout was executed**
 
-Only mark real-device validation complete if A–F have been run with no unexplained blockers. CI passing by itself is **not sufficient**. See [release notes](releases/v1.0.1.md), [README](../README.md) and [Security](../SECURITY.md).
+Only mark real-device validation complete if A–F have been run with no unexplained blockers. CI passing by itself is **not sufficient**.
+
+## Publishing after checks pass
+
+Once this checklist has actually passed and the release preparation PR has been merged to main:
+
+1. Confirm the **Static checks** workflow for the latest main commit is green.
+2. Open [GitHub Actions](https://github.com/hoangsvit/google-ai/actions), select **Publish ePlus AI Toolkit v1.0.1 (manual)**, then choose **Run workflow** on **main**.
+3. Enable **I completed docs/WINDOWS-SMOKE-TEST.md on real Windows + MuMu** only if you have verified those checks.
+4. The workflow independently reruns Windows smoke tests, checks the exact main commit's Static checks, then creates the **1.0.1** release and GitHub-generated source archives. It will not overwrite an existing tag or release.
+
+No repository code is released merely by opening or merging a documentation PR. Publishing is an explicit action, and it does not bundle MuMuPlayer or produce a Windows installer.
+
+See [release notes](releases/v1.0.1.md), [README](../README.md) and [Security](../SECURITY.md).
