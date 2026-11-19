@@ -91,3 +91,17 @@ jobs:
             Pop-Location
           }
           Write-Host "Release source ZIP smoke test: PASS (no emulator or checkout)"
+          $checksum = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          $manifest = Join-Path $env:RUNNER_TEMP "eplus-ai-toolkit-source.zip.sha256"
+          Set-Content -LiteralPath $manifest -Value "$checksum  eplus-ai-toolkit-source.zip" -Encoding ascii
+          Write-Host "Source ZIP checksum (SHA-256): $checksum"
+
+      - name: Preserve CI-tested source ZIP and checksum for real-device validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: eplus-ai-toolkit-source-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/eplus-ai-toolkit-source.zip
+            ${{ runner.temp }}/eplus-ai-toolkit-source.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
