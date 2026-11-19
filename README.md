@@ -19,16 +19,18 @@ python setup_env.py
 
    The installer looks for a working ADB in MuMu, PATH, the repository or your user profile. It downloads [official Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) only when needed. It also checks Frida/root and may change emulator network settings; review the setup script first.
 
-3. If PowerShell reports **`adb : The term 'adb' is not recognized`**, ADB exists but may not be in PATH. Enable the detected installation **in the current PowerShell session only**:
+3. If PowerShell reports **`adb : The term 'adb' is not recognized`**, ADB is not on PATH. **The guided `run-all.ps1` script finds ADB automatically**, so changing PATH is optional.
+
+   To test the local installation directly:
 
 ```powershell
-$adbPath = (python -c 'import setup_env; print(setup_env.find_adb())' | Select-Object -Last 1).Trim()
-$env:Path = "$(Split-Path -Parent $adbPath);$env:Path"
-adb version
-adb devices
+.\\platform-tools\\adb.exe version
+.\\platform-tools\\adb.exe devices
 ```
 
-   Alternatively use `& $adbPath devices` without changing PATH. Administrator permissions are not required for the temporary PATH change.
+   If Platform-Tools was installed in the user fallback directory, run `& "$env:LOCALAPPDATA\\google-ai\\platform-tools\\adb.exe" devices` instead.
+
+   Older versions of `run-all.ps1` could break `python -c` quoting and raise `UnicodeEncodeError: cp1252`. The current version calls `scripts/runtime-lookup.py` for machine-readable ADB and Google Play account discovery, avoiding both issues.
 
 4. Use the serial shown by `adb devices` (for example, `emulator-5554`) to run the **read-only workflow**:
 
@@ -97,7 +99,8 @@ google-ai/
 │   ├── frida/billing.js           # Android Java/BillingClient Frida hook
 │   └── modules/module_521.b64     # Bundled original DEX package (Base64)
 ├── scripts/
-│   └── diagnose-activity.py       # Read-only ActivityThread diagnostic
+│   ├── diagnose-activity.py       # Read-only ActivityThread diagnostic
+│   └── runtime-lookup.py          # ASCII-safe Windows ADB and account lookup
 ├── tests/                         # Python unit tests + pure Node.js Frida-JS tests, no live purchases
 ├── docs/DETAILED-GUIDE.md         # Comprehensive usage and troubleshooting
 ├── .github/workflows/             # CI syntax + simulated tests

@@ -37,16 +37,16 @@ python setup_env.py
 
 The helper searches `ADB_PATH`, existing `platform-tools` folders, known MuMu locations, and PATH. It verifies `adb.exe version` works. If it needs to download Google's official Platform-Tools, it extracts them in a fresh temporary directory and installs into the project or, if that directory is locked, `%LOCALAPPDATA%\google-ai\platform-tools`.
 
-**If `adb` is not recognized in PowerShell:**
+**If `adb` is not recognized in PowerShell:** You can use `.\\run-all.ps1 -Serial emulator-5554 -ListOnly` without changing PATH. Or run the local executable:
 
 ```powershell
-$adbPath = (python -c 'import setup_env; print(setup_env.find_adb())' | Select-Object -Last 1).Trim()
-$env:Path = "$(Split-Path -Parent $adbPath);$env:Path"
-adb version
-adb devices
+.\\platform-tools\\adb.exe version
+.\\platform-tools\\adb.exe devices
 ```
 
-This changes PATH only for the current terminal. To avoid modifying PATH, run `& $adbPath devices`. To select a known Android SDK, use `$env:ADB_PATH = 'C:\path\to\platform-tools\adb.exe'`.
+For a per-user installation, use `& "$env:LOCALAPPDATA\\google-ai\\platform-tools\\adb.exe" devices`.
+
+**If PowerShell reports an inline Python syntax error or `UnicodeEncodeError: cp1252`:** Old versions passed inline `python -c` code through PowerShell and could corrupt Python quoting, then try to print Unicode status symbols using the wrong Windows codepage. Run `git pull --ff-only`. The updated `run-all.ps1` uses `scripts/runtime-lookup.py` to return only Base64-encoded UTF-8 values in ASCII, preventing this issue without changing Windows codepages.
 
 **If `setup_env.py` previously raised `PermissionError: [Errno 13] ... platform-tools\\adb.exe`:** The file may be locked by an emulator/ADB process or protected by directory permissions. Update the repository with `git pull --ff-only` and rerun setup. The installer now avoids overwriting working ADB files and falls back to the per-user directory if the project folder cannot be updated. Do not force-delete the file or disable antivirus.
 
@@ -165,5 +165,6 @@ If a checkout is ever initiated, confirm subscription status, renewal date, amou
 - `assets/frida/billing.js`: Extracted Frida hook.
 - `assets/modules/module_521.b64`: Original embedded DEX archive as Base64.
 - `scripts/diagnose-activity.py`: Read-only ActivityThread probe.
+- `scripts/runtime-lookup.py`: ASCII-safe runtime discovery for Windows PowerShell.
 - `tests/`: Python tests and one dependency-free Node.js Frida JavaScript test.
 - `.github/workflows/static-checks.yml`: Hosted CI; **no actual Android billing test**.

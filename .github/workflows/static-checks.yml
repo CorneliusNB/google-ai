@@ -20,6 +20,10 @@ jobs:
           python-version: '3.11'
       - name: Python syntax
         run: python -m compileall -q ultra0.py setup_env.py query_sku.py scripts/diagnose-activity.py
+      - name: Windows runtime lookup tests (simulated cp1252)
+        run: python -m unittest discover -s tests -p 'test_runtime_lookup.py' -v
+      - name: Runtime lookup help
+        run: python scripts/runtime-lookup.py --help
       - name: ADB installer tests (no Android or network)
         run: python -m unittest discover -s tests -p 'test_adb_setup.py' -v
       - name: Gitignore regression tests

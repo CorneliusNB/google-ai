@@ -87,7 +87,7 @@ try {
     $Adb = if ($adbCommand) { $adbCommand.Source } else { "" }
     if (-not $Adb) {
         Note "ADB is not on PATH. Locating an existing ADB or installing platform-tools."
-        $Adb = Get-RuntimeValue @("adb")
+        $Adb = Get-RuntimeValue -LookupArgs @("adb")
     }
     if (-not $Adb) {
         Stop-Workflow "adb.exe was not found. Install Android SDK platform-tools or configure PATH and retry."
@@ -145,7 +145,7 @@ try {
     }
 
     Stage "4. Read current Google Play account"
-    $playAccount = (Get-RuntimeValue @("play-account", "--serial", $Serial)).Trim().ToLowerInvariant()
+    $playAccount = (Get-RuntimeValue -LookupArgs @("play-account", "--serial", $Serial)).Trim().ToLowerInvariant()
     if ($playAccount) { Note ("Detected Play Store account: {0}" -f $playAccount) }
     else { Write-Warning "Could not read Google Play account. Open the Play Store profile menu in MuMu." }
 
