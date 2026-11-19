@@ -136,6 +136,33 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("Run all", str(app.query_one("#run", Button).label))
                 popen.assert_not_called()
 
+    async def test_run_controls_use_wide_content_not_sidebar(self):
+        from textual.widgets import Button, Select
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch("tui.subprocess.Popen") as popen:
+                async with app.run_test(size=(110, 35)) as pilot:
+                    await pilot.pause()
+                    sidebar = app.query_one("#controls").region
+                    for selector in ("#mode", "#step", "#run"):
+                        widget = app.query_one(selector)
+                        self.assertGreaterEqual(widget.region.x, sidebar.right)
+                        self.assertGreater(widget.region.width, 15)
+                    self.assertTrue(app.query_one("#run", Button).display)
+                    self.assertEqual(app.query_one("#mode", Select).value, "single")
+                popen.assert_not_called()
+
+    async def test_compact_run_controls_remain_visible(self):
+        from tui import GoogleAITUI
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)) as pilot:
+                await pilot.pause()
+                self.assertGreater(app.query_one("#run").region.width, 15)
+                self.assertGreater(app.query_one("#mode").region.width, 15)
+
     async def test_all_and_from_modes_route_to_expected_step(self):
         from textual.widgets import Select
         from tui import GoogleAITUI
