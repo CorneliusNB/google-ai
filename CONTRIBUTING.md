@@ -43,10 +43,10 @@ Documentation and terminal usability fixes are welcome. Preserve attribution to 
 
 ## Documentation changes
 
-- Keep root README files as short overviews. Move procedures, diagnostics and legacy references to the [documentation hub](docs/README.md). Root overviews must still show direct, parallel Windows and macOS setup steps; keep branch-specific preview guidance in [the Mac guide](docs/MACOS-PREVIEW.md).
-- Update the English topic page first, then review the translated detailed guides in `docs/i18n/` if the change affects user-facing instructions. Each root language README links to its detailed guide.
+- Preserve the original detailed format of all root READMEs (Windows + macOS setup, dashboard, CLI, troubleshooting, safety and credits). Keep additional technical guidance in the [documentation hub](docs/README.md); do not require users to switch branches to install either platform.
+- Update the full English README and six root-language READMEs together. Review topic-specific docs and historical translations under `docs/i18n/` for consistency.
 - Always preserve billing warnings and verification requirements. Do not confuse a Google Play offer listing, submitted checkout or authorization hold with successful subscription activation.
-- Before submitting a PR, run `python -m unittest discover -s tests -p 'test_readme_locales.py' -v` and `python -m unittest discover -s tests -p 'test_docs_navigation.py' -v` to check links and README size.
+- Before submitting a PR, run `python -m unittest discover -s tests -p 'test_readme_locales.py' -v` and `python -m unittest discover -s tests -p 'test_docs_navigation.py' -v` to check links, classic README structure and platform installation guidance.
 
 ## Translations
 

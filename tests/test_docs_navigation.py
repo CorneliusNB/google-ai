@@ -17,22 +17,26 @@ MD_LINK = re.compile(r"(?<!!)\[[^]]+\]\(([^)]+)\)")
 
 
 class DocumentationNavigationTests(unittest.TestCase):
-    def test_readme_is_short_and_docs_have_detail(self):
-        english = ROOT / "README.md"
-        self.assertLess(english.stat().st_size, 4500)
+    def test_original_full_readme_structure_and_translations(self):
+        english = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertGreater(len(english), 12000)
+        for heading in ("## Disclaimer", "## Install and prepare",
+                        "## macOS", "## Use the dashboard (recommended)",
+                        "## PowerShell CLI (advanced)", "## Troubleshooting and results",
+                        "## Community support and related projects", "## Credits"):
+            with self.subTest(heading=heading):
+                self.assertIn(heading, english)
         for lang in LOCALIZED:
             with self.subTest(locale=lang):
-                short = ROOT / f"README.{lang}.md"
-                detailed = DOCS / "i18n" / f"README.{lang}.md"
-                # UTF-8 translated text uses more bytes than English for the same length.
-                # Keep practical installation steps visible while preventing README bloat.
-                self.assertLess(short.stat().st_size, 4000)
-                self.assertGreater(detailed.stat().st_size, short.stat().st_size)
-                self.assertIn(
-                    f"(docs/i18n/README.{lang}.md)",
-                    short.read_text(encoding="utf-8"),
-                )
-        self.assertGreater((DOCS / "USAGE.md").stat().st_size, english.stat().st_size)
+                original = ROOT / f"README.{lang}.md"
+                translated = original.read_text(encoding="utf-8")
+                self.assertGreater(len(translated), 5500)
+                self.assertIn("## macOS", translated)
+                self.assertIn("## 3.", translated)
+                self.assertIn("## 4.", translated)
+                self.assertIn("(docs/README.md)", translated)
+                self.assertTrue((DOCS / "i18n" / f"README.{lang}.md").is_file())
+        self.assertGreater((DOCS / "USAGE.md").stat().st_size, 3000)
 
     def test_documentation_hub_references_every_topic(self):
         hub = (DOCS / "README.md").read_text(encoding="utf-8")
@@ -65,8 +69,8 @@ class DocumentationNavigationTests(unittest.TestCase):
 
     def test_windows_and_mac_installation_both_work_from_project_root(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("### Windows", readme)
-        self.assertIn("### macOS", readme)
+        self.assertIn("### Windows requirements", readme)
+        self.assertIn("## macOS — Install and run", readme)
         self.assertEqual(readme.count("git clone https://github.com/hoangsvit/google-ai.git"), 2)
         self.assertIn(".\\run-all.ps1", readme)
         self.assertIn("sh run-macos.sh", readme)
@@ -106,14 +110,16 @@ class DocumentationNavigationTests(unittest.TestCase):
         self.assertIn("run-macos.sh", project)
         self.assertIn("run-all.ps1", project)
 
-    def test_no_duplicate_full_guides_in_root(self):
-        overview = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("(docs/README.md)", overview)
-        self.assertIn("(docs/SAFETY.md)", overview)
-        self.assertIn("(docs/USAGE.md)", overview)
-        self.assertIn("sh run-macos.sh", overview)
-        self.assertNotIn("## PowerShell CLI (advanced)", overview)
-        self.assertNotIn("## Troubleshooting and results", overview)
+    def test_restored_readme_retains_detailed_commands_and_links(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("(docs/README.md)", readme)
+        self.assertIn("(docs/SAFETY.md)", readme)
+        self.assertIn("(docs/USAGE.md)", readme)
+        self.assertIn("sh run-macos.sh", readme)
+        self.assertIn("## PowerShell CLI (advanced)", readme)
+        self.assertIn("## Troubleshooting and results", readme)
+        self.assertIn("## Repository structure", readme)
+        self.assertNotIn("git switch dev", readme)
 
 
 if __name__ == "__main__":

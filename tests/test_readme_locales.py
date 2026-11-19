@@ -1,4 +1,4 @@
-"""Readme overviews stay short while full translated guidance remains in docs."""
+"""Original detailed README format and localized Mac installation guidance."""
 from pathlib import Path
 import unittest
 
@@ -40,7 +40,7 @@ class ReadmeLocalesTests(unittest.TestCase):
                     self.assertIn(f"(../../{overview})", detailed_content(overview))
                 self.assertEqual(text.count("```") % 2, 0)
 
-    def test_short_overviews_link_safety_and_platform_guidance(self):
+    def test_readmes_link_safety_and_platform_guidance(self):
         for overview in OVERVIEWS:
             with self.subTest(file=overview):
                 text = content(overview)
