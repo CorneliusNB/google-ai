@@ -18,7 +18,7 @@ The current stage contract is **0: Environment**, **1: Available offers**, **2: 
 
 ## Non-negotiable safety rules
 
-1. **Step 1 is the default read-only offer check.** The visible **Check Device & Offers** action must invoke Step 1 and must not initiate a checkout. Step 0 may still modify local/emulator setup (ADB/Frida/proxy), so do not characterize Step 0 as entirely side-effect-free.
+1. **Step 1 is the default quick-check action, not the no-argument CLI default.** Running `run-all.ps1` without arguments opens the Textual dashboard; the visible **Check Device & Offers** action invokes Step 1 and must not initiate checkout. Step 0 may still modify local/emulator setup (ADB/Frida/proxy), so do not characterize Step 0 as entirely side-effect-free.
 2. **Steps 2–5 may charge money.** They can open Google Play checkout or press Subscribe through upstream code. Never automatically trigger those stages at startup, silently approve them, or run a real checkout in CI.
 3. Every checkout stage in the TUI requires a **separate, explicit approval**. Guided sequences must require the user to check Google Play subscriptions/charges/renewal terms before offering **Verified in Google Play → Next**. `checkout_requested` remains a **current internal status** assigned by `ultra0.py` when the Subscribe tap is reported; it is **not** activation, success, or proof of eligibility. Do not remove or rename it in code or fixtures based solely on a UI change. Prefer plain-language descriptions in end-user docs.
 4. Preserve account/device checks; never default to `--force` or `-Force`, bypass payment/security eligibility, or imply that a zero-priced first phase guarantees a free subscription.

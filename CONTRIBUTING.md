@@ -10,11 +10,23 @@ Use [GitHub Issues](https://github.com/hoangsvit/google-ai/issues) and include t
 
 Open a [pull request](https://github.com/hoangsvit/google-ai/pulls) with one focused improvement. Keep the original step mappings intact, explain any behavior change, and add mock tests for fixes. Do not run live subscription checkout in CI.
 
-Before opening the PR, run:
+Before opening the PR, prepare the **test-only Textual dependency** and run the Python suite (no Android device or purchase required):
 
 ```powershell
+python -m pip install -r requirements-tui.txt
 python -m unittest discover -s tests -v
 ```
+
+If Node.js and PowerShell are available, also run the offline JavaScript and PowerShell checks used by GitHub Actions:
+
+```powershell
+node --test tests/test_activity_lookup.test.mjs tests/test_subscription_update.test.mjs
+pwsh -File ./tests/test_report_identity.ps1
+pwsh -File ./tests/test_terminal_prompts.ps1
+pwsh -File ./tests/test_user_errors.ps1
+```
+
+On Windows PowerShell 5.1, you can use `powershell -File` instead of `pwsh -File` where supported. **Do not** run paid Steps 2–5 or real Google Play checkout to validate a PR. GitHub Actions runs the offline checks automatically; passing them is not proof of real-device or billing compatibility.
 
 Documentation and terminal usability fixes are welcome. Preserve attribution to upstream authors and retain their MIT notice.
 
