@@ -48,45 +48,47 @@ For environment setup only:
 .\run-all.ps1 -SetupOnly
 ```
 
-For **interactive** stages that can open Google Play checkout (only after reviewing the original source and the Play Store terms):
+For the author's **interactive main stages 2–4** (possible real checkout after explicit confirmation):
 
 ```powershell
-.\run-all.ps1 -Serial emulator-5554 -Email your-email@gmail.com
+.\run-all.ps1 -AllStages -Email your-email@gmail.com
 ```
 
 The guided script requires explicit confirmation for each live stage, validates the selected Play account, and halts between stages for subscription verification. It never uses `--force`. A CI pass **does not** prove real billing compatibility with your device.
 
-## Step-by-step workflow
+## Step-by-step workflow: original author's Google AI Pro (5 TB) flow
 
-Run all commands from the repository root. **The recommended path is Step 0 to Step 2**; it inspects the device and available offers without starting checkout.
+The **Step numbers below match the author's MuMu guide and batch scripts**. Environment checks and device/account discovery are preflight operations, not extra subscription stages.
 
-| Step | What happens | How to run | Purchase risk |
+| Original Step | What it does | Command | Checkout |
 | --- | --- | --- | --- |
-| **0 — Setup** | Confirm Python and install or reuse ADB / Frida; connect MuMu | `python setup_env.py` | No purchase (but may update Android tooling/settings) |
-| **1 — Device check** | Check ADB, Android/root, Google Play Store and Google One | `.\\run-all.ps1 -Serial emulator-5554 -SetupOnly` | No purchase |
-| **2 — List offers** | Verify the active Play account when readable, query offers and diagnose Activity compatibility | `.\\run-all.ps1 -Serial emulator-5554 -ListOnly` | No checkout |
-| **3 — Optional live stage 1** | Original claimed 12-month offer (`pro12`) | Use the guided command below | May initiate a real subscription |
-| **4 — Optional live stage 2** | Original claimed additional six-month offer (`pro6 --stack`) | Continue only after manual subscription verification | May initiate a real subscription |
-| **5 — Optional live stage 3** | Original claimed additional six-month offer (`pro6b --stack`) | Continue only after another manual verification | May initiate a real subscription |
+| **0 — Environment check** | Verify Python, ADB, root, Frida, Google Play and Google One | `.\run-all.ps1 -Step 0` | No |
+| **1 — List offers** | Query current Google AI Pro offer metadata | `.\run-all.ps1 -Step 1` | No |
+| **2 — Pro 12-month offer** | Original plan `pro12`, offer `12months-eft` | `.\run-all.ps1 -Step 2 -Email "account@gmail.com"` | Possible real purchase |
+| **3 — Additional 6 months** | Original `pro6 --stack`, offer `6months-eft` | `.\run-all.ps1 -Step 3 -Email "account@gmail.com"` | Possible real purchase |
+| **4 — Second additional 6 months** | Original `pro6b --stack`, offer `6months-eft-2` | `.\run-all.ps1 -Step 4 -Email "account@gmail.com"` | Possible real purchase |
+| **5 — Optional alternative 6 months** | Original `pro6c --stack`, offer `6months-eft-ss-2026` | `.\run-all.ps1 -Step 5 -Email "account@gmail.com"` | Possible real purchase |
+
+Install tools once and inspect offers before attempting a billing stage:
 
 ```powershell
-# Step 0: Update the repository and locate/install ADB
 git pull --ff-only
 python setup_env.py
-
-# Step 1: Check device, Frida and Google Play (no checkout)
-.\\run-all.ps1 -Serial emulator-5554 -SetupOnly
-
-# Step 2: Inspect available offers (no checkout)
-.\\run-all.ps1 -Serial emulator-5554 -ListOnly
-
-# Steps 3-5: OPTIONAL interactive billing stages; may initiate real transactions
-.\\run-all.ps1 -Serial emulator-5554 -Email "your-email@gmail.com"
+.\run-all.ps1 -Step 0
+.\run-all.ps1 -Step 1
 ```
 
-The guided workflow auto-selects an unambiguous Android device. Use `-Serial emulator-5554` to override the selection. The interactive command verifies the target account and requires **two explicit confirmations for each stage** (`RUN 1` / `I ACCEPT 1`, and so on). It also asks you to verify the subscription in Google Play before offering the next stage. Press Enter without the requested phrase to stop.
+To run the **author's main sequence (Steps 2–4)** in one guided session, use:
 
-**Do not assume 12 + 6 + 6 months can be combined.** The original author's offer names and price phases do not guarantee eligibility, billing dates, trial stacking or renewal costs. Non-list mode may automatically click Subscribe; always check the real terms and active subscription at **Google Play Store → Payments & subscriptions → Subscriptions**. Avoid running legacy `.bat` checkout shortcuts, which use `--force` and bypass account checks.
+```powershell
+.\run-all.ps1 -AllStages -Email "account@gmail.com"
+```
+
+This guided sequence **excludes optional Step 5**. Each billing step requires you to type `RUN 2` / `I ACCEPT 2` (or the matching step number) and then `VERIFIED` only after checking the real active plan, next charge date and price in Google Play. If any offer, activity lookup, account check, or token validation fails, stop; do not bypass it with `--force`.
+
+The default `.\run-all.ps1` is equivalent to **Step 1** (read-only). The previous `-SetupOnly` and `-ListOnly` switches remain aliases for environment-only and offer-only workflows. Auto device detection remains enabled; you can specify `-Serial emulator-5554` when needed.
+
+**Important:** These are the original author's claimed offer periods, not verified Google entitlements. Google Play may reject offers, charge money, or calculate different renewal dates. Merely opening checkout or receiving a 0-priced first phase does not prove a subscription or an extension succeeded.
 
 ## Project layout
 

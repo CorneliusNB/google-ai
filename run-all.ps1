@@ -3,7 +3,8 @@
 .SYNOPSIS
   Single-entry Windows/MuMu setup, diagnostics, offer listing and optional guided stages.
 .DESCRIPTION
-  Defaults to read-only checks followed by explicit opt-in for EACH live billing stage.
+  Defaults to original Step 1 (read-only). Original Steps 2-5 require explicit selection.
+  -AllStages runs original Steps 2-4 with explicit opt-in for EACH live stage.
   The original ultra0.py may automatically click Subscribe during a live stage.
   Always verify the account, current charge, renewal terms and subscription in Google Play.
 .EXAMPLE

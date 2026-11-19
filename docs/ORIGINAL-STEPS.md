@@ -8,6 +8,35 @@ Use a compatible rooted Android emulator with the Google Play Store and Google O
 
 Run `setup-environment.bat` to invoke the original setup helper, or use the maintained `run-all.ps1 -SetupOnly` command. Setup may install dependencies, restart Frida, and modify emulator network settings.
 
+## Guided PowerShell commands aligned with the author's steps
+
+```powershell
+# Step 0: environment validation (no checkout)
+.\run-all.ps1 -Step 0
+
+# Step 1: offers (no checkout; this is the default)
+.\run-all.ps1 -Step 1
+
+# Step 2: author's first 12-month offer
+.\run-all.ps1 -Step 2 -Email account@gmail.com
+
+# Step 3: original subscription update (+6 months claimed)
+.\run-all.ps1 -Step 3 -Email account@gmail.com
+
+# Step 4: second original update (+6 months claimed)
+.\run-all.ps1 -Step 4 -Email account@gmail.com
+
+# Step 5: optional alternative offer (+6 months claimed)
+.\run-all.ps1 -Step 5 -Email account@gmail.com
+
+# Guided original main sequence (Steps 2, 3 and 4 only)
+.\run-all.ps1 -AllStages -Email account@gmail.com
+```
+
+For the **Step 3–5** subscription replacement, the revised code rejects missing purchase tokens, expired or wrong-account database tokens, or unsupported replacement modes instead of silently falling back to a fresh standalone purchase. If the optional BillingClient query finds multiple subscriptions, it only accepts the matching original Google AI Pro product ID.
+
+The Python status `checkout_requested` means the script clicked Subscribe, **not** that the purchase completed, the subscription is active, or the time was extended. Confirm the actual charge and next renewal date in Google Play before continuing. The proposed 12+6+6(+6) durations remain unverified historical claims.
+
 ## Maintained entrypoints
 
 | Action | Filename | Description |

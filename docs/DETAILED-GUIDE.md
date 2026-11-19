@@ -75,11 +75,19 @@ For setup only:
 .\run-all.ps1 -SetupOnly
 ```
 
-For explicit guided checkout (can result in a real purchase):
+For an individual original billing stage (possible real purchase):
 
 ```powershell
-.\run-all.ps1 -Serial emulator-5554 -Email your-email@gmail.com
+.\run-all.ps1 -Step 2 -Email your-email@gmail.com
 ```
+
+For the author's main 12 + 6 + 6 month sequence with a verification gate between stages:
+
+```powershell
+.\run-all.ps1 -AllStages -Email your-email@gmail.com
+```
+
+Optional alternative offer 6 months is **Step 5 only** and is not included in `-AllStages`. The default command with no Step is read-only (`-Step 1`).
 
 The guided script checks the selected device and Google Play account, displays the offers and requires a specific confirmation before each live stage. It pauses between stages for manual verification. The original Python program can still press Subscribe automatically during a live stage; **this is not a simulation**.
 
