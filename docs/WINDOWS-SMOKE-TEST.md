@@ -10,6 +10,21 @@ This is the reusable hardware validation checklist for **any ePlus AI Toolkit re
 - Have no payment checkout pending. Back up emulator data before Step 0: environment preparation can modify local ADB/Frida/emulator/proxy settings.
 - Never include passwords, OTPs, full emails, purchase tokens, raw logs or payment details in screenshots/issues.
 
+## Obtain the exact CI-tested source archive
+
+1. Open [Windows release smoke tests](https://github.com/hoangsvit/google-ai/actions/workflows/windows-release-smoke.yml). Use **Run workflow** on `main` after the latest changes have been merged; wait for a successful run. A PR run may test a temporary merge commit, not the final commit on `main`.
+2. From that successful run, download its **eplus-ai-toolkit-source-<commit SHA>** artifact. GitHub Actions packages the artifact as a download ZIP containing `eplus-ai-toolkit-source.zip` and `eplus-ai-toolkit-source.zip.sha256`.
+3. Unzip the artifact, then confirm that the SHA-256 value of the inner source ZIP matches the value in the accompanying `.sha256` file:
+
+    ```powershell
+    (Get-FileHash .\eplus-ai-toolkit-source.zip -Algorithm SHA256).Hash
+    Get-Content .\eplus-ai-toolkit-source.zip.sha256
+    ```
+
+4. Extract the **inner source ZIP** into a new directory for this release, then complete checks A–F below. Record the workflow run URL and its commit SHA with the manual test results.
+
+The artifact contains **only tracked source files** from that workflow's checkout and is retained for **14 days**. It is *not* a Windows `.exe`, does *not* bundle MuMuPlayer or credentials, and is *not* a published GitHub Release. Do not claim that the workflow performed the real-device tests.
+
 ## Checks (no subscription checkout)
 
 | Check | Action | Pass criteria |
@@ -19,7 +34,7 @@ This is the reusable hardware validation checklist for **any ePlus AI Toolkit re
 | C. Dashboard | Run no-argument launcher | Textual dashboard shows Check Device & Offers, Live Status and expandable advanced controls, without starting a paid stage |
 | D. Read-only offers | Press Check Device & Offers or run Step 1 from the CLI | Status shows the checked Android/account; result may be offers, empty or an explanatory failure—never a payment checkout |
 | E. Details, Stop and Exit | Inspect technical details and use Stop on a safe diagnostic if applicable | No stale previous-account status, logs remain readable, and Exit works without launching another Step |
-| F. Source ZIP | Extract the published GitHub Source code ZIP into another folder | Required scripts and assets are present; launcher help works from the extracted copy |
+| F. Source ZIP | Extract the source ZIP from a successful **Windows release smoke tests** run on the exact release commit | Required scripts and assets are present; launcher help works from the extracted copy |
 
 Launcher's help and read-only check:
 
