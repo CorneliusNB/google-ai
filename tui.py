@@ -21,7 +21,7 @@ from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Footer, Header, RichLog, Select, Static
+from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Static
 
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
     needs_setup, outcome_for_stage, read_fresh_report, report_summary, validate_step
@@ -73,6 +73,9 @@ class GoogleAITUI(App[None]):
     #screen { height: 1fr; min-height: 0; padding: 0 1; }
     #brand { height: 3; background: #122741; border: round #28628d; color: #f0f8ff; text-style: bold; padding: 0 2; }
     #credit { height: 1; color: #87b8d4; }
+    #credit Static { width: auto; height: 1; color: #87b8d4; }
+    #credit Link { width: auto; height: 1; color: #75d8ff; text-style: underline; }
+    #credit Link:hover { color: #e6f8ff; }
     #details { height: 3; margin-bottom: 1; }
     #device, #account { width: 1fr; height: 3; background: #12263d; border: round #295a7e; padding: 0 1; }
     #account { margin-left: 1; }
@@ -150,7 +153,14 @@ class GoogleAITUI(App[None]):
         yield Header(show_clock=True)
         with Vertical(id="screen"):
             yield Static("  ePlus AI Toolkit   |   ePlus.DEV", id="brand")
-            yield Static("  Original @gylive  |  Maintained @hoangsvit  |  https://eplus.dev", id="credit")
+            with Horizontal(id="credit"):
+                yield Static("  Original ")
+                yield Link("@gylive", url="https://github.com/gylive",
+                           tooltip="Open original author on GitHub", id="original_author")
+                yield Static("  |  Maintained ")
+                yield Link("@hoangsvit", url="https://github.com/hoangsvit",
+                           tooltip="Open maintainer on GitHub", id="maintainer")
+                yield Static("  |  ePlus.DEV")
             with Horizontal(id="details"):
                 yield Static("ANDROID DEVICE\nMuMu • Auto-detect", id="device")
                 yield Static("GOOGLE ACCOUNT\nNot checked", id="account")
