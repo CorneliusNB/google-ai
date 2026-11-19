@@ -22,10 +22,10 @@ python setup_env.py
 
 The setup helper locates or installs ADB, configures Frida 16.5.9 and checks MuMu. Step 1 lists offers **without purchasing**. An unambiguous Android device and the active Play Store email are detected automatically; you usually do not need `-Serial` or `-Email`.
 
-**Terminal output:** The default view shows only the device, account, offers, current step, and outcome. Detailed Python/ADB output is saved locally in `logs/` (ignored by Git). Add `-Detailed` to display full diagnostics:
+**Terminal output:** The default view shows only the device, account, offers, current step, and outcome. Technical logs are saved locally in `logs/` (ignored by Git). Use PowerShell's built-in `-Debug` parameter to show full diagnostics:
 
 ```powershell
-.\run-all.ps1 -Step 1 -Detailed
+.\run-all.ps1 -Step 1 -Debug
 ```
 
 Do not publish diagnostic logs without removing account identifiers and payment data.
@@ -85,7 +85,7 @@ The project's GitHub Actions test Python, PowerShell, and mocked Frida/Billing b
 ## Credits & contributors
 
 - **Original author — [gylive](https://github.com/gylive):** created the upstream [google-ultra](https://github.com/gylive/google-ultra) project and its Python, ADB, Frida, and Google Play Billing implementation.
-- **Maintainer — [David Nguyen (@hoangsvit)](https://github.com/hoangsvit):** imported and adapted the project for Windows/MuMu, added step-based commands and terminal menus, and maintained device compatibility, tests, and documentation.
+- **Maintainer — [David Nguyen (@hoangsvit)](https://github.com/hoangsvit), [ePlus.DEV](https://eplus.dev):** imported and adapted the project for Windows/MuMu, added step-based commands and terminal menus, and maintained device compatibility, tests, and documentation.
 - **Community:** see the [contributors history](https://github.com/hoangsvit/google-ai/graphs/contributors).
 
 Contributions and bug reports are welcome; see [Contributing](CONTRIBUTING.md). The original author's **MIT copyright and license notice** are preserved in [Third-party notices](THIRD_PARTY_NOTICES.md).

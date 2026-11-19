@@ -41,14 +41,18 @@ class OriginalProStageTests(unittest.TestCase):
     def test_compact_terminal_defaults_and_detailed_mode(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("[switch]$Detailed", ps)
-        self.assertIn('if ($Detailed)', ps)
+        self.assertIn('$PSBoundParameters.ContainsKey("Debug")', ps)
+        self.assertIn('if ($ShowDebug)', ps)
+        self.assertNotIn('[switch]$Debug', ps)
+        self.assertNotIn('[switch]$Detailed', ps)
         self.assertIn('if ($script:RunLog)', ps)
         self.assertIn('Show-Status "Checkout" "Submitted; verify in Google Play"', ps)
         self.assertIn("payment_security_blocked", ps)
-        self.assertIn('if ($Detailed -or ($Step -eq 1 -and -not $AllStages))', ps)
+        self.assertIn('if ($ShowDebug -or ($Step -eq 1 -and -not $AllStages))', ps)
         self.assertIn("Run-Command $Python $args", ps)
-        self.assertIn("-Detailed", readme)
+        self.assertIn("-Debug", readme)
+        self.assertIn("https://eplus.dev", ps)
+        self.assertIn("https://eplus.dev", readme)
 
     def test_no_checkout_by_default(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")

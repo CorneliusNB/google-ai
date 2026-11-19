@@ -40,22 +40,25 @@ param(
     [string]$ActivityMethod = "auto",
     [switch]$SetupOnly,
     [switch]$ListOnly,
-    [switch]$Help,
-    [switch]$Detailed
+    [switch]$Help
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+# -Debug is a built-in PowerShell common parameter when CmdletBinding is used.
+# Do not declare a second Debug switch; simply read its caller-supplied value.
+$ShowDebug = $PSBoundParameters.ContainsKey("Debug") -and [bool]$PSBoundParameters["Debug"]
 
 function Show-Banner {
     Write-Host ""
     Write-Host "  GOOGLE AI  /  MuMu Toolkit" -ForegroundColor Cyan
     Write-Host "  Original: @gylive  |  Maintained: @hoangsvit" -ForegroundColor DarkGray
+    Write-Host "  https://eplus.dev" -ForegroundColor Blue
     $mode = if ($AllStages) { "All stages, from Step $StartStep" } else { "Step $Step" }
     Write-Host ("  {0}" -f $mode) -ForegroundColor Gray
 }
 function Stage([string]$Message) {
-    if ($Detailed -or $Message -match '^Original Step [2-5]:' -or
+    if ($ShowDebug -or $Message -match '^Original Step [2-5]:' -or
         $Message -eq "Original Step 1: List Google AI Pro offers") {
         $title = $Message -replace '^Original ', '' -replace ': List Google AI Pro offers$', ': Offers'
         Write-Host ""
@@ -63,7 +66,7 @@ function Stage([string]$Message) {
     }
 }
 function Note([string]$Message) {
-    if ($Detailed) { Write-Host ("    {0}" -f $Message) -ForegroundColor DarkGray }
+    if ($ShowDebug) { Write-Host ("    {0}" -f $Message) -ForegroundColor DarkGray }
 }
 function Show-Status([string]$Label, [string]$Value, [string]$Color = "Green") {
     Write-Host ("  {0,-11} " -f $Label) -NoNewline -ForegroundColor Gray
@@ -78,7 +81,7 @@ function Run-Command([string]$Program, [string[]]$Arguments) {
     & $Program @Arguments | ForEach-Object {
         $line = [string]$_
         if ($script:RunLog) { Add-Content -LiteralPath $script:RunLog -Value $line -Encoding UTF8 }
-        if ($Detailed) {
+        if ($ShowDebug) {
             Write-Host $line -ForegroundColor DarkGray
         } elseif ($line -match 'Action required:|Press Enter to continue') {
             Write-Host ("    {0}" -f $line.Trim()) -ForegroundColor Yellow
@@ -261,7 +264,7 @@ try {
         Show-Status "Account" $playAccount
     }
     Show-Status "Offers" ("{0} found" -f @($offerReport.offers).Count)
-    if ($Detailed -or ($Step -eq 1 -and -not $AllStages)) {
+    if ($ShowDebug -or ($Step -eq 1 -and -not $AllStages)) {
         foreach ($offer in @($offerReport.offers)) {
             $firstPhase = if ([string]$offer.micros -eq "0") { "0 (first phase)" } else { "Paid (first phase)" }
             Write-Host ("    {0,-25} {1,-6} {2}" -f [string]$offer.id, [string]$offer.period, $firstPhase) -ForegroundColor Gray
@@ -270,7 +273,7 @@ try {
 
     # The Activity probe is diagnostic only. It is not a precondition for
     # launchBillingFlow, so run it only when detailed diagnostics are requested.
-    if ($Detailed) {
+    if ($ShowDebug) {
         Stage "Diagnostic: Read-only Android Activity inspection"
         $googleOnePid = ((& $Adb -s $Serial shell pidof com.google.android.apps.subscriptions.red) | Out-String).Trim()
         if ($googleOnePid -match '^\d+$') {
@@ -425,7 +428,7 @@ try {
             Show-Status "Checkout" ("Not confirmed ({0})" -f $(if ($reason) { $reason } else { $report.status })) "Yellow"
         }
         if ($report.status -ne "checkout_requested") {
-            if ($Detailed -and $report.PSObject.Properties.Name -contains "error") {
+            if ($ShowDebug -and $report.PSObject.Properties.Name -contains "error") {
                 Note ([string]$report.error)
             }
             break
@@ -441,7 +444,7 @@ try {
         }
     }
 
-    if ($Detailed) { Note ("Local diagnostics: {0}" -f $script:RunLog) }
+    if ($ShowDebug) { Note ("Local diagnostics: {0}" -f $script:RunLog) }
 }
 catch {
     Write-Host ""
