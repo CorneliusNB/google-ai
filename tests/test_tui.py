@@ -100,41 +100,60 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(app.debug_visible)
                 popen.assert_not_called()
 
-    async def test_first_run_shows_simple_action_and_hides_advanced(self):
-        from textual.containers import Vertical
-        from textual.widgets import Button, Static
+    async def test_first_run_shows_clear_workflow_mode(self):
+        from textual.widgets import Button, Select, Static
         from tui import GoogleAITUI
-
         with tempfile.TemporaryDirectory() as directory:
             app = GoogleAITUI(repo=Path(directory))
             with patch("tui.subprocess.Popen") as popen:
                 async with app.run_test(size=(90, 20)) as pilot:
-                    self.assertFalse(app.query_one("#advanced", Vertical).display)
+                    self.assertEqual(app.query_one("#mode", Select).value, "single")
+                    self.assertEqual(app.query_one("#step", Select).value, 1)
                     self.assertFalse(app.query_one("#stop", Button).display)
                     self.assertFalse(app.query_one("#next", Button).display)
-                    self.assertIn("Ready", str(app.query_one("#state", Static).render()))
-                    await pilot.click("#advanced_toggle")
+                    self.assertIn("Run selected step", str(app.query_one("#run", Button).label))
+                    app.query_one("#mode", Select).value = "all"
                     await pilot.pause()
-                    self.assertTrue(app.query_one("#advanced", Vertical).display)
+                    self.assertTrue(app.query_one("#step", Select).disabled)
+                    self.assertIn("Run all", str(app.query_one("#run", Button).label))
                 popen.assert_not_called()
 
-    async def test_dashboard_navigation_and_compact_layout(self):
-        from textual.widgets import Button, Static
+    async def test_all_and_from_modes_route_to_expected_step(self):
+        from textual.widgets import Select
         from tui import GoogleAITUI
         with tempfile.TemporaryDirectory() as directory:
             app = GoogleAITUI(repo=Path(directory))
-            with patch("tui.subprocess.Popen") as popen:
-                async with app.run_test(size=(90, 20)) as pilot:
-                    self.assertTrue(app.query_one("#quickstart", Button).display)
-                    self.assertFalse(app.query_one("#advanced").display)
-                    self.assertFalse(app.query_one("#stop", Button).display)
-                    await pilot.click("#nav_help")
+            with patch.object(GoogleAITUI, "_confirm_stage") as confirm:
+                async with app.run_test(size=(110, 35)) as pilot:
+                    app.query_one("#mode", Select).value = "all"
                     await pilot.pause()
-                    self.assertIn("read-only", str(app.query_one("#message", Static).render()))
-                    await pilot.click("#advanced_toggle")
+                    app.selected_pressed()
+                    confirm.assert_called_with(2, True)
+                    app.query_one("#mode", Select).value = "from"
+                    app.query_one("#step", Select).value = 4
                     await pilot.pause()
-                    self.assertTrue(app.query_one("#advanced").display)
-                popen.assert_not_called()
+                    app.selected_pressed()
+                    confirm.assert_called_with(4, True)
+                    app.query_one("#mode", Select).value = "single"
+                    await pilot.pause()
+                    app.selected_pressed()
+                    confirm.assert_called_with(4, False)
+
+    async def test_busy_state_locks_run_controls_but_keeps_help_available(self):
+        from textual.widgets import Button, Select
+        from tui import GoogleAITUI
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch.object(GoogleAITUI, "run_stage"):
+                async with app.run_test(size=(110, 35)) as pilot:
+                    app._start(1, False)
+                    self.assertTrue(app.query_one("#run", Button).disabled)
+                    self.assertTrue(app.query_one("#mode", Select).disabled)
+                    self.assertTrue(app.query_one("#step", Select).disabled)
+                    self.assertTrue(app.query_one("#quickstart", Button).disabled)
+                    self.assertFalse(app.query_one("#nav_help", Button).disabled)
+                    self.assertFalse(app.query_one("#debug", Button).disabled)
+                    self.assertTrue(app.query_one("#stop", Button).display)
 
     async def test_stop_is_real_only_for_read_only_checks(self):
         from tui import GoogleAITUI
@@ -191,9 +210,6 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory), selected_step=3)
             with patch("tui.subprocess.Popen") as popen:
                 async with app.run_test(size=(110, 35)) as pilot:
-                    await pilot.click("#advanced_toggle")
-                    await pilot.pause()
-                    self.assertTrue(app.advanced_visible)
                     await pilot.click("#run")
                     await pilot.pause()
                     self.assertIsInstance(app.screen, Approval)

@@ -82,7 +82,19 @@ class GoogleAITUI(App[None]):
     .section { color: #6cdbf8; text-style: bold; margin-top: 1; }
     #controls Button { width: 100%; margin: 0; height: 3; }
     #nav_home { background: #1a4e7e; }
+    #nav_home, #nav_quick { display: none; }
+    #workflow_actions { height: auto; border: round #2a5a7b; padding: 0 1; margin: 0 0 1 0; }
+    #mode_hint { color: #a5c8df; height: auto; }
+    #mode_label { height: 1; margin-top: 1; color: #79d8ef; text-style: bold; }
+    #mode { margin: 0; }
+    #run { width: 100%; height: 3; margin: 1 0 0 0; }
+    #run_all, #sequence { display: none; }
+    #debug { margin-top: 1; }
+    #stop { margin-top: 1; }
+    #nav_help { height: 1; }
+    #controls .section { margin-top: 0; }
     #advanced { display: none; height: auto; }
+    #advanced_label { margin-top: 1; }
     #advanced_label { margin: 0; }
     #advanced Select { margin: 0; }
     #next, #stop { display: none; }
@@ -92,7 +104,7 @@ class GoogleAITUI(App[None]):
     #welcome_panel { height: auto; border: round #2b97bc; background: #112b49; padding: 0 2; margin-bottom: 1; }
     #welcome { color: #91e3ff; text-style: bold; height: 1; margin-top: 1; }
     #quick_hint { color: #afcce3; height: auto; margin-bottom: 1; }
-    #quickstart { width: 100%; height: 3; margin-bottom: 1; }
+    #quickstart { display: none; }
     #read_only { color: #81c6df; height: 1; }
     #status_panel { height: 1fr; min-height: 0; border: round #285a80; background: #101f35; padding: 0 1; }
     #state { color: #f2f9ff; text-style: bold; margin-top: 1; }
@@ -132,6 +144,7 @@ class GoogleAITUI(App[None]):
         self._started_at: float | None = None
         self._last_activity_at: float | None = None
         self.advanced_visible = False
+        self._last_mode = "single"
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -143,33 +156,38 @@ class GoogleAITUI(App[None]):
                 yield Static("GOOGLE ACCOUNT\nNot checked", id="account")
             with Horizontal(id="content"):
                 with Vertical(id="controls"):
-                    yield Static("NAVIGATION", classes="section")
-                    yield Button("Home", id="nav_home")
-                    yield Button("Quick Start", id="nav_quick")
-                    yield Button("Steps (0-5)  +", id="advanced_toggle")
-                    with Vertical(id="advanced"):
-                        yield Static("CHOOSE A STEP", id="advanced_label", classes="section")
+                    yield Static("RUN WORKFLOW", classes="section")
+                    with Vertical(id="workflow_actions"):
+                        yield Static("Mode", id="mode_label")
+                        yield Select([
+                            ("One step only", "single"),
+                            ("From selected step", "from"),
+                            ("Run all: Steps 2-5", "all"),
+                        ], value="single", id="mode", allow_blank=False)
+                        yield Static("Runs only the selected step.", id="mode_hint")
+                        yield Static("Starting step", id="advanced_label", classes="section")
                         yield Select(
-                            [(f"{stage.number}  ·  {stage.label}", stage.number) for stage in STAGES],
+                            [(f"{stage.number}. {stage.label}", stage.number) for stage in STAGES],
                             value=self.initial_step, id="step", allow_blank=False)
-                        yield Button("Run selected step", id="run")
+                        yield Button("Run selected step", id="run", variant="primary")
                         yield Button("Run sequence from step", id="sequence")
+                        yield Button("Run all", id="run_all")
                     yield Button("Help & Guide", id="nav_help")
                     yield Button("Show technical details", id="debug")
                     yield Button("Exit toolkit", id="exit")
                     yield Button("Verified in Google Play → Next", id="next", disabled=True)
-                    yield Button("Stop after this step", id="stop", disabled=True)
+                    yield Button("Stop after current step", id="stop", disabled=True)
                     with Vertical(id="workflow"):
-                        yield Static("WORKFLOW", classes="section")
+                        yield Static("STEPS", classes="section")
                         for stage in STAGES:
                             yield Static(f"○  {stage.number}. {stage.label}",
                                          id=f"stage_{stage.number}", classes="workflow-step")
                 with Vertical(id="results"):
                     with Vertical(id="welcome_panel"):
-                        yield Static("GET STARTED", id="welcome")
-                        yield Static("Check your device and available Google AI offers.", id="quick_hint")
+                        yield Static("HOW TO USE", id="welcome")
+                        yield Static("Choose a mode and press Run on the left. Step 1 safely lists offers.", id="quick_hint")
                         yield Button("Check Device & Offers", id="quickstart", variant="primary")
-                        yield Static("Read-only. No payment will be made.", id="read_only")
+                        yield Static("Steps 2-5 require approval and can request real checkout.", id="read_only")
                     with Vertical(id="status_panel"):
                         yield Static("LIVE STATUS", classes="section")
                         yield Static("Ready — no check started", id="state")
@@ -206,19 +224,40 @@ class GoogleAITUI(App[None]):
         self.query_one("#debug_log", RichLog).display = self.debug_visible
         self.query_one("#debug", Button).label = "Hide technical details" if self.debug_visible else "Show technical details"
         if self.start_sequence:
-            self.action_toggle_advanced()
-            self._set_message("Sequence mode selected. Review the starting step, then click Run sequence.")
+            self.query_one("#mode", Select).value = "from"
+        self._update_run_mode()
 
-    @on(Button.Pressed, "#advanced_toggle")
-    def advanced_pressed(self) -> None:
-        self.action_toggle_advanced()
+    @on(Select.Changed, "#mode")
+    def mode_changed(self, event: Select.Changed) -> None:
+        self._update_run_mode()
+
+    @on(Select.Changed, "#step")
+    def step_changed(self, event: Select.Changed) -> None:
+        self._update_run_mode()
+
+    def _update_run_mode(self) -> None:
+        if self.busy:
+            return
+        mode = self.query_one("#mode", Select).value
+        step = self.query_one("#step", Select).value
+        if mode == "all":
+            self.query_one("#step", Select).disabled = True
+            self.query_one("#run", Button).label = "Run all: Steps 2-5"
+            hint = "Starts Step 2; requires review before every later checkout."
+        elif mode == "from":
+            self.query_one("#step", Select).disabled = False
+            self.query_one("#run", Button).label = "Run from selected step"
+            hint = ("Choose Step 2-5. Each later checkout requires verification."
+                    if step in (0, 1) else "Continue from this step; verify each checkout before Next.")
+        else:
+            self.query_one("#step", Select).disabled = False
+            self.query_one("#run", Button).label = "Run selected step"
+            hint = "Run only this step. Steps 2-5 can request real payment."
+        self.query_one("#mode_hint", Static).update(hint)
 
     def action_toggle_advanced(self) -> None:
-        self.advanced_visible = not self.advanced_visible
-        self.query_one("#advanced", Vertical).display = self.advanced_visible
-        self.query_one("#advanced_toggle", Button).label = (
-            "Steps (0-5)  -" if self.advanced_visible else "Steps (0-5)  +"
-        )
+        # Legacy test/keyboard entrypoint: run options now stay visible.
+        return
 
     def _refresh_elapsed(self) -> None:
         if not self.busy or self._started_at is None:
@@ -275,7 +314,19 @@ class GoogleAITUI(App[None]):
 
     @on(Button.Pressed, "#run")
     def selected_pressed(self) -> None:
-        self._confirm_stage(self._selected(), False)
+        if self.busy:
+            return
+        mode = self.query_one("#mode", Select).value
+        if mode == "all":
+            self._confirm_stage(2, True)
+        elif mode == "from":
+            step = self._selected()
+            if step < 2:
+                self._set_message("Choose Step 2-5 to start a guided checkout sequence.")
+                return
+            self._confirm_stage(step, True)
+        else:
+            self._confirm_stage(self._selected(), False)
 
     @on(Button.Pressed, "#sequence")
     def sequence_pressed(self) -> None:
@@ -365,7 +416,7 @@ class GoogleAITUI(App[None]):
             self._debug_loaded = True
 
     def action_run_selected(self) -> None:
-        self._confirm_stage(self._selected(), False)
+        self.selected_pressed()
 
     def action_quit_safely(self) -> None:
         if not self.busy:
@@ -399,6 +450,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#quickstart", Button).disabled = True
         self.query_one("#run", Button).disabled = True
         self.query_one("#sequence", Button).disabled = True
+        self.query_one("#mode", Select).disabled = True
         self.query_one("#step", Select).disabled = True
         self.query_one("#next", Button).disabled = True
         self.query_one("#stop", Button).disabled = False
@@ -530,7 +582,9 @@ class GoogleAITUI(App[None]):
         self.query_one("#quickstart", Button).disabled = False
         self.query_one("#run", Button).disabled = False
         self.query_one("#sequence", Button).disabled = False
+        self.query_one("#mode", Select).disabled = False
         self.query_one("#step", Select).disabled = False
+        self._update_run_mode()
         self.query_one("#stop", Button).disabled = True
         self.query_one("#stop", Button).display = False
         self.query_one("#exit", Button).disabled = False
