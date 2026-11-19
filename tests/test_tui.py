@@ -113,6 +113,24 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(app.query_one("#advanced", Vertical).display)
                 popen.assert_not_called()
 
+    async def test_dashboard_navigation_and_compact_layout(self):
+        from textual.widgets import Button, Static
+        from tui import GoogleAITUI
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch("tui.subprocess.Popen") as popen:
+                async with app.run_test(size=(90, 20)) as pilot:
+                    self.assertTrue(app.query_one("#quickstart", Button).display)
+                    self.assertFalse(app.query_one("#advanced").display)
+                    self.assertFalse(app.query_one("#stop", Button).display)
+                    await pilot.click("#nav_help")
+                    await pilot.pause()
+                    self.assertIn("read-only", str(app.query_one("#message", Static).render()))
+                    await pilot.click("#advanced_toggle")
+                    await pilot.pause()
+                    self.assertTrue(app.query_one("#advanced").display)
+                popen.assert_not_called()
+
     async def test_step_click_requires_approval_before_subprocess(self):
         from tui import GoogleAITUI, Approval
 
