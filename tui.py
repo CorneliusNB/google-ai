@@ -1,4 +1,4 @@
-"""Interactive Textual frontend for the existing Google AI MuMu PowerShell CLI.
+"""Interactive Textual frontend for ePlus AI Toolkit (Windows/MuMu PowerShell CLI).
 
 UI-only orchestration: the original run-all.ps1 and ultra0.py still own all
 Android, Frida, Google Play, payment and account validation. The TUI never
@@ -59,8 +59,8 @@ class Approval(ModalScreen[bool]):
 
 
 class GoogleAITUI(App[None]):
-    TITLE = "Google AI | ePlus.DEV"
-    SUB_TITLE = "MuMu toolkit"
+    TITLE = "ePlus AI Toolkit"
+    SUB_TITLE = "ePlus.DEV"
     BINDINGS = [
         ("d", "toggle_debug", "Debug"),
         ("r", "run_selected", "Run step"),
@@ -132,7 +132,7 @@ class GoogleAITUI(App[None]):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         with Vertical(id="screen"):
-            yield Static("  GOOGLE AI  /  MuMu Toolkit   |   ePlus.DEV", id="brand")
+            yield Static("  ePlus AI Toolkit   |   ePlus.DEV", id="brand")
             yield Static("  Original @gylive  |  Maintained @hoangsvit  |  https://eplus.dev", id="credit")
             with Horizontal(id="details"):
                 yield Static("ANDROID DEVICE\nMuMu • Auto-detect", id="device")
@@ -494,7 +494,7 @@ class GoogleAITUI(App[None]):
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Google AI MuMu Textual frontend")
+    parser = argparse.ArgumentParser(description="ePlus AI Toolkit Textual frontend")
     parser.add_argument("--step", type=int, default=1)
     parser.add_argument("--sequence", action="store_true")
     parser.add_argument("--debug", action="store_true")
