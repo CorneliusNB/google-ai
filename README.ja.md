@@ -2,6 +2,8 @@
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
+**macOS プレビュー：**[Mac 向け診断ガイド](docs/MACOS-PREVIEW.md)では環境確認とオファー確認（ステップ 0–1）のみ対応し、決済ステップ 2–5 は無効です。Mac/MuMu 実機での検証は未実施です。
+
 > **正本：**[英語版 README](README.md)。この翻訳は利用方法と注意事項をまとめたものです。差異がある場合は現在のソースコードと英語版を確認してください。
 
 **ePlus AI Toolkit** は、主に **Windows** 向けのターミナルツールです。**PowerShell・Python・ADB・Frida・Android エミュレーター（MuMuPlayer）** を使用し、Google One / Google Play 上の Google AI Pro オファーを調べます。Textual UI と CLI は共通の実行エンジンを使用します。

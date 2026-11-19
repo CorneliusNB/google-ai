@@ -2,6 +2,8 @@
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
+**macOS Preview:** [Hướng dẫn thử nghiệm cho Mac](docs/MACOS-PREVIEW.md) chỉ hỗ trợ kiểm tra môi trường và ưu đãi (Steps 0–1). Steps 2–5 và thanh toán bị khóa. CI không thay thế kiểm thử trên Mac/MuMu thật.
+
 > **Nguồn chuẩn:** [README tiếng Anh](README.md). Bản dịch này giúp sử dụng công cụ; nếu có khác biệt về tính năng, hãy đối chiếu mã nguồn và README tiếng Anh.
 
 Bộ công cụ dòng lệnh dành chủ yếu cho **Windows**, sử dụng **PowerShell, Python, ADB, Frida và máy ảo Android (MuMuPlayer)** để kiểm tra ưu đãi Google AI Pro thông qua Google One/Google Play. Giao diện Textual sử dụng chung bộ xử lý với chế độ CLI.

@@ -1,4 +1,4 @@
-"""Interactive Textual frontend for ePlus AI Toolkit (Windows/MuMu PowerShell CLI).
+"""Interactive Textual frontend for ePlus AI Toolkit (Windows + macOS preview).
 
 UI-only orchestration: the original run-all.ps1 and ultra0.py still own all
 Android, Frida, Google Play, payment and account validation. The TUI never
@@ -57,6 +57,10 @@ class Approval(ModalScreen[bool]):
     @on(Button.Pressed, "#approval_actions Button")
     def approve(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == "approve")
+
+
+def is_macos_platform() -> bool:
+    return sys.platform == "darwin"
 
 
 class GoogleAITUI(App[None]):
@@ -168,6 +172,9 @@ class GoogleAITUI(App[None]):
         super().__init__()
         self.repo = repo.resolve()
         self.initial_step = validate_step(selected_step)
+        self.macos_readonly = is_macos_platform()
+        if self.macos_readonly and (self.initial_step > 1 or start_sequence):
+            raise ValueError("macOS preview only supports Steps 0–1, not subscription sequences")
         self.start_sequence = start_sequence
         self.debug_visible = initial_debug
         self.busy = False
@@ -204,7 +211,7 @@ class GoogleAITUI(App[None]):
                 with Vertical(id="controls"):
                     yield Static("STEPS", classes="section")
                     with Vertical(id="workflow"):
-                        for stage in STAGES:
+                        for stage in (STAGES[:2] if self.macos_readonly else STAGES):
                             yield Static(f"○  {stage.number}. {stage.label}",
                                          id=f"stage_{stage.number}", classes="workflow-step")
                     yield Button("Help & Guide", id="nav_help")
@@ -229,7 +236,7 @@ class GoogleAITUI(App[None]):
                                     yield Static("Step", id="advanced_label")
                                     yield Select(
                                         [(f"{stage.number}. {stage.label}", stage.number)
-                                         for stage in STAGES],
+                                         for stage in (STAGES[:2] if self.macos_readonly else STAGES)],
                                         value=self.initial_step, id="step", allow_blank=False)
                             with Horizontal(id="run_row"):
                                 yield Button("Run selected step", id="run", variant="primary")
@@ -274,6 +281,20 @@ class GoogleAITUI(App[None]):
 
     def on_mount(self) -> None:
         self.set_interval(1, self._refresh_elapsed)
+        if self.macos_readonly:
+            self.query_one("#mode_field", Vertical).display = False
+            self.query_one("#mode", Select).disabled = True
+            self.query_one("#sequence", Button).display = False
+            self.query_one("#run_all", Button).display = False
+            self.query_one("#next", Button).display = False
+            self.query_one("#advanced_toggle", Button).label = "Advanced: Steps 0–1  +"
+            self.query_one("#quick_hint", Static).update(
+                "Android diagnostics on macOS. No subscription checkout."
+            )
+            self.query_one("#read_only", Static).update(
+                "macOS preview: Steps 2–5 and subscription sequences are disabled."
+            )
+            self.query_one("#device", Static).update("ANDROID DEVICE\nADB • Auto-detect")
         self.query_one("#debug_log", RichLog).display = self.debug_visible
         self.query_one("#debug", Button).label = "Hide technical details" if self.debug_visible else "Show technical details"
         if self.start_sequence:
@@ -286,8 +307,9 @@ class GoogleAITUI(App[None]):
         panel = self.query_one("#workflow_actions", Vertical)
         panel.display = self.advanced_visible
         self.query_one("#advanced_toggle", Button).label = (
-            "Hide advanced steps  −" if self.advanced_visible
-            else "Advanced: Run by step  +"
+            ("Hide advanced steps  −" if self.advanced_visible else "Advanced: Steps 0–1  +")
+            if self.macos_readonly else
+            ("Hide advanced steps  −" if self.advanced_visible else "Advanced: Run by step  +")
         )
 
     @on(Select.Changed, "#mode")
@@ -303,6 +325,12 @@ class GoogleAITUI(App[None]):
             return
         mode = self.query_one("#mode", Select).value
         step = self.query_one("#step", Select).value
+        if self.macos_readonly:
+            self.query_one("#mode", Select).disabled = True
+            self.query_one("#step", Select).disabled = False
+            self.query_one("#run", Button).label = "Run diagnostic step"
+            self.query_one("#mode_hint", Static).update("macOS: no billing or checkout")
+            return
         if mode == "all":
             self.query_one("#step", Select).disabled = True
             self.query_one("#run", Button).label = "Run all: Steps 2-5"
@@ -352,6 +380,9 @@ class GoogleAITUI(App[None]):
                        previous_verified: bool = False) -> None:
         if self.busy:
             return
+        if self.macos_readonly and (step not in (0, 1) or sequence):
+            self._set_message("Checkout Steps 2–5 are disabled on macOS.")
+            return
         if step == 2:
             title = "Start initial 12-month checkout?"
             message = ("Confirm this Google Play account has NO active Google One subscription. "
@@ -378,6 +409,9 @@ class GoogleAITUI(App[None]):
     def selected_pressed(self) -> None:
         if self.busy:
             return
+        if self.macos_readonly:
+            self._confirm_stage(self._selected(), False)
+            return
         mode = self.query_one("#mode", Select).value
         if mode == "all":
             self._confirm_stage(2, True)
@@ -392,6 +426,9 @@ class GoogleAITUI(App[None]):
 
     @on(Button.Pressed, "#sequence")
     def sequence_pressed(self) -> None:
+        if self.macos_readonly:
+            self._set_message("Subscription sequences are disabled on macOS.")
+            return
         step = self._selected()
         if step < 2:
             self._set_message("Choose Step 2, 3, 4 or 5 to start the subscription sequence.")
@@ -400,6 +437,8 @@ class GoogleAITUI(App[None]):
 
     @on(Button.Pressed, "#next")
     def next_pressed(self) -> None:
+        if self.macos_readonly:
+            return
         if self.busy or not self.sequence or self.current_step is None:
             return
         if self._last_outcome is None or not self._last_outcome.can_review:
@@ -499,6 +538,9 @@ class GoogleAITUI(App[None]):
             self.query_one("#exit", Button).disabled = True
 
     def _start(self, step: int, sequence: bool) -> None:
+        if self.macos_readonly and (step not in (0, 1) or sequence):
+            self._set_message("Subscription checkout is not available on macOS.")
+            return
         if self.busy:
             return
         self.busy = True
@@ -512,14 +554,20 @@ class GoogleAITUI(App[None]):
         self._last_output.clear()
         self._run_output.clear()
         self.query_one("#debug_log", RichLog).clear()
-        self.query_one("#device", Static).update("ANDROID DEVICE\nMuMu • Auto-detect")
+        self.query_one("#device", Static).update(
+            "ANDROID DEVICE\nADB • Auto-detect" if self.macos_readonly
+            else "ANDROID DEVICE\nMuMu • Auto-detect"
+        )
         self.query_one("#account", Static).update("GOOGLE ACCOUNT\nNot checked")
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True
         self._started_at = time.monotonic()
         self._last_activity_at = self._started_at
         self.query_one("#elapsed", Static).update("Elapsed: 00:00")
-        self.query_one("#activity", Static).update("Connecting to MuMu and preparing tools...")
+        self.query_one("#activity", Static).update(
+            "Connecting to Android diagnostics..." if self.macos_readonly
+            else "Connecting to MuMu and preparing tools..."
+        )
         self.query_one("#quickstart", Button).disabled = True
         self.query_one("#run", Button).disabled = True
         self.query_one("#sequence", Button).disabled = True
@@ -532,7 +580,10 @@ class GoogleAITUI(App[None]):
         self.query_one("#next", Button).display = False
         self.query_one("#step_result", Static).update(f"Step {step} · {STAGES[step].label}")
         self._set_workflow(step, "running")
-        self._set_status("Running — check MuMu if prompted")
+        self._set_status(
+            "Running — check Android if prompted" if self.macos_readonly
+            else "Running — check MuMu if prompted"
+        )
         self._set_message("Preparing tools and checking Google Play. Missing dependencies are installed automatically.")
         self.run_stage(step)
 
@@ -564,7 +615,7 @@ class GoogleAITUI(App[None]):
     @work(thread=True, exclusive=True)
     def run_stage(self, step: int) -> None:
         try:
-            if needs_setup():
+            if not self.macos_readonly and needs_setup():
                 self.call_from_thread(self._set_status, "Setting up...")
                 self.call_from_thread(self._set_message,
                                       "Preparing Frida and ADB. You do not need a separate setup command.")
@@ -663,7 +714,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#quickstart", Button).disabled = False
         self.query_one("#run", Button).disabled = False
         self.query_one("#sequence", Button).disabled = False
-        self.query_one("#mode", Select).disabled = False
+        self.query_one("#mode", Select).disabled = self.macos_readonly
         self.query_one("#step", Select).disabled = False
         self._update_run_mode()
         self.query_one("#stop", Button).disabled = True
@@ -681,6 +732,12 @@ class GoogleAITUI(App[None]):
         self._set_message(instruction)
         if step == 1:
             self.query_one("#step_result", Static).update(report_summary(report))
+            if self.macos_readonly and isinstance(report, dict):
+                detected = report.get("detected_play_account")
+                if isinstance(detected, str) and detected:
+                    self.query_one("#account", Static).update(
+                        "Account  •  " + escape(mask_email(detected))
+                    )
         if outcome.can_review and self.sequence and step < 5 and not self._stop_after_step:
             self.query_one("#next", Button).disabled = False
             self.query_one("#next", Button).display = True
@@ -705,6 +762,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         selected = validate_step(args.step)
+        if is_macos_platform() and (selected not in (0, 1) or args.sequence):
+            raise ValueError("macOS preview only supports Steps 0–1; checkout disabled")
     except ValueError as exc:
         parser.error(str(exc))
     GoogleAITUI(repo=Path(__file__).resolve().parent, selected_step=selected,

@@ -77,6 +77,24 @@ If you encounter errors when running the latest repository version, you can try 
 
 A **source ZIP is not a prebuilt `.exe` or installer**. Keep the release in a **separate folder** from your current clone so you can compare versions and roll back without overwriting files. Release builds may lack newer bug fixes, and they still require Windows, Python, MuMuPlayer, ADB/Frida and the same billing precautions. If the error persists, check [Troubleshooting](#troubleshooting-and-results) or [report an issue](https://github.com/hoangsvit/google-ai/issues).
 
+## macOS preview — diagnostic mode only
+
+An experimental [macOS preview](docs/MACOS-PREVIEW.md) supports **Steps 0–1 only** (Android environment and offer listing).
+Checkout **Steps 2–5 and subscription sequences are disabled on macOS**, including through the Textual UI and command-line arguments.
+It requires Python 3.10+, Android Platform-Tools/ADB, Frida 16.5.9 and a rooted Android device or emulator with Google Play and Google One.
+MuMuPlayer Pro for Mac requires **Apple Silicon**; CI checks both Apple Silicon and Intel host dependencies, not a real MuMu device.
+Android environment checks may still modify proxy, Frida or emulator settings even though no checkout is requested.
+
+From the repository root on macOS:
+
+```sh
+sh run-macos.sh              # Textual dashboard; Steps 0–1 only
+sh run-macos.sh --check      # Environment diagnostics; may modify settings
+sh run-macos.sh --list       # Offer listing; no checkout
+```
+
+This preview has **not been tested on real Mac/MuMu hardware**. It is not a stable macOS release; the Windows workflow is unchanged.
+
 ## Use the dashboard (recommended)
 
 ### Start with Check Device & Offers

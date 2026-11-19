@@ -2,6 +2,13 @@
 
 Instructions for coding agents working in this repository. Read this file, `README.md`, `CONTRIBUTING.md`, and `SECURITY.md` before changing code. Prefer the implementation on the current target branch over old PR descriptions, screenshots, or previous task summaries.
 
+## macOS preview constraints
+
+- `run-macos.sh` and `macos_runner.py` are a **macOS diagnostic preview** (Steps 0–1 only). Run the adapter on Darwin; do not run Windows `setup_env.py` on Mac.
+- Checkout Steps 2–5, sequence mode and resume actions remain blocked at the bridge, TUI and CLI layers. Never enable live billing on macOS based on offline CI alone.
+- CI on `macos-15` and `macos-15-intel` validates mocked device logic and host dependency installation; **no real rooted Android/MuMu device or Google Play subscription is tested**.
+- Keep Windows command routing and all Python/Frida/Billing runtime behavior unchanged when implementing the preview. Target `dev` for any new PR.
+
 ## Project purpose and boundaries
 
 **ePlus AI Toolkit** is a Windows/PowerShell + Python application for inspecting Google AI Pro offers on Android/MuMu. The Textual UI must remain an interface to the existing engine, not a second implementation of Android, Frida, account, offer, or Google Play Billing logic.

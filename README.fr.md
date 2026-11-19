@@ -2,6 +2,8 @@
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
+**Aperçu macOS :** [guide de diagnostic Mac](docs/MACOS-PREVIEW.md) limité aux étapes 0–1 (environnement et offres). Les étapes de paiement 2–5 sont désactivées ; aucun test sur un vrai Mac/MuMu n'a été effectué.
+
 > **Référence principale :** [README en anglais](README.md). Cette traduction reprend les usages et avertissements essentiels ; en cas de divergence, consultez le code actuel et la version anglaise.
 
 **ePlus AI Toolkit** est un outil en ligne de commande principalement destiné à **Windows**. Il utilise **PowerShell, Python, ADB, Frida et un émulateur Android (MuMuPlayer)** pour examiner les offres Google AI Pro proposées via Google One / Google Play. L'interface Textual et le CLI reposent sur le même moteur.

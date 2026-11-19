@@ -13,6 +13,10 @@ Use [GitHub Issues](https://github.com/hoangsvit/google-ai/issues) and include t
 - After review and green CI, a separate reviewed PR promotes `dev` into `main`. Releases are created only from `main`.
 - This routing is checked by GitHub Actions; repository admins should additionally make the branch-policy check required in branch protection / rulesets for both `main` and `dev`.
 
+## macOS preview contributions
+
+The experimental [macOS diagnostic preview](docs/MACOS-PREVIEW.md) is restricted to Steps 0–1. New Mac work must include mock-only tests and run both macOS runner architectures. Do not attempt paid checkout in CI or describe the preview as hardware-verified. Send changes to `dev` first.
+
 ## Propose a change
 
 Open a [pull request](https://github.com/hoangsvit/google-ai/pulls) targeting `dev` with one focused improvement. Keep the original step mappings intact, explain any behavior change, and add mock tests for fixes. Do not run live subscription checkout in CI.
