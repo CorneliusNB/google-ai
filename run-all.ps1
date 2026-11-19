@@ -59,7 +59,7 @@ $ShowDebug = $PSBoundParameters.ContainsKey("Debug") -and [bool]$PSBoundParamete
 
 function Show-Banner {
     Write-Host ""
-    Write-Host "  GOOGLE AI  /  MuMu Toolkit" -ForegroundColor Cyan
+    Write-Host "  ePlus AI Toolkit" -ForegroundColor Cyan
     Write-Host "  Original: @gylive  |  Maintained: @hoangsvit" -ForegroundColor DarkGray
     Write-Host "  https://eplus.dev" -ForegroundColor Blue
     $mode = if ($AllStages) { "All stages, from Step $StartStep" } else { "Step $Step" }
