@@ -120,6 +120,9 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory), selected_step=3)
             with patch("tui.subprocess.Popen") as popen:
                 async with app.run_test(size=(110, 35)) as pilot:
+                    await pilot.click("#advanced_toggle")
+                    await pilot.pause()
+                    self.assertTrue(app.advanced_visible)
                     await pilot.click("#run")
                     await pilot.pause()
                     self.assertIsInstance(app.screen, Approval)
