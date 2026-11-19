@@ -67,6 +67,16 @@ adb devices
 
 The device must show as `device`, not `offline` or `unauthorized`. If ADB is not on PATH, let the toolkit locate/install Platform-Tools or follow the [detailed troubleshooting guide](docs/DETAILED-GUIDE.md).
 
+### Alternative: use a published release if the latest source fails
+
+If you encounter errors when running the latest repository version, you can try a **previously published release** from [GitHub Releases](https://github.com/hoangsvit/google-ai/releases). Open a release, read its notes, and download the available Windows package **if one is attached**. If the release only provides GitHub's automatic **Source code (zip)** archive, download and extract that ZIP, open PowerShell in the extracted folder, and run:
+
+```powershell
+.\run-all.ps1
+```
+
+A **source ZIP is not a prebuilt `.exe` or installer**. Keep the release in a **separate folder** from your current clone so you can compare versions and roll back without overwriting files. Release builds may lack newer bug fixes, and they still require Windows, Python, MuMuPlayer, ADB/Frida and the same billing precautions. If the error persists, check [Troubleshooting](#troubleshooting-and-results) or [report an issue](https://github.com/hoangsvit/google-ai/issues).
+
 ## Use the dashboard (recommended)
 
 ### Start with Check Device & Offers
