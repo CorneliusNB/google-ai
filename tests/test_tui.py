@@ -189,7 +189,12 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(app.query_one("#next", Button).display)
                     self.assertIn("Run selected step", str(app.query_one("#run", Button).label))
                     app.query_one("#mode", Select).value = "all"
-                    await pilot.pause()
+                    # Select.Changed can be queued behind layout work on Windows.
+                    # Wait for the event rather than asserting after one idle tick.
+                    for _ in range(20):
+                        if app.query_one("#step", Select).disabled:
+                            break
+                        await pilot.pause(0.05)
                     self.assertTrue(app.query_one("#step", Select).disabled)
                     self.assertIn("Run all", str(app.query_one("#run", Button).label))
                 popen.assert_not_called()
