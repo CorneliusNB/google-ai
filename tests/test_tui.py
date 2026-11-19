@@ -224,6 +224,45 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     app.selected_pressed()
                     confirm.assert_called_with(4, False)
 
+    async def test_new_run_clears_stale_debug_and_device_account_cards(self):
+        from textual.widgets import Button, RichLog, Static
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch.object(GoogleAITUI, "run_stage"):
+                async with app.run_test(size=(110, 35)) as pilot:
+                    app._received("Account alice@example.com")
+                    app._received("Device emulator-5554")
+                    app.action_toggle_debug()
+                    await pilot.pause()
+                    self.assertEqual(len(app.query_one("#debug_log", RichLog).lines), 2)
+                    app._start(1, False)
+                    await pilot.pause()
+                    self.assertFalse(app._last_output)
+                    self.assertFalse(app._run_output)
+                    self.assertEqual(len(app.query_one("#debug_log", RichLog).lines), 0)
+                    self.assertIn("Not checked", str(app.query_one("#account", Static).render()))
+                    self.assertIn("Auto-detect", str(app.query_one("#device", Static).render()))
+                    self.assertFalse(app.query_one("#manual", Button).display)
+
+    async def test_debug_reopen_includes_hidden_lines_without_duplicates(self):
+        from textual.widgets import RichLog
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._received("ADB first line")
+                app.action_toggle_debug()
+                await pilot.pause()
+                self.assertEqual(len(app.query_one("#debug_log", RichLog).lines), 1)
+                app.action_toggle_debug()  # Hide technical details
+                app._received("ADB second line")
+                app.action_toggle_debug()  # Reopen with the full current-run buffer
+                await pilot.pause()
+                self.assertEqual(len(app.query_one("#debug_log", RichLog).lines), 2)
+
     async def test_busy_state_locks_run_controls_but_keeps_help_available(self):
         from textual.widgets import Button, Select
         from tui import GoogleAITUI

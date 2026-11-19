@@ -469,12 +469,16 @@ class GoogleAITUI(App[None]):
     def action_toggle_debug(self) -> None:
         self.debug_visible = not self.debug_visible
         log = self.query_one("#debug_log", RichLog)
-        log.display = self.debug_visible
-        self.query_one("#debug", Button).label = "Hide Debug" if self.debug_visible else "Show Debug"
-        if self.debug_visible and not getattr(self, "_debug_loaded", False):
+        if self.debug_visible:
+            # Rebuild from the bounded current-run buffer: lines received while
+            # details were hidden must not disappear or be duplicated.
+            log.clear()
             for line in self._last_output:
                 log.write(line)
-            self._debug_loaded = True
+        log.display = self.debug_visible
+        self.query_one("#debug", Button).label = (
+            "Hide technical details" if self.debug_visible else "Show technical details"
+        )
 
     def action_run_selected(self) -> None:
         self.selected_pressed()
@@ -503,7 +507,13 @@ class GoogleAITUI(App[None]):
         self._cancel_requested = False
         self._exit_after_step = False
         self._last_outcome = None
+        self._last_output.clear()
         self._run_output.clear()
+        self.query_one("#debug_log", RichLog).clear()
+        self.query_one("#device", Static).update("ANDROID DEVICE\nMuMu • Auto-detect")
+        self.query_one("#account", Static).update("GOOGLE ACCOUNT\nNot checked")
+        self.query_one("#manual", Button).display = False
+        self.query_one("#manual", Button).disabled = True
         self._started_at = time.monotonic()
         self._last_activity_at = self._started_at
         self.query_one("#elapsed", Static).update("Elapsed: 00:00")
