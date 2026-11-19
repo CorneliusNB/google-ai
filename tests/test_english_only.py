@@ -1,0 +1,44 @@
+"""Keep maintained source and filenames free of non-English scripts.
+
+Known non-English Android UI labels remain in the Python runtime as Unicode
+escapes; user-visible CLI text and source comments are in English.
+"""
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SKIP_DIRS = {".git", "__pycache__", "node_modules", "ultra0-report"}
+EXTS = {".py", ".js", ".mjs", ".ps1", ".bat", ".md", ".txt", ".yml", ".yaml"}
+SCRIPT_RANGES = ((0x3400, 0x9FFF), (0x3040, 0x30FF), (0xAC00, 0xD7AF))
+
+
+def has_non_english_script(text):
+    return any(start <= ord(char) <= end for char in text
+               for start, end in SCRIPT_RANGES)
+
+
+class EnglishOnlyTest(unittest.TestCase):
+    def test_filenames_are_english_only(self):
+        bad = []
+        for file in ROOT.rglob("*"):
+            if any(part in SKIP_DIRS for part in file.relative_to(ROOT).parts):
+                continue
+            if has_non_english_script(str(file.relative_to(ROOT))):
+                bad.append(str(file.relative_to(ROOT)))
+        self.assertEqual([], bad, "Rename non-English file or directory names")
+
+    def test_source_files_are_english_only(self):
+        bad = []
+        for file in ROOT.rglob("*"):
+            if not file.is_file() or file.suffix.lower() not in EXTS:
+                continue
+            if any(part in SKIP_DIRS for part in file.relative_to(ROOT).parts):
+                continue
+            content = file.read_text(encoding="utf-8")
+            if has_non_english_script(content):
+                bad.append(str(file.relative_to(ROOT)))
+        self.assertEqual([], bad, "Translate comments, documentation and CLI strings")
+
+
+if __name__ == "__main__":
+    unittest.main()
