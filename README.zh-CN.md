@@ -54,6 +54,16 @@ adb devices
 
 设备应显示为 `device`，不能是 `offline` 或 `unauthorized`。有问题请参考[详细故障排查](docs/DETAILED-GUIDE.md)。
 
+### 备用方案：最新源码出错时使用已发布版本
+
+如果运行仓库最新代码遇到错误，可以尝试 [GitHub Releases](https://github.com/hoangsvit/google-ai/releases) 中**已发布的版本**。先阅读版本说明；若附带 Windows 安装包，可下载相应文件。若页面只有 GitHub 自动提供的 **Source code (zip)**，请下载 ZIP 并解压，在解压后的文件夹打开 PowerShell，然后运行：
+
+```powershell
+.\run-all.ps1
+```
+
+**Source code (zip) 不是预编译的 `.exe` 或安装程序。** 建议将发布版本放在**独立文件夹**，不要覆盖当前仓库。旧版本可能缺少最新修复；仍需 Windows、Python、MuMuPlayer、ADB/Frida，并遵守相同的支付安全注意事项。如果问题仍在，请参考[故障排查](docs/DETAILED-GUIDE.md)或[提交 Issue](https://github.com/hoangsvit/google-ai/issues)。
+
 ## 3. Textual 界面
 
 点击 **Check Device & Offers** 执行 **Step 1 — Available offers**：查询优惠，**不会发起订阅结账**。查看 **Live Status** 和 **Show technical details** 以判断运行情况；30 秒无新日志不一定是死机。

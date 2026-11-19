@@ -54,6 +54,16 @@ adb devices
 
 状態は `device` である必要があります。`offline` や `unauthorized` の場合は設定を確認してください。[詳細トラブルシューティング](docs/DETAILED-GUIDE.md)。
 
+### 代替手段：最新版ソースで問題が起きる場合はリリース版を試す
+
+最新のソースコードの実行でエラーが起きたら、[GitHub Releases](https://github.com/hoangsvit/google-ai/releases) の**公開済みリリース**を試せます。リリースノートを読み、Windows 向けの添付ファイルがあればダウンロードしてください。GitHub が自動生成する **Source code (zip)** しかない場合は ZIP をダウンロードして展開し、展開先で PowerShell を開いて次を実行します。
+
+```powershell
+.\run-all.ps1
+```
+
+**Source code (zip) はビルド済み `.exe` やインストーラーではありません。** 現在の作業フォルダーを上書きせず、**別のフォルダー**に保存してください。古いリリースには最近の修正が含まれない場合があります。Windows、Python、MuMuPlayer、ADB/Frida および決済に関する注意事項は変わりません。解決しない場合は[トラブルシューティング](docs/DETAILED-GUIDE.md)や [Issues](https://github.com/hoangsvit/google-ai/issues) を参照してください。
+
 ## 3. ダッシュボードの使い方
 
 **Check Device & Offers** を押すと **Step 1 — Available offers** が実行され、オファーを照会します。**購入処理は開始しません**。**Live Status** と **Show technical details** で進行状況を確認します。ログ更新が 30 秒ない場合の警告は、フリーズの確定ではありません。

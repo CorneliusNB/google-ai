@@ -17,6 +17,7 @@ REQUIRED_REFERENCES = (
     "README.fr.md",
 )
 REQUIRED_LINKS = ("DISCLAIMER.md", "SECURITY.md", "CONTRIBUTING.md",
+                  "https://github.com/hoangsvit/google-ai/releases",
                   "THIRD_PARTY_NOTICES.md", "docs/DETAILED-GUIDE.md",
                   "https://www.mumuplayer.com/download/",
                   "https://github.com/hoangsvit/google-ai/wiki/Install")
@@ -54,6 +55,15 @@ class ReadmeLocalesTests(unittest.TestCase):
                 self.assertIn(official_url, text)
                 self.assertIn("3", text)
                 self.assertIn("14", text)
+
+    def test_published_release_fallback_preserves_safety_requirements(self):
+        for path in DOCS:
+            with self.subTest(file=path):
+                text = (ROOT / path).read_text(encoding="utf-8")
+                self.assertIn("Source code (zip)", text)
+                self.assertIn("`.exe`", text)
+                self.assertIn("MuMuPlayer", text)
+                self.assertIn("ADB/Frida", text)
 
     def test_local_markdown_links_resolve(self):
         for path in DOCS:
