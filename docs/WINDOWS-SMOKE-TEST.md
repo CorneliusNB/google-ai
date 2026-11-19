@@ -1,6 +1,6 @@
 # Windows + MuMu pre-release smoke test (manual)
 
-This is the hardware validation checklist for **ePlus AI Toolkit v1.0.1**. GitHub Actions cannot perform it because CI does not have a rooted MuMu/Android instance or a real Google Play account. **Do not test billing Steps 2–5** for release verification.
+This is the reusable hardware validation checklist for **any ePlus AI Toolkit release**. GitHub Actions cannot perform it because CI does not have a rooted MuMu/Android instance or a real Google Play account. **Do not test billing Steps 2–5** for release verification.
 
 ## Before starting
 
@@ -46,13 +46,14 @@ Only mark real-device validation complete if A–F have been run with no unexpla
 
 ## Publishing after checks pass
 
-Once this checklist has actually passed and the release preparation PR has been merged to main:
+Once this checklist has actually passed for the **exact commit intended for release** and the reusable release workflow has been merged to main:
 
 1. Confirm the **Static checks** workflow for the latest main commit is green.
-2. Open [GitHub Actions](https://github.com/hoangsvit/google-ai/actions), select **Publish ePlus AI Toolkit v1.0.1 (manual)**, then choose **Run workflow** on **main**.
-3. Enable **I completed docs/WINDOWS-SMOKE-TEST.md on real Windows + MuMu** only if you have verified those checks.
-4. The workflow independently reruns Windows smoke tests, checks the exact main commit's Static checks, then creates the **1.0.1** release and GitHub-generated source archives. It will not overwrite an existing tag or release.
+2. Open [GitHub Actions](https://github.com/hoangsvit/google-ai/actions), select **Publish ePlus AI Toolkit (manual)** and choose **Run workflow** on **main**.
+3. Enter the desired **version**, such as `1.0.1`, `1.1.0`, or `2.0.0-rc.1` (without a `v` prefix). Mark prereleases accordingly.
+4. Enable **I completed docs/WINDOWS-SMOKE-TEST.md on real Windows + MuMu** only after verifying these checks for the release commit.
+5. The workflow reruns Windows smoke tests, verifies Static checks on that exact `main` commit and refuses to overwrite existing tags/releases. If `docs/releases/v<VERSION>.md` exists, it uses those notes; otherwise, it generates GitHub release notes automatically. GitHub then provides the source code archives.
 
 No repository code is released merely by opening or merging a documentation PR. Publishing is an explicit action, and it does not bundle MuMuPlayer or produce a Windows installer.
 
-See [release notes](releases/v1.0.1.md), [README](../README.md) and [Security](../SECURITY.md).
+See [README](../README.md), [Security](../SECURITY.md), and the version-specific files in [release notes](releases/v1.0.1.md) (v1.0.1 is an example, not a workflow restriction).
