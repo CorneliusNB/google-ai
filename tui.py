@@ -90,15 +90,14 @@ class GoogleAITUI(App[None]):
     .section { color: #78cfe8; text-style: bold; margin: 1 0 0 0; }
     #step { margin-bottom: 0; }
     #controls Button { width: 100%; margin-bottom: 0; }
-    #quickstart { margin: 1 0; }
-    #advanced_label { color: #78cfe8; margin-top: 1; }
+    #quickstart { margin: 0; }
+    #advanced_label { color: #78cfe8; margin: 0; }
     #advanced { display: none; height: auto; }
     #next, #stop { display: none; }
     #advanced Button { margin-bottom: 0; }
-    #welcome { text-style: bold; margin: 1 0; }
+    #welcome { text-style: bold; margin: 0; height: 1; }
     #elapsed, #activity { color: #9dbcd2; }
-    #quick_hint { margin-bottom: 1; }
-    #debug_log { display: none; height: 9; border: solid #29465e; }
+    #quick_hint { margin: 0; height: 1; }
     #controls { scrollbar-size: 1 1; }
     #state { color: #f3f8ff; text-style: bold; margin: 1 0 0 0; }
     #message { color: #b9d0e2; margin-bottom: 1; }
