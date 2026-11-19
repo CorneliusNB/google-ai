@@ -1,39 +1,56 @@
 #!/bin/sh
-# macOS preview: Android diagnostics only, no subscription checkout.
+# Native macOS launcher for ePlus AI Toolkit. Checkout requires TUI approval.
 set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 
 usage() {
   printf '%s\n' \
-    "ePlus AI Toolkit — macOS diagnostic preview" \
-    "Usage: sh run-macos.sh [--check | --list | --help]" \
-    "  (no flags)    Textual dashboard (Steps 0–1 only)" \
-    "  --check       Android/Frida preflight; may change emulator settings" \
-    "  --list        Google Play offers; no checkout" \
-    "Steps 2–5 and subscription sequences are disabled."
+    "ePlus AI Toolkit — macOS (Textual, Steps 0–5)" \
+    "Usage: sh run-macos.sh [--check | --list | --step N [--sequence] | --sequence | --help]" \
+    "  (no flags)    Textual dashboard, including optional confirmed checkout" \
+    "  --check       Android/Frida setup diagnostics" \
+    "  --list        Query offers (no checkout)" \
+    "  --step N      Open the dashboard with Step 0..5 selected" \
+    "  --sequence    Open dashboard with guided sequence controls" \
+    "  --help        Display usage" \
+    "Steps 2–5 can submit real charges after explicit TUI confirmations."
 }
+if [ "$#" -eq 1 ] && { [ "$1" = "--help" ] || [ "$1" = "-h" ]; }; then
+  usage
+  exit 0
+fi
 
-case "${1:-}" in
-  --help|-h)
-    if [ "$#" -eq 1 ]; then usage; exit 0; fi ;;
-  --check|--list|"")
-    if [ "$#" -le 1 ]; then :; else usage >&2; exit 2; fi ;;
+MODE=""
+case "$#" in
+  0) MODE="tui" ;;
+  1) case "$1" in
+    --check) MODE="check" ;;
+    --list) MODE="list" ;;
+    --sequence) MODE="tui" ;;
+    *) usage >&2; exit 2 ;;
+  esac ;;
+  2|3)
+    if [ "$1" != "--step" ]; then usage >&2; exit 2; fi
+    case "$2" in
+      0|1|2|3|4|5) : ;;
+      *) usage >&2; exit 2 ;;
+    esac
+    if [ "$#" -eq 3 ] && [ "$3" != "--sequence" ]; then usage >&2; exit 2; fi
+    MODE="tui" ;;
   *) usage >&2; exit 2 ;;
 esac
+
 if [ "$(uname -s)" != "Darwin" ]; then
-  printf '%s\n' "macOS only. On Windows run .\run-all.ps1" >&2
+  printf '%s\n' "This launcher requires macOS; on Windows use .\\run-all.ps1" >&2
   exit 2
 fi
-if ! command -v python3 >/dev/null 2>&1; then
+if ! command -v python3 >/dev/null 2>&1 ||
+   ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
   printf '%s\n' "Install Python 3.10+ to run this toolkit." >&2
   exit 2
 fi
-if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
-  printf '%s\n' "Python 3.10+ is required." >&2
-  exit 2
-fi
 if ! command -v adb >/dev/null 2>&1; then
-  printf '%s\n' "Install Android SDK Platform-Tools, then check 'adb devices'." >&2
+  printf '%s\n' "Install Android SDK Platform-Tools and check 'adb devices'." >&2
   exit 2
 fi
 if [ ! -x .venv/bin/python ]; then
@@ -41,13 +58,15 @@ if [ ! -x .venv/bin/python ]; then
 fi
 PYTHON=.venv/bin/python
 if ! "$PYTHON" -c "import importlib.metadata as m; import textual, frida; assert m.version('frida') == '16.5.9'" >/dev/null 2>&1; then
-  "$PYTHON" -m pip install --disable-pip-version-check -r requirements-tui.txt 'frida==16.5.9'
+  "$PYTHON" -m pip install --disable-pip-version-check -r requirements-tui.txt "frida==16.5.9"
 fi
 export PYTHONIOENCODING=utf-8:backslashreplace
 export PYTHONUTF8=1
-case "${1:-}" in
-  --check) exec "$PYTHON" macos_runner.py --step 0 ;;
-  --list)  exec "$PYTHON" macos_runner.py --step 1 ;;
-  "")      exec "$PYTHON" tui.py ;;
+case "$MODE" in
+  check) exec "$PYTHON" macos_runner.py --step 0 ;;
+  list)  exec "$PYTHON" macos_runner.py --step 1 ;;
+  tui)
+    if [ "$#" -eq 0 ]; then exec "$PYTHON" tui.py; fi
+    exec "$PYTHON" tui.py "$@" ;;
 esac
 exit 2

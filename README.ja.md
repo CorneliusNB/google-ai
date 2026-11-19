@@ -2,7 +2,7 @@
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-**macOS プレビュー：**[Mac 向け診断ガイド](docs/MACOS-PREVIEW.md)では環境確認とオファー確認（ステップ 0–1）のみ対応し、決済ステップ 2–5 は無効です。Mac/MuMu 実機での検証は未実施です。
+**macOS プレビュー：**[Mac 対応版](docs/MACOS-PREVIEW.md)はステップ 0–5 を実装しました。決済ステップ 2–5 は実際に請求される可能性があり、各ステップで確認が必要です。Mac/MuMu 実機での決済動作は未検証です。
 
 > **正本：**[英語版 README](README.md)。この翻訳は利用方法と注意事項をまとめたものです。差異がある場合は現在のソースコードと英語版を確認してください。
 

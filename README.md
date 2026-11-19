@@ -77,23 +77,21 @@ If you encounter errors when running the latest repository version, you can try 
 
 A **source ZIP is not a prebuilt `.exe` or installer**. Keep the release in a **separate folder** from your current clone so you can compare versions and roll back without overwriting files. Release builds may lack newer bug fixes, and they still require Windows, Python, MuMuPlayer, ADB/Frida and the same billing precautions. If the error persists, check [Troubleshooting](#troubleshooting-and-results) or [report an issue](https://github.com/hoangsvit/google-ai/issues).
 
-## macOS preview — diagnostic mode only
+## macOS version — full workflow (development preview)
 
-An experimental [macOS preview](docs/MACOS-PREVIEW.md) supports **Steps 0–1 only** (Android environment and offer listing).
-Checkout **Steps 2–5 and subscription sequences are disabled on macOS**, including through the Textual UI and command-line arguments.
-It requires Python 3.10+, Android Platform-Tools/ADB, Frida 16.5.9 and a rooted Android device or emulator with Google Play and Google One.
-MuMuPlayer Pro for Mac requires **Apple Silicon**; CI checks both Apple Silicon and Intel host dependencies, not a real MuMu device.
-Android environment checks may still modify proxy, Frida or emulator settings even though no checkout is requested.
+The native [macOS implementation](docs/MACOS-PREVIEW.md) supports **Steps 0–5**, including guided subscription stages, without using the Windows PowerShell setup helper. It reuses the existing Python/Frida Android engine and shared Textual dashboard. **Steps 2–5 can create real Google Play charges**, so each requires a separate confirmation, an identifiable current Play account and an available matching offer. The adapter never uses `--force`.
 
-From the repository root on macOS:
+Requirements: macOS, Python 3.10+, Android Platform-Tools/ADB, Frida 16.5.9 and a rooted Android device/emulator with Google Play Store and Google One. MuMuPlayer Pro for Mac is designed for Apple Silicon; Intel Macs need a compatible rooted Android device or different emulator.
 
 ```sh
-sh run-macos.sh              # Textual dashboard; Steps 0–1 only
-sh run-macos.sh --check      # Environment diagnostics; may modify settings
-sh run-macos.sh --list       # Offer listing; no checkout
+sh run-macos.sh                   # Shared full Textual dashboard, Steps 0–5
+sh run-macos.sh --check           # Android/Frida environment (may change settings)
+sh run-macos.sh --list            # Offer listing, no checkout
+sh run-macos.sh --step 2          # Opens TUI with Step 2 selected; DOES NOT auto-pay
 ```
 
-This preview has **not been tested on real Mac/MuMu hardware**. It is not a stable macOS release; the Windows workflow is unchanged.
+**Validation:** macOS CI tests host dependencies, mock approval/account logic and package construction. No real Mac/MuMu, Play Billing or subscription was tested; do not assume actual checkout compatibility or offer eligibility. Keep production releases on `main` and preview work on `dev`.
+
 
 ## Use the dashboard (recommended)
 
@@ -201,7 +199,7 @@ Only use a `-Serial` observed through ADB. `-Email` constrains the account expec
 
 Verify subscription, payment amount, currency and renewal terms under **[Google Play Subscriptions](https://play.google.com/store/account/subscriptions)**. For developer-facing status codes and advanced platform/Frida problems, see [Detailed setup and troubleshooting](docs/DETAILED-GUIDE.md).
 
-**Platform support:** This README documents the Windows workflow. A macOS read-only prototype was closed without merging because it did not offer full feature parity. Do not assume the Windows checkout flow works on macOS.
+**Platform support:** This README focuses on the maintained Windows workflow. A full-feature macOS development port is available on the `dev` integration track. CI checks do not establish real-device compatibility or payment success on macOS; see [Mac preview guide](docs/MACOS-PREVIEW.md).
 
 ## Community support and related projects
 

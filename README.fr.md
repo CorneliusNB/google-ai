@@ -2,7 +2,7 @@
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
-**Aperçu macOS :** [guide de diagnostic Mac](docs/MACOS-PREVIEW.md) limité aux étapes 0–1 (environnement et offres). Les étapes de paiement 2–5 sont désactivées ; aucun test sur un vrai Mac/MuMu n'a été effectué.
+**Aperçu macOS :** la [version Mac](docs/MACOS-PREVIEW.md) implémente les étapes 0–5. Les étapes 2–5 peuvent entraîner de vrais frais et exigent une confirmation distincte ; la compatibilité des paiements avec un véritable Mac/MuMu reste non vérifiée.
 
 > **Référence principale :** [README en anglais](README.md). Cette traduction reprend les usages et avertissements essentiels ; en cas de divergence, consultez le code actuel et la version anglaise.
 

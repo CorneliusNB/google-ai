@@ -2,7 +2,7 @@
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-**macOS Preview:** [Hướng dẫn thử nghiệm cho Mac](docs/MACOS-PREVIEW.md) chỉ hỗ trợ kiểm tra môi trường và ưu đãi (Steps 0–1). Steps 2–5 và thanh toán bị khóa. CI không thay thế kiểm thử trên Mac/MuMu thật.
+**macOS Preview:** [Bản dành cho Mac](docs/MACOS-PREVIEW.md) đã có luồng Steps 0–5 tương tự Windows; các bước 2–5 có thể phát sinh thanh toán thật và cần xác nhận riêng từng bước. Chưa kiểm thử thanh toán trên Mac/MuMu thực tế, CI chỉ xác minh bằng mock.
 
 > **Nguồn chuẩn:** [README tiếng Anh](README.md). Bản dịch này giúp sử dụng công cụ; nếu có khác biệt về tính năng, hãy đối chiếu mã nguồn và README tiếng Anh.
 

@@ -2,7 +2,7 @@
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-**macOS 预览版：**[Mac 诊断指南](docs/MACOS-PREVIEW.md)仅支持环境检查与优惠查询（步骤 0–1），禁用支付步骤 2–5。CI 不等于真实 Mac/MuMu 测试。
+**macOS 预览版：**[Mac 专用版](docs/MACOS-PREVIEW.md)已实现步骤 0–5。步骤 2–5 可能产生真实扣费，每一步都需要单独确认；CI 测试不代表真实 Mac/MuMu 上的支付已验证。
 
 > **权威版本：**[英文 README](README.md)。本翻译说明主要操作和风险；若有差异，请以当前代码及英文 README 为准。
 

@@ -15,7 +15,7 @@ Use [GitHub Issues](https://github.com/hoangsvit/google-ai/issues) and include t
 
 ## macOS preview contributions
 
-The experimental [macOS diagnostic preview](docs/MACOS-PREVIEW.md) is restricted to Steps 0–1. New Mac work must include mock-only tests and run both macOS runner architectures. Do not attempt paid checkout in CI or describe the preview as hardware-verified. Send changes to `dev` first.
+The experimental [full macOS port](docs/MACOS-PREVIEW.md) includes Steps 0–5 and per-stage checkout safeguards. Changes must include mock-only tests for account/offer validation, approval and error paths on Mac runners. Never attempt live checkout in CI or claim real-device compatibility from mocks. Send PRs to `dev` first.
 
 ## Propose a change
 

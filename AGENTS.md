@@ -2,12 +2,14 @@
 
 Instructions for coding agents working in this repository. Read this file, `README.md`, `CONTRIBUTING.md`, and `SECURITY.md` before changing code. Prefer the implementation on the current target branch over old PR descriptions, screenshots, or previous task summaries.
 
-## macOS preview constraints
+## macOS full-stage port constraints
 
-- `run-macos.sh` and `macos_runner.py` are a **macOS diagnostic preview** (Steps 0–1 only). Run the adapter on Darwin; do not run Windows `setup_env.py` on Mac.
-- Checkout Steps 2–5, sequence mode and resume actions remain blocked at the bridge, TUI and CLI layers. Never enable live billing on macOS based on offline CI alone.
-- CI on `macos-15` and `macos-15-intel` validates mocked device logic and host dependency installation; **no real rooted Android/MuMu device or Google Play subscription is tested**.
-- Keep Windows command routing and all Python/Frida/Billing runtime behavior unchanged when implementing the preview. Target `dev` for any new PR.
+- `run-macos.sh` launches the shared Textual dashboard with Steps 0–5. `macos_runner.py` is the macOS-native adapter to the **unchanged** Android engine; do not invoke Windows-only `setup_env.py` on Mac.
+- Do not bypass stage confirmation, current Google Play account lookup, exact offer ID or zero-price introductory phase validation. The Mac adapter intentionally does **not** support `--force` or automatic account switching.
+- Steps 2–5 may initiate real charges. Every stage requires a separate TUI approval, and continuing a sequence requires user verification of the subscription and renewal date in Google Play. The native CLI requires explicit authorization flags.
+- macOS CI is restricted to unit and integration mocks; never run a real checkout in CI, and never claim that a successful host run verifies actual Mac/MuMu billing.
+- Keep Mac workflow targeting `dev` until hardware testing, and preserve Windows behavior.
+
 
 ## Project purpose and boundaries
 
