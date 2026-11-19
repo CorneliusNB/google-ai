@@ -38,6 +38,22 @@ class CheckoutTests(unittest.TestCase):
             "Google AI Pro Subscribe Today $0 1 month free trial", "pro12")
         self.assertEqual(result["reason"], "trial_duration_unverified")
 
+    def test_already_subscribed_is_not_extension_success(self):
+        result = app.assess_checkout_terms(
+            "Error You're already subscribed to Google AI Pro (5 TB) (Google One). Got it", "pro6")
+        self.assertEqual(result["reason"], "already_subscribed")
+
+    def test_already_subscribed_is_never_tapped(self):
+        with patch.object(app, "ui_xml", return_value=(
+                 "Error You're already subscribed to Google AI Pro (5 TB). Got it")), \
+             patch.object(app, "nodes", side_effect=lambda xml: [
+                 {"text": xml, "desc": ""}]), \
+             patch.object(app, "tap_text") as tapped:
+            result = app.confirm_zero(wait=2, expected_plan="pro6")
+        self.assertFalse(result["confirmed"])
+        self.assertEqual(result["reason"], "already_subscribed")
+        tapped.assert_not_called()
+
     def test_backup_payment_prompt_is_not_a_checkout(self):
         result = app.assess_checkout_terms(
             "Google Play Turn on backup payment methods? Manage Turn on", "pro12")

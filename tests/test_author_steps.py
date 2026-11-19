@@ -40,8 +40,12 @@ class OriginalProStageTests(unittest.TestCase):
 
     def test_all_stages_includes_optional_step_five_and_force_is_explicit(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
-        self.assertIn('$_.Number -ge 2 -and $_.Number -le 5', ps)
+        self.assertIn('$_.Number -ge $StartStep -and $_.Number -le 5', ps)
         self.assertIn('[switch]$Force', ps)
+        self.assertIn('[int]$StartStep = 2', ps)
+        self.assertIn('"-StartStep requires -AllStages."', ps)
+        self.assertIn('Confirm-Exact "Confirm Google Play shows NO ACTIVE Google One subscription', ps)
+        self.assertIn('Confirm-Exact "Confirm Google Play shows an ACTIVE Google AI Pro subscription', ps)
         self.assertIn('if ($Force) { $args += "--force" }', ps)
         self.assertIn('Confirm-Exact "Use original --force for this Android account?" "FORCE"', ps)
         self.assertIn('if (-not $Email -and $playAccount)', ps)
@@ -49,7 +53,7 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertNotIn('"launched", "subscribed"', ps)
         self.assertIn('if ($report.status -ne "checkout_requested")', ps)
         self.assertIn('Confirm-Exact "Only if you verified the active plan', ps)
-        self.assertIn('Confirm-Exact "Run original Steps 2-4, with optional Step 5?" "RUN ALL"', ps)
+        self.assertIn('original stages starting at Step {0}, including optional Step 5?', ps)
         self.assertIn('if (-not $AllStages -or $stage.Number -eq 5)', ps)
         self.assertNotIn('"I ACCEPT {0}"', ps)
 

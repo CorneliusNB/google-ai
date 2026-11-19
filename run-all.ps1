@@ -4,7 +4,8 @@
   Single-entry Windows/MuMu setup, diagnostics, offer listing and optional guided stages.
 .DESCRIPTION
   Defaults to original Step 1 (read-only). Original Steps 2-5 require explicit selection.
-  -AllStages runs original Steps 2-5, with approval for EACH potentially billable stage.
+  -AllStages runs original Steps 2-5, with approval for each billable stage.
+  -StartStep 3 with -AllStages skips Step 2 when a subscription is already active.
   Step 5 is the author's optional additional offer and can be skipped.
   The original ultra0.py may automatically click Subscribe during a live stage.
   Always verify the account, current charge, renewal terms and subscription in Google Play.
@@ -20,6 +21,8 @@
   .\run-all.ps1 -AllStages                       # Original steps 2-5, with confirmation
 .EXAMPLE
   .\run-all.ps1 -AllStages -Force                # Author's account-check bypass (unsafe)
+.EXAMPLE
+  .\run-all.ps1 -AllStages -StartStep 3         # Resume without replaying Step 2
 #>
 [CmdletBinding()]
 param(
@@ -28,6 +31,8 @@ param(
     [ValidateRange(0,5)]
     [int]$Step = 1,
     [switch]$AllStages,
+    [ValidateRange(2,5)]
+    [int]$StartStep = 2,
     [switch]$Force,
     [ValidateSet("auto", "choose", "thread")]
     [string]$ActivityMethod = "auto",
@@ -86,6 +91,9 @@ if ($Help) {
 }
 if ($AllStages -and $PSBoundParameters.ContainsKey("Step") -and $Step -ne 1) {
     Stop-Workflow "Choose either -AllStages or -Step 0..5, not both."
+}
+if ($PSBoundParameters.ContainsKey("StartStep") -and -not $AllStages) {
+    Stop-Workflow "-StartStep requires -AllStages."
 }
 
 $startedAt = Get-Date
@@ -265,14 +273,20 @@ try {
     )
     $selectedStages = @(
         if ($AllStages) {
-            $stages | Where-Object { $_.Number -ge 2 -and $_.Number -le 5 }
+            $stages | Where-Object { $_.Number -ge $StartStep -and $_.Number -le 5 }
         } else {
             $stages | Where-Object { $_.Number -eq $Step }
         }
     )
     if ($AllStages) {
-        Note "The full original sequence can initiate multiple real Google Play transactions."
-        if (-not (Confirm-Exact "Run original Steps 2-4, with optional Step 5?" "RUN ALL")) {
+        Note ("The original sequence will start at Step {0} and may initiate real Google Play transactions." -f $StartStep)
+        if ($StartStep -gt 2) {
+            Note ("Skipping Steps 2-{0}; previous subscription extensions cannot be verified automatically." -f ($StartStep - 1))
+            if (-not (Confirm-Exact "Confirm Google Play shows an ACTIVE Google AI Pro subscription and review its next charge date" "ACTIVE")) {
+                return
+            }
+        }
+        if (-not (Confirm-Exact ("Run original stages starting at Step {0}, including optional Step 5?" -f $StartStep) "RUN ALL")) {
             return
         }
     }
@@ -301,7 +315,11 @@ try {
             Note "The original author requires an existing ACTIVE subscription for an update."
             Note "Do not proceed if the prior subscription was cancelled, expired or not verified."
         } else {
-            Note "The original author requires an account with no existing Google One subscription."
+            Note "Step 2 is ONLY for accounts with no active Google One subscription."
+            if (-not (Confirm-Exact "Confirm Google Play shows NO ACTIVE Google One subscription for this account" "NO ACTIVE")) {
+                Note "Skipping Step 2. For an existing plan, resume with -AllStages -StartStep 3 only after checking Google Play."
+                break
+            }
         }
         Note "Inspect today's checkout price, all future pricing phases and the next charge date."
         Note "A 0-price first phase is NOT proof of free-trial eligibility or stacking."
@@ -321,6 +339,11 @@ try {
         Note ("Python stage status: {0}" -f $report.status)
         if ($report.status -ne "checkout_requested") {
             Note "No verified Subscribe action was recorded; stopping the staged workflow."
+            if ($report.PSObject.Properties.Name -contains "sheet" -and $null -ne $report.sheet) {
+                if ($report.sheet.PSObject.Properties.Name -contains "reason") {
+                    Note ("Checkout reason: {0}" -f $report.sheet.reason)
+                }
+            }
             if ($report.PSObject.Properties.Name -contains "error") { Note ([string]$report.error) }
             break
         }

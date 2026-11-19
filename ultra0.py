@@ -846,6 +846,10 @@ def assess_checkout_terms(text: str, expected_plan: str = "auto") -> dict:
                                "phương thức thanh toán dự phòng")):
         result["reason"] = "backup_payment_methods_prompt"
         return result
+    if any(x in low for x in ("you're already subscribed", "you are already subscribed",
+                               "already subscribed to", "\u5df2\u8ba2\u9605", "đã đăng ký gói")):
+        result["reason"] = "already_subscribed"
+        return result
     if any(x in low for x in ("not eligible", "ineligible", "\u4e0d\u7b26\u5408\u514d\u8d39\u8bd5\u7528\u6761\u4ef6",
                                "không đủ điều kiện dùng thử")):
         result["reason"] = "ineligible"
@@ -893,6 +897,10 @@ def confirm_zero(wait=40, password="", expected_plan="auto") -> dict:
         if reason == "ineligible":
             out["ineligible"] = True
             warn("Google Play says this account is not eligible; no Subscribe tap.")
+            return out
+        if reason == "already_subscribed":
+            warn("Google Play reports this plan is already subscribed. "
+                 "No extension was verified; leaving the dialog open.")
             return out
         if reason == "backup_payment_methods_prompt":
             warn("Google Play backup-payment prompt needs manual review; not enabling it automatically.")
