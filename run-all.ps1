@@ -3,7 +3,8 @@
 .SYNOPSIS
   Single-entry Windows/MuMu setup, diagnostics, offer listing and optional guided stages.
 .DESCRIPTION
-  Defaults to original Step 1 (read-only). Original Steps 2-5 require explicit selection.
+  Defaults to the interactive Textual dashboard. Use -Cli or -Step 0..5 for the
+  original command-line interface. Original Steps 2-5 require explicit selection.
   -AllStages runs original Steps 2-5, with approval for each billable stage.
   -StartStep 3 with -AllStages skips Step 2 when a subscription is already active.
   Individual -Step 2..5 commands do not require typed confirmations.
@@ -11,6 +12,10 @@
   Step 5 is the author's optional additional offer and can be skipped.
   The original ultra0.py may automatically click Subscribe during a live stage.
   Always verify the account, current charge, renewal terms and subscription in Google Play.
+.EXAMPLE
+  .\run-all.ps1                       # Textual dashboard, installs UI dependency if missing
+.EXAMPLE
+  .\run-all.ps1 -Cli                  # Legacy CLI mode, read-only Step 1
 .EXAMPLE
   .\run-all.ps1 -Step 0               # Original environment check
 .EXAMPLE
@@ -41,6 +46,7 @@ param(
     [switch]$SetupOnly,
     [switch]$ListOnly,
     [switch]$Tui,
+    [switch]$Cli,
     [switch]$Help
 )
 
@@ -140,7 +146,14 @@ if ($PSBoundParameters.ContainsKey("StartStep") -and -not $AllStages) {
     Stop-Workflow "-StartStep requires -AllStages."
 }
 
-if ($Tui) {
+# The no-argument entrypoint is the interactive dashboard. Explicit -Step,
+# -AllStages and -Cli preserve the original command-line behavior.
+if ($Tui -and $Cli) {
+    Stop-Workflow "Choose -Tui or -Cli, not both."
+}
+$useTui = $Tui -or (-not $Cli -and -not $PSBoundParameters.ContainsKey("Step") -and
+                   -not $AllStages -and -not $SetupOnly -and -not $ListOnly -and -not $Help)
+if ($useTui) {
     if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
         Write-Error "Python is required for the terminal interface."
         exit 1

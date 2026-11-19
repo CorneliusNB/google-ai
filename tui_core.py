@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import importlib.metadata
 import json
 import re
 import shutil
@@ -17,6 +18,17 @@ class Stage:
     number: int
     label: str
     offer: str
+
+
+FRIDA_VERSION = "16.5.9"
+
+
+def needs_setup() -> bool:
+    """Only install Android Python tooling when the required Frida build is absent."""
+    try:
+        return importlib.metadata.version("frida") != FRIDA_VERSION
+    except importlib.metadata.PackageNotFoundError:
+        return True
 
 
 STAGES = (

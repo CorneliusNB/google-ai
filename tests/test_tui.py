@@ -7,11 +7,21 @@ import unittest
 from unittest.mock import patch
 
 from tui_core import (
-    command_for_step, mask_email, outcome_for_stage, read_fresh_report, validate_step,
+    command_for_step, mask_email, needs_setup, outcome_for_stage,
+    read_fresh_report, validate_step,
 )
 
 
 class CoreTests(unittest.TestCase):
+    def test_setup_only_when_pinned_frida_is_missing(self):
+        with patch("tui_core.importlib.metadata.version", return_value="16.5.9"):
+            self.assertFalse(needs_setup())
+        with patch("tui_core.importlib.metadata.version", return_value="16.4.0"):
+            self.assertTrue(needs_setup())
+        from importlib.metadata import PackageNotFoundError
+        with patch("tui_core.importlib.metadata.version", side_effect=PackageNotFoundError):
+            self.assertTrue(needs_setup())
+
     def test_step_range(self):
         for step in range(6):
             self.assertEqual(validate_step(step), step)

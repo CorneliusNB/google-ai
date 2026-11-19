@@ -11,7 +11,7 @@ from collections import deque
 from pathlib import Path
 import re
 import subprocess
-import threading
+import sys
 import time
 
 from rich.markup import escape
@@ -22,7 +22,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, RichLog, Select, Static
 
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
-    outcome_for_stage, read_fresh_report, report_summary, validate_step
+    needs_setup, outcome_for_stage, read_fresh_report, report_summary, validate_step
 
 
 class Approval(ModalScreen[bool]):
@@ -134,7 +134,7 @@ class GoogleAITUI(App[None]):
                 with Vertical(id="results"):
                     yield Static("STATUS", classes="section")
                     yield Static("Ready", id="state")
-                    yield Static("Choose a step and run it. No billing action runs automatically.", id="message")
+                    yield Static("Choose a step. Required tools are prepared automatically when you run it.", id="message")
                     yield Static("", id="step_result")
                     yield Button("Completed action on Android", id="manual", disabled=True)
                     yield Static("Steps 2–5 may open real Google Play checkout. "
@@ -259,28 +259,48 @@ class GoogleAITUI(App[None]):
         self.query_one("#stop", Button).disabled = False
         self.query_one("#step_result", Static).update(f"Step {step} · {STAGES[step].label}")
         self._set_status("Running...")
-        self._set_message("Checking Android and Google Play. Follow any prompt shown on Android.")
+        self._set_message("Preparing tools and checking Google Play. Missing dependencies are installed automatically.")
         self.run_stage(step)
+
+    def _execute(self, command: list[str]) -> int:
+        """Run the existing engine and send output to the TUI without blocking it."""
+        with subprocess.Popen(
+            command, cwd=self.repo, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
+            text=True, encoding="utf-8", errors="replace", bufsize=1
+        ) as child:
+            self._child = child
+            if child.stdout:
+                for line in child.stdout:
+                    try:
+                        self.call_from_thread(self._received, line.rstrip("\r\n"))
+                    except RuntimeError:
+                        return -1
+            return child.wait()
 
     @work(thread=True, exclusive=True)
     def run_stage(self, step: int) -> None:
-        started = time.time()
         try:
+            if needs_setup():
+                self.call_from_thread(self._set_status, "Setting up...")
+                self.call_from_thread(self._set_message,
+                                      "Preparing Frida and ADB. You do not need a separate setup command.")
+                setup = self.repo / "setup_env.py"
+                if not setup.is_file():
+                    raise FileNotFoundError("setup_env.py is missing from the project directory")
+                if self._execute([sys.executable, str(setup)]) != 0:
+                    self.call_from_thread(
+                        self._finished, step,
+                        Outcome("setup_failed", "Setup did not finish",
+                                "Open Debug, check the setup issue, then retry. No checkout was started."),
+                        None)
+                    return
+
+            # Never treat a report from setup or a previous invocation as the
+            # outcome of the selected step.
+            started = time.time()
             command = command_for_step(step, self.repo)
-            with subprocess.Popen(
-                command, cwd=self.repo, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-                text=True, encoding="utf-8", errors="replace",
-                bufsize=1
-            ) as child:
-                self._child = child
-                if child.stdout:
-                    for line in child.stdout:
-                        try:
-                            self.call_from_thread(self._received, line.rstrip("\r\n"))
-                        except RuntimeError:
-                            return
-                return_code = child.wait()
+            return_code = self._execute(command)
             report = read_fresh_report(self.repo / "ultra0-report", step, started)
             result = outcome_for_stage(step, return_code, report)
             self.call_from_thread(self._finished, step, result, report)

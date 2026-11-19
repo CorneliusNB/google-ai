@@ -67,6 +67,9 @@ class OriginalProStageTests(unittest.TestCase):
     def test_no_checkout_by_default(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         self.assertIn("[int]$Step = 1", ps)
+        self.assertIn('[switch]$Cli', ps)
+        self.assertIn('$useTui = $Tui -or', ps)
+        self.assertIn('$PSBoundParameters.ContainsKey("Step")', ps)
         self.assertIn('if ($ListOnly -or ($Step -eq 1 -and -not $AllStages))', ps)
 
     def test_uses_verified_account_from_step_one_if_preflight_misses_it(self):

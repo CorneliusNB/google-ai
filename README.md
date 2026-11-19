@@ -12,14 +12,17 @@ A Windows toolkit for inspecting Google AI Pro offers through Google One, ADB an
 
 ## Interactive terminal (Textual)
 
-Run the full-screen terminal interface with keyboard navigation and clickable buttons:
+The **single recommended command** opens the full-screen terminal interface:
 
 ```powershell
 git pull --ff-only
-.\run-all.ps1 -Tui
+.\run-all.ps1
 ```
 
-Textual is installed from `requirements-tui.txt` automatically on first launch.
+Textual is installed automatically on first launch. When you run a step, the
+tool checks and installs its pinned Frida dependency if necessary, locates or
+installs ADB, and checks MuMu. **You do not need to run `python setup_env.py`
+separately.** MuMu must still be started and Google Play/Google One configured.
 Select Step 0–5, or choose **Run sequence** starting at Step 2–5. The original
 PowerShell/Python billing engine is reused; the UI does not bypass ADB/Frida,
 account, offer or checkout checks. The interface **never automatically advances**
@@ -28,17 +31,20 @@ after a checkout request: check Google Play Subscriptions and click
 Step 5 remains optional. Use **D** to toggle technical output and **Q** to exit
 when no step is running.
 
-You can still run the existing individual CLI steps as before; Textual is optional.
+The original CLI is preserved via `-Cli` (read-only Step 1), `-Step N`,
+`-AllStages` and `-Debug`. Legacy numbered `.bat` files remain available
+for compatibility; new users should use the single TUI entrypoint.
 
 ## Quick start
 
-Run from the repository directory:
+For a read-only offer check without opening the TUI:
 
 ```powershell
-git pull --ff-only
-python setup_env.py
 .\run-all.ps1 -Step 1
 ```
+
+The standalone `setup_env.py` and `setup-environment.bat` are repair tools
+for advanced users, not prerequisites for the TUI.
 
 The setup helper locates or installs ADB, configures Frida 16.5.9 and checks MuMu. Step 1 lists offers **without purchasing**. An unambiguous Android device and the active Play Store email are detected automatically; you usually do not need `-Serial` or `-Email`.
 
@@ -79,7 +85,7 @@ The script uses a numbered prompt (1/2/0); it cannot prove earlier extensions su
 
 **Single-step commands do not ask you to type confirmation phrases.** Choosing `-Step 2`, `-Step 3`, `-Step 4` or `-Step 5` explicitly starts that step after account/device and offer checks. The underlying script may automatically tap Subscribe on an eligible checkout. After it finishes, **verify subscription activation, renewal date and any charges yourself**. It never assumes `checkout_requested` means success.
 
-If the account or device cannot be identified automatically, single-step mode stops and asks you to rerun with `-Email` or `-Serial` **as command-line arguments**, rather than prompting for input. If Step 2 has already been activated, do **not** run it again. The default `.\run-all.ps1` is still Step 1 (read-only).
+If the account or device cannot be identified automatically, single-step mode stops and asks you to rerun with `-Email` or `-Serial` **as command-line arguments**, rather than prompting for input. If Step 2 has already been activated, do **not** run it again. The default `.\run-all.ps1` launches the TUI, initially selecting read-only Step 1.
 
 ### Optional arguments
 
