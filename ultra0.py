@@ -1,38 +1,38 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Google AI Ultra 0 元开通 —— 一键脚本
+"""Google AI subscription offer inspection and Android diagnostic CLI.
 
-用法（三步）：
-    python3 ultra0.py --check            # 1. 环境自检
-    python3 ultra0.py accounts.txt       # 2. 批量跑号
-    python3 ultra0.py --account a@b.com:密码:2FA密钥   # 单号
+Usage:
+        python ultra0.py --check            # Check Android, ADB, root and Frida
+        python ultra0.py accounts.txt       # Legacy batch-account mode
+        python ultra0.py --account address@example.com --no-add --no-switch
 
-accounts.txt 每行一个号：
+The legacy accounts.txt format uses four hyphens as a field separator:
     email----password----recovery----totp
 
-前置条件：
-    - 一台已 root 的安卓手机，USB 连接，开了 USB 调试
-    - 手机上已登录目标 Google 账号（脚本也能自动加）
-    - 电脑装了 Python3 + frida（pip install frida）
+Requirements:
+        - A rooted Android device/emulator with ADB debugging
+        - Google Play Store and Google One with the intended account
+        - Python 3 and a compatible Frida client and server
 
-脚本会自动：推 frida-server、推 BillingClient 模块、查 offer、用 eft-12month 拉起收银台，
-只有在确认金额为 0 时才点「订阅」。
+WARNING: non-list mode can open Google Play checkout and tap Subscribe.
+Offer metadata does not prove eligibility or subscription activation.
 """
 import argparse, base64, hashlib, hmac, json, os, re, select, struct, subprocess, sys, threading, time
 from pathlib import Path
 import tempfile
 
-# 人工确认闸门：网页版点「我已完成，继续」，命令行按回车
+# Manual confirmation gate for an unfamiliar Android verification screen.
 HUMAN_EVENT = threading.Event()
 WAITING = {"on": False, "msg": ""}
 
 
 def wait_human(msg: str, timeout: int = 600) -> bool:
-    """遇到人机验证时暂停，等人处理完再继续。"""
+    """Pause for manual verification or an unfamiliar Android screen."""
     WAITING["on"] = True
     WAITING["msg"] = msg
-    print(f"\n⏸  需要你操作：{msg}")
-    print("   完成后按【回车】继续（网页版点「我已完成，继续」）", flush=True)
+    print(f"\n⏸  Action required: {msg}")
+    print("   Press Enter to continue after completing the step on Android.", flush=True)
     HUMAN_EVENT.clear()
     end = time.time() + timeout
     while time.time() < end:
@@ -46,15 +46,15 @@ def wait_human(msg: str, timeout: int = 600) -> bool:
         except Exception:
             time.sleep(0.5)
     WAITING["on"] = False
-    print("▶  继续执行", flush=True)
+    print("▶  Continuing", flush=True)
     return True
 
-# ---------- 常量 ----------
+# ---------- Constants ----------
 PKG = "com.google.android.apps.subscriptions.red"   # Google One
-VENDING = "com.android.vending"                     # Play 商店
+VENDING = "com.android.vending"                     # Google Play Store
 GMS = "com.google.android.gms"
 PRODUCT = "g1.play.20tb"                            # Ultra 5x / 20TB
-OFFER = "eft-12month"                               # 首年免费
+OFFER = "eft-12month"                               # Historical promotional offer ID
 MODULE_REMOTE = "/data/local/tmp/module_521.apk"
 FRIDA_REMOTE = "/data/local/tmp/frida-server"
 FRIDA_REQUIRED = "16.5.9"
@@ -75,7 +75,7 @@ ADB_CANDIDATES = [
 ]
 
 
-# ---------- 基础工具 ----------
+# ---------- ADB helpers ----------
 def find_adb() -> str:
     for c in ADB_CANDIDATES:
         if not c:
@@ -86,7 +86,7 @@ def find_adb() -> str:
                 return c
             except Exception:
                 continue
-    sys.exit("❌ 找不到 adb，请安装 Android platform-tools 并加入 PATH")
+    sys.exit("❌ ADB not found. Install Android SDK platform-tools and add adb to PATH.")
 
 
 ADB = None
@@ -117,14 +117,14 @@ def warn(msg):
     print(f"   ⚠️  {msg}", flush=True)
 
 
-# ---------- 设备 ----------
+# ---------- Device selection ----------
 def pick_device(preferred=None):
     """Select exactly one online Android device; respect an explicit --serial."""
     global SERIAL
     out = sh("devices")
     lines = [l for l in out.splitlines()[1:] if "\tdevice" in l]
     if not lines:
-        # 模拟器：自动尝试常见端口
+        # When no device is online, probe common emulator ADB ports.
         for port in ("16384", "7555", "16416", "62001", "21503"):
             try:
                 sh("connect", f"127.0.0.1:{port}", timeout=10)
@@ -133,17 +133,17 @@ def pick_device(preferred=None):
             out = sh("devices")
             lines = [l for l in out.splitlines()[1:] if "\tdevice" in l]
             if lines:
-                note(f"已连接模拟器 127.0.0.1:{port}")
+                note(f"Connected to emulator at 127.0.0.1:{port}")
                 break
     if not lines:
-        sys.exit("❌ 没有检测到设备。MuMu 请确认已启动、开了 ADB 调试（设置里），或用 ADB_PATH 指定 adb。")
+        sys.exit("❌ No Android device detected. Start MuMu, enable ADB debugging, or configure ADB_PATH.")
     online = [l.split("\t")[0] for l in lines]
     if preferred and preferred not in online:
         sys.exit(f"❌ ADB device {preferred} is not online. Available: {', '.join(online)}")
     if not preferred and len(online) != 1:
         sys.exit(f"❌ Multiple Android devices: {', '.join(online)}. Choose one with --serial.")
     SERIAL = preferred or online[0]
-    ok(f"设备已连接：{SERIAL}")
+    ok(f"Connected ADB device: {SERIAL}")
 
 
 def ensure_root():
@@ -155,13 +155,13 @@ def ensure_root():
 
     uid = _id()
     if "uid=0" not in uid:
-        # 模拟器常见：adb root 把 adbd 提权，无需 su
+        # Some emulators support adb root without needing su.
         try:
             sh("root", timeout=20)
             time.sleep(2)
             uid = _id()
             if "uid=0" in uid:
-                note("已通过 adb root 提权")
+                note("Successfully enabled adb root")
         except Exception:
             pass
     if "uid=0" not in uid:
@@ -170,7 +170,7 @@ def ensure_root():
         except Exception:
             uid = ""
     if "uid=0" not in uid:
-        sys.exit("❌ 设备没有 root 权限。MuMu：设置里打开「ROOT 权限」并重启；或先手动执行 adb root。")
+        sys.exit("❌ Root is unavailable. Enable root in MuMu settings and restart, or run adb root manually.")
 
 
 def ensure_frida_client():
@@ -258,7 +258,7 @@ def ensure_frida_server():
 
 
 def read_purchase_token(sku_short: str) -> str:
-    """从 Play 商店的 library.db 里读出该 SKU 当前的 purchaseToken（叠加必需）。"""
+    """Read a purchase token from Google Play library.db for the legacy subscription update flow."""
     import tempfile, sqlite3, json as _json
     remote = "/data/local/tmp/lib_read.db"
     try:
@@ -271,7 +271,7 @@ def read_purchase_token(sku_short: str) -> str:
             tmp.unlink()
         sh("pull", remote, str(tmp), timeout=60)
     except Exception as e:
-        warn(f"拉取 library.db 失败：{e}")
+        warn(f"Failed to retrieve library.db: {e}")
         return ""
     if not tmp.exists():
         return ""
@@ -300,15 +300,15 @@ def read_purchase_token(sku_short: str) -> str:
                 alive = int(valid) > now_ms
             except Exception:
                 alive = False
-            # 优先取「未过期」的；多个账号都活跃时取到期时间最晚的
+            # Prefer unexpired records; if several are active, select the latest expiry.
             if picked is None or (alive and not picked[2]) or (alive == picked[2] and int(valid or 0) > picked[3]):
                 picked = (tk, account, alive, int(valid or 0))
         if picked:
             tok = picked[0]
-            note(f"purchaseToken 来源账号：{picked[1]}（{'有效' if picked[2] else '已过期'}）")
+            note(f"Purchase token account: {picked[1]} ({'active' if picked[2] else 'expired'})")
         con.close()
     except Exception as e:
-        warn(f"读取 library.db 失败：{e}")
+        warn(f"Failed to read library.db: {e}")
     finally:
         try:
             tmp.unlink()
@@ -318,42 +318,42 @@ def read_purchase_token(sku_short: str) -> str:
 
 
 def ensure_vending():
-    """BillingClient 需要 Play 商店进程在场，否则 queryProductDetails 永远不回调。"""
+    """Google Play Store must be running for BillingClient queries to complete."""
     if sh("shell", f"pidof {VENDING}"):
-        ok("Play 商店进程在跑")
+        ok("Google Play Store process is running")
         return
-    warn("Play 商店没在跑，正在拉起…")
+    warn("Google Play Store is not running; attempting to start it...")
     sh("shell", f"monkey -p {VENDING} -c android.intent.category.LAUNCHER 1", timeout=30)
     for _ in range(20):
         time.sleep(1)
         if sh("shell", f"pidof {VENDING}"):
-            ok("Play 商店已拉起")
+            ok("Google Play Store started")
             time.sleep(2)
             return
-    warn("Play 商店没起来，计费查询可能卡住（试试手动打开 Play 商店或重启模拟器）")
+    warn("Google Play Store did not start. Open it manually or restart the emulator.")
 
 
 def ensure_module_apk():
     if sh("shell", f"ls {MODULE_REMOTE} 2>/dev/null"):
-        ok("计费模块已就位")
+        ok("Billing module is already installed")
         return
-    note("正在推送计费模块（一次性）…")
+    note("Pushing billing module to Android (one-time setup)...")
     tmp = Path(tempfile.gettempdir()) / "module_521.apk"
     tmp.write_bytes(base64.b64decode(MODULE_B64))
     sh("push", str(tmp), MODULE_REMOTE, timeout=120)
-    ok("计费模块已推送")
+    ok("Billing module installed")
 
 
 def ensure_network():
     proxy = sh("shell", "settings get global http_proxy")
     if proxy and proxy != "null" and proxy != ":0":
         sh("shell", "settings put global http_proxy :0")
-        warn(f"已清除设备代理（原为 {proxy}），避免网络不通")
-    # 关掉常见的 VPN 类应用，避免 fake-IP 导致 Play 连不上
+        warn(f"Cleared Android proxy (previous value: {proxy}) to restore network access")
+    # Stop common VPN apps that may intercept Google Play network traffic.
     for p in ("com.github.metacubex.clash.meta", "com.github.kr328.clash"):
         if sh("shell", f"pm list packages | grep -q {p} && echo yes"):
             sh("shell", f"am force-stop {p}")
-            warn(f"已临时关闭 {p}（它会拦截 Play 的网络）")
+            warn(f"Temporarily stopped {p}, which may intercept Google Play traffic")
 
 
 # ---------- UI ----------
@@ -421,7 +421,7 @@ def totp(secret: str, digits=6, period=30) -> str:
     return str(code).zfill(digits)
 
 
-# ---------- 账号 ----------
+# ---------- Account management ----------
 def accounts_on_device() -> list:
     out = sh("shell", "dumpsys account | grep 'type=com.google'")
     return out.splitlines()
