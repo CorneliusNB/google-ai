@@ -7,6 +7,7 @@ declares an activated subscription from launchBillingFlow or a Subscribe tap.
 from __future__ import annotations
 
 import argparse
+import os
 from collections import deque
 from pathlib import Path
 import re
@@ -89,6 +90,9 @@ class GoogleAITUI(App[None]):
     .section { color: #78cfe8; text-style: bold; margin: 1 0 0 0; }
     #step { margin-bottom: 0; }
     #controls Button { width: 100%; margin-bottom: 0; }
+    #quickstart { margin: 1 0; }
+    #advanced_label { color: #78cfe8; margin-top: 1; }
+    #controls { scrollbar-size: 1 1; }
     #state { color: #f3f8ff; text-style: bold; margin: 1 0 0 0; }
     #message { color: #b9d0e2; margin-bottom: 1; }
     #step_result { color: #8dd6b7; margin: 1 0; }
@@ -123,19 +127,22 @@ class GoogleAITUI(App[None]):
                 yield Static("Account  •  Waiting", id="account")
             with Horizontal(id="content"):
                 with Vertical(id="controls"):
-                    yield Static("STAGES", classes="section")
+                    yield Static("GET STARTED", classes="section")
+                    yield Button("1. Check device & offers", id="quickstart", variant="success")
+                    yield Static("No subscription or payment is initiated.", id="quick_hint")
+                    yield Static("ADVANCED STEPS", id="advanced_label", classes="section")
                     yield Select(
                         [(f"{stage.number}  ·  {stage.label}", stage.number) for stage in STAGES],
                         value=self.initial_step, id="step", allow_blank=False)
-                    yield Button("Run selected step", id="run", variant="primary")
+                    yield Button("Run selected step", id="run")
                     yield Button("Run sequence from selected step", id="sequence")
                     yield Button("Verified in Google Play → Next", id="next", disabled=True)
                     yield Button("Stop after this step", id="stop", disabled=True)
                     yield Button("Show Debug", id="debug")
                 with Vertical(id="results"):
                     yield Static("STATUS", classes="section")
-                    yield Static("Ready", id="state")
-                    yield Static("Choose a step. Required tools are prepared automatically when you run it.", id="message")
+                    yield Static("Ready to check device and offers", id="state")
+                    yield Static("Click 1. Check device & offers to begin. Use Advanced Steps only when needed.", id="message")
                     yield Static("", id="step_result")
                     yield Button("Completed action on Android", id="manual", disabled=True)
                     yield Static("Steps 2–5 may open real Google Play checkout. "
@@ -179,6 +186,10 @@ class GoogleAITUI(App[None]):
                        "subscription/renewal date. " + message)
         self.push_screen(Approval(title, message),
                          lambda approved: self._start(step, sequence) if approved else None)
+
+    @on(Button.Pressed, "#quickstart")
+    def quickstart_pressed(self) -> None:
+        self._confirm_stage(1, False)
 
     @on(Button.Pressed, "#run")
     def selected_pressed(self) -> None:
@@ -254,6 +265,7 @@ class GoogleAITUI(App[None]):
         self._stop_after_step = False
         self._last_outcome = None
         self._run_output.clear()
+        self.query_one("#quickstart", Button).disabled = True
         self.query_one("#run", Button).disabled = True
         self.query_one("#sequence", Button).disabled = True
         self.query_one("#step", Select).disabled = True
@@ -266,8 +278,13 @@ class GoogleAITUI(App[None]):
 
     def _execute(self, command: list[str]) -> int:
         """Run the existing engine and send output to the TUI without blocking it."""
+        # Windows Python defaults to a locale code page when stdout is piped.
+        # Force UTF-8 for nested setup/CLI Python processes without changing billing logic.
+        child_env = os.environ.copy()
+        child_env["PYTHONIOENCODING"] = "utf-8"
+        child_env["PYTHONUTF8"] = "1"
         with subprocess.Popen(
-            command, cwd=self.repo, stdout=subprocess.PIPE,
+            command, cwd=self.repo, env=child_env, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
             text=True, encoding="utf-8", errors="replace", bufsize=1
         ) as child:
@@ -348,6 +365,7 @@ class GoogleAITUI(App[None]):
         self._last_outcome = outcome
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True
+        self.query_one("#quickstart", Button).disabled = False
         self.query_one("#run", Button).disabled = False
         self.query_one("#sequence", Button).disabled = False
         self.query_one("#step", Select).disabled = False
