@@ -1,6 +1,6 @@
-# Google AI — Android / MuMu Toolkit
+# ePlus AI Toolkit
 
-A Windows toolkit for inspecting Google AI Pro offers through Google One, ADB and Frida. It preserves the original author's step-by-step workflow and includes fixes for MuMu/Android compatibility.
+**ePlus AI Toolkit** is a Windows toolkit for inspecting Google AI Pro offers through Google One, ADB and Frida. It preserves the original author's step-by-step workflow and includes fixes for MuMu/Android compatibility.
 
 > **Billing warning:** Steps 2–5 can open Google Play checkout and automatically tap **Subscribe**. An offer with a first phase priced at 0 is **not** proof of eligibility, a free subscription, or an extended renewal date. Always verify the terms and subscription in Google Play.
 
