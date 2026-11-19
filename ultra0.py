@@ -450,12 +450,12 @@ def add_account(email, password, totp_secret="") -> bool:
             warn(f"Email input was incomplete; retrying (current: {cur[:40]})")
         else:
             warn("Could not enter the complete email after several attempts")
-        tap_text("下一步", "Next"); time.sleep(6)
+        tap_text("\u4e0b\u4e00\u6b65", "Next"); time.sleep(6)
 
     if find_edit():
         tap(*find_edit()); time.sleep(1)
         type_text(password); time.sleep(1)
-        tap_text("下一步", "Next"); time.sleep(7)
+        tap_text("\u4e0b\u4e00\u6b65", "Next"); time.sleep(7)
 
     # Advance through recognized screens; ask the user to handle unknown screens.
     unknown_rounds = 0
@@ -466,34 +466,34 @@ def add_account(email, password, totp_secret="") -> bool:
         xml = ui_xml()
         text = " ".join(n["text"] for n in nodes(xml) if n["text"])
 
-        if "此账号已在您的设备上" in text or "already on your device" in text.lower():
+        if "\u6b64\u8d26\u53f7\u5df2\u5728\u60a8\u7684\u8bbe\u5907\u4e0a" in text or "already on your device" in text.lower():
             ok("This Google account is already on the device")
             return True
-        if "找不到此账号" in text or "Couldn't find your Google Account" in text:
+        if "\u627e\u4e0d\u5230\u6b64\u8d26\u53f7" in text or "Couldn't find your Google Account" in text:
             warn("Google could not find this account; check the email address")
             return False
-        if "密码不正确" in text or "Wrong password" in text:
+        if "\u5bc6\u7801\u4e0d\u6b63\u786e" in text or "Wrong password" in text:
             warn("Google account password was rejected")
             return False
 
-        if ("两步验证" in text or "2-Step" in text or "输入验证码" in text):
+        if ("\u4e24\u6b65\u9a8c\u8bc1" in text or "2-Step" in text or "\u8f93\u5165\u9a8c\u8bc1\u7801" in text):
             if totp_secret and find_edit():
                 code = totp(totp_secret)
                 note(f"Two-factor verification code: {code}")
                 tap(*find_edit()); type_text(code); time.sleep(1)
-                tap_text("下一步", "Next"); time.sleep(8)
+                tap_text("\u4e0b\u4e00\u6b65", "Next"); time.sleep(8)
                 continue
             wait_human("Two-step verification required; complete the check on Android.", 300)
             continue
 
-        if tap_text("以后再说", "Not now"):
+        if tap_text("\u4ee5\u540e\u518d\u8bf4", "Not now"):
             time.sleep(3); continue
-        if tap_text("我同意", "I agree"):
+        if tap_text("\u6211\u540c\u610f", "I agree"):
             time.sleep(5); continue
-        if tap_text("取消", "Skip", "跳过"):
+        if tap_text("\u53d6\u6d88", "Skip", "\u8df3\u8fc7"):
             time.sleep(2); continue
 
-        if any(k in text for k in ("证明您不是自动程序", "验证身份", "请输入电话号码", "无法验证", "确认是您本人")):
+        if any(k in text for k in ("\u8bc1\u660e\u60a8\u4e0d\u662f\u81ea\u52a8\u7a0b\u5e8f", "\u9a8c\u8bc1\u8eab\u4efd", "\u8bf7\u8f93\u5165\u7535\u8bdd\u53f7\u7801", "\u65e0\u6cd5\u9a8c\u8bc1", "\u786e\u8ba4\u662f\u60a8\u672c\u4eba")):
             wait_human("Complete the CAPTCHA or identity verification on Android.", 300)
             continue
 
@@ -518,7 +518,7 @@ def add_card(card: dict) -> bool:
     sh("shell", "am start -a android.intent.action.VIEW "
                 "-d 'https://pay.google.com/gp/w/u/0/home/paymentmethods'")
     time.sleep(10)
-    if not tap_text("Add a payment method", "添加付款方式", "添加信用卡", "Add card"):
+    if not tap_text("Add a payment method", "\u6dfb\u52a0\u4ed8\u6b3e\u65b9\u5f0f", "\u6dfb\u52a0\u4fe1\u7528\u5361", "Add card"):
         warn("Could not find the add-card entry; enter the payment method manually")
         return False
     time.sleep(9)
@@ -534,7 +534,7 @@ def add_card(card: dict) -> bool:
             break
         tap(edits[i]["x"], edits[i]["y"]); time.sleep(0.6)
         type_text(val); time.sleep(0.5)
-    if not tap_text("Save", "保存"):
+    if not tap_text("Save", "\u4fdd\u5b58"):
         wait_human("Tap Save in Google Pay manually, then continue.", 240)
     else:
         time.sleep(8)
@@ -556,8 +556,8 @@ def current_play_account() -> str:
 
     opened_profile = False
     for n in nodes(xml):
-        if ("账号和设置" in n["desc"] or "Account and settings" in n["desc"]
-                or "Tài khoản và chế độ cài đặt" in n["desc"]):
+        if ("\u8d26\u53f7\u548c\u8bbe\u7f6e" in n["desc"] or "Account and settings" in n["desc"]
+                or "T\u00e0i kho\u1ea3n v\u00e0 ch\u1ebf \u0111\u1ed9 c\u00e0i \u0111\u1eb7t" in n["desc"]):
             tap(n["x"], n["y"])
             time.sleep(3)
             opened_profile = True
@@ -587,10 +587,10 @@ def switch_play(email) -> bool:
     if current_play_account() == want:
         ok("Google Play account verified"); return True
     for n in nodes(ui_xml()):
-        if "账号和设置" in n["desc"] or "Account and settings" in n["desc"]:
+        if "\u8d26\u53f7\u548c\u8bbe\u7f6e" in n["desc"] or "Account and settings" in n["desc"]:
             tap(n["x"], n["y"]); time.sleep(3); break
     for n in nodes(ui_xml()):
-        if "展开账号列表" in n["desc"]:
+        if "\u5c55\u5f00\u8d26\u53f7\u5217\u8868" in n["desc"]:
             tap(n["x"], n["y"]); time.sleep(3); break
     for n in nodes(ui_xml()):
         if want in (n["text"] + " " + n["desc"]).lower():
@@ -735,14 +735,14 @@ def handle_verify(password="") -> bool:
     changed = False
     for _ in range(12):
         blob = " ".join(n["text"] for n in nodes(ui_xml()) if n["text"])
-        if "以后再说" in blob or "Play 积分" in blob:
-            tap_text("以后再说", "Not now"); time.sleep(2); changed = True; continue
-        if ("验证" in blob or "Verify" in blob) and password:
+        if "\u4ee5\u540e\u518d\u8bf4" in blob or "Play \u79ef\u5206" in blob:
+            tap_text("\u4ee5\u540e\u518d\u8bf4", "Not now"); time.sleep(2); changed = True; continue
+        if ("\u9a8c\u8bc1" in blob or "Verify" in blob) and password:
             es = [n for n in nodes(ui_xml()) if "EditText" in n["cls"]]
             if es:
                 tap(es[0]["x"], es[0]["y"]); time.sleep(0.8)
                 slow_type(password, 0.1); time.sleep(0.8)
-                tap_text("验证", "Verify"); time.sleep(6); changed = True; continue
+                tap_text("\u9a8c\u8bc1", "Verify"); time.sleep(6); changed = True; continue
         break
     return changed
 
@@ -753,20 +753,20 @@ def confirm_zero(wait=40, password="") -> dict:
     for _ in range(wait // 2):
         xml = ui_xml()
         text = " ".join(n["text"] for n in nodes(xml) if n["text"])
-        if "不符合免费试用条件" in text or "not eligible" in text.lower():
+        if "\u4e0d\u7b26\u5408\u514d\u8d39\u8bd5\u7528\u6761\u4ef6" in text or "not eligible" in text.lower():
             warn("Google Play says this account is ineligible for the trial")
-            if tap_text("知道了", "OK", "Got it"):
+            if tap_text("\u77e5\u9053\u4e86", "OK", "Got it"):
                 time.sleep(2)
             out["ineligible"] = True
             return out
-        if ("订阅" in text or "Subscribe" in text) and ("Ultra" in text or "AI" in text):
+        if ("\u8ba2\u9605" in text or "Subscribe" in text) and ("Ultra" in text or "AI" in text):
             out["text"] = text[:300]
             m = re.search(r"(US\$|HK\$|NT\$|\$|€|£)\s?([\d.,]+)", text)
             if m:
                 out["price"] = m.group(0)
                 try:
                     if float(m.group(2).replace(",", "")) == 0:
-                        tap_text("订阅", "Subscribe")
+                        tap_text("\u8ba2\u9605", "Subscribe")
                         out["confirmed"] = True
                         ok("Clicked Subscribe on a zero-priced checkout screen")
                         return out
@@ -774,14 +774,14 @@ def confirm_zero(wait=40, password="") -> dict:
                     pass
                 warn(f"Checkout displayed {m.group(0)}, not zero; refusing to confirm")
                 return out
-            if ("不符合免费试用条件" in text) or ("not eligible" in text.lower()):
+            if ("\u4e0d\u7b26\u5408\u514d\u8d39\u8bd5\u7528\u6761\u4ef6" in text) or ("not eligible" in text.lower()):
                 out["ineligible"] = True
                 warn("Google Play says this account is ineligible; refusing to confirm")
-                tap_text("关闭", "取消", "Close"); return out
+                tap_text("\u5173\u95ed", "\u53d6\u6d88", "Close"); return out
             if (re.search(r"(US\$|HK\$|NT\$|\$)\s?0(\.00)?\b", text)
-                    or "US$0/月" in text or "US$0.00" in text
-                    or re.search(r"免费试用\s*\d+\s*(个月|年|mo|month)", text)):
-                tap_text("订阅", "Subscribe")
+                    or "US$0/\u6708" in text or "US$0.00" in text
+                    or re.search(r"\u514d\u8d39\u8bd5\u7528\s*\d+\s*(\u4e2a\u6708|\u5e74|mo|month)", text)):
+                tap_text("\u8ba2\u9605", "Subscribe")
                 out["confirmed"] = True
                 ok("Clicked Subscribe on an introductory offer screen")
                 return out
