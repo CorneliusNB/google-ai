@@ -141,4 +141,4 @@ The project's GitHub Actions run Python, PowerShell, Textual UI smoke tests and 
 - **Maintainer — [David Nguyen (@hoangsvit)](https://github.com/hoangsvit), [ePlus.DEV](https://eplus.dev):** imported and adapted the project for Windows/MuMu, added step-based commands and terminal menus, and maintained device compatibility, tests, and documentation.
 - **Community:** see the [contributors history](https://github.com/hoangsvit/google-ai/graphs/contributors).
 
-Contributions and bug reports are welcome; see [Contributing](CONTRIBUTING.md). The original author's **MIT copyright and license notice** are preserved in [Third-party notices](THIRD_PARTY_NOTICES.md).
+Contributions and bug reports are welcome; see [Contributing](CONTRIBUTING.md). Coding assistants should also follow the repository-wide [AI agent guidelines](AGENTS.md). The original author's **MIT copyright and license notice** are preserved in [Third-party notices](THIRD_PARTY_NOTICES.md).
