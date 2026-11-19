@@ -5,7 +5,7 @@ A Windows-focused terminal toolkit for inspecting Google AI Pro offers through a
 <img width="1902" height="912" alt="ePlus AI Toolkit terminal dashboard" src="https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3" />
 
 > [!CAUTION]
-> **Unofficial project. Potential billing charges.** Steps **2–5** can open a real Google Play checkout and may automatically tap **Subscribe**. An offer appearing in a list, a displayed first-phase price of zero, or a `checkout_requested` report does **not** establish eligibility, an active subscription, a free subscription, or a changed renewal date. Verify the exact account, today's charge, future pricing and renewal date directly in Google Play before any checkout.
+> **Unofficial project. Potential billing charges.** Steps **2–5** can open a real Google Play checkout and may automatically tap **Subscribe**. An offer appearing in a list, a displayed first-phase price of zero, or a message indicating that the Subscribe action was attempted does **not** establish eligibility, an active subscription, a free subscription, or a changed renewal date. Verify the exact account, today's charge, future pricing and renewal date directly in Google Play before any checkout.
 
 ## Disclaimer
 
@@ -83,7 +83,7 @@ The sidebar lists the six stages. Android Device / Google Account cards update f
 | **From selected step** | Begins a guided checkout sequence at the chosen Step **2–5**, without replaying earlier checkout steps. |
 | **All: Steps 2–5** | Begins the guided checkout sequence at **Step 2**. Step **5** is optional. |
 
-All checkout stages on the dashboard require **explicit approval per stage**. After a stage returns `checkout_requested`, check the real Google Play subscription and renewal date. Only press **Verified in Google Play → Next** if the change has actually been verified. The next stage still requires separate approval. Failed or ambiguous results do not authorize advancing.
+All checkout stages on the dashboard require **explicit approval per stage**. After a stage reports that it attempted to submit checkout, check the real Google Play subscription and renewal date. The tool cannot independently confirm a successful activation or extension. Only press **Verified in Google Play → Next** if the change has actually been verified. The next stage still requires separate approval. Failed or ambiguous results do not authorize advancing.
 
 | Step | Purpose | Checkout risk |
 | --- | --- | --- |
@@ -161,12 +161,12 @@ Only use a `-Serial` observed through ADB. `-Email` constrains the account expec
 | **Frida setup failure** | Review technical details; Frida **16.5.9** must be compatible with the host and device. |
 | **No offers / `offer_query_failed`** | Open Google One and Google Play on the target Android instance and run Step 1 again. |
 | **Account not verified / wrong account** | Inspect the active Google Play profile; do not bypass verification. |
-| **`checkout_requested`** | Checkout was requested, **not verified as an active subscription**. Check Google Play directly. |
+| **Checkout submitted; check Google Play** | The tool attempted to submit checkout; it has **not** verified a successful subscription or extension. |
 | **`already_subscribed` / `ineligible`** | Stop; do not retry other checkout stages based on unverified extension claims. |
 | **Payment/security error (e.g. OR-REH-04)** | Follow Google Account/Payments security instructions. Do not repeatedly retry. |
 | **Unicode output error** | Update the repository; the maintained Windows launcher configures Python UTF-8 output for piped status symbols. |
 
-Verify subscription, payment amount, currency and renewal terms under **[Google Play Subscriptions](https://play.google.com/store/account/subscriptions)**. For advanced platform and Frida problems, see [Detailed setup and troubleshooting](docs/DETAILED-GUIDE.md).
+Verify subscription, payment amount, currency and renewal terms under **[Google Play Subscriptions](https://play.google.com/store/account/subscriptions)**. For developer-facing status codes and advanced platform/Frida problems, see [Detailed setup and troubleshooting](docs/DETAILED-GUIDE.md).
 
 **Platform support:** This README documents the Windows workflow. A macOS read-only prototype was closed without merging because it did not offer full feature parity. Do not assume the Windows checkout flow works on macOS.
 

@@ -35,7 +35,7 @@ python --version
 python setup_env.py
 ```
 
-The helper searches `ADB_PATH`, existing `platform-tools` folders, known MuMu locations, and PATH. It verifies `adb.exe version` works. If it needs to download Google's official Platform-Tools, it extracts them in a fresh temporary directory and installs into the project or, if that directory is locked, `%LOCALAPPDATA%\google-ai\platform-tools`.
+MuMuPlayer must be installed separately from the [official NetEase download](https://www.mumuplayer.com/download/); this helper does **not** install MuMu. It searches `ADB_PATH`, existing `platform-tools` folders, known MuMu locations, and PATH. It verifies `adb.exe version` works. If it needs to download Google's official Platform-Tools, it extracts them in a fresh temporary directory and installs into the project or, if that directory is locked, `%LOCALAPPDATA%\google-ai\platform-tools`.
 
 **If `adb` is not recognized in PowerShell:** You can use `.\\run-all.ps1 -Serial emulator-5554 -ListOnly` without changing PATH. Or run the local executable:
 
@@ -46,7 +46,7 @@ The helper searches `ADB_PATH`, existing `platform-tools` folders, known MuMu lo
 
 For a per-user installation, use `& "$env:LOCALAPPDATA\\google-ai\\platform-tools\\adb.exe" devices`.
 
-**If PowerShell reports an inline Python syntax error or `UnicodeEncodeError: cp1252`:** Old versions passed inline `python -c` code through PowerShell and could corrupt Python quoting, then try to print Unicode status symbols using the wrong Windows codepage. Run `git pull --ff-only`. The updated `run-all.ps1` uses `scripts/runtime-lookup.py` to return only Base64-encoded UTF-8 values in ASCII, preventing this issue without changing Windows codepages.
+**If PowerShell reports an inline Python syntax error or `UnicodeEncodeError: cp1252`:** Old versions passed inline `python -c` code through PowerShell and could corrupt Python quoting, then try to print Unicode status symbols using the wrong Windows codepage. Run `git pull --ff-only`. The maintained `run-all.ps1` uses `scripts/runtime-lookup.py` for ASCII-safe runtime discovery **and** sets `PYTHONIOENCODING` / UTF-8 output for child Python processes, avoiding the separate `cp1252` status-symbol crash.
 
 **If `setup_env.py` previously raised `PermissionError: [Errno 13] ... platform-tools\\adb.exe`:** The file may be locked by an emulator/ADB process or protected by directory permissions. Update the repository with `git pull --ff-only` and rerun setup. The installer now avoids overwriting working ADB files and falls back to the per-user directory if the project folder cannot be updated. Do not force-delete the file or disable antivirus.
 
@@ -67,7 +67,7 @@ Replace `emulator-5554` with the serial from `adb devices`. If no device is onli
 .\run-all.ps1 -ListOnly
 ```
 
-If `adb devices` lists several connections such as `127.0.0.1:16384`, `127.0.0.1:7555`, and `emulator-5554`, these may all point to the same Android instance. The tool checks each instance's boot UUID and treats matching UUIDs as aliases. If several different Android kernels are connected, it selects the one uniquely running Google One or the only one with Google One installed. It does **not** guess if the identification is inconclusive: specify `-Serial emulator-5554` or answer the prompt only in that case.
+If `adb devices` lists several connections such as `127.0.0.1:16384`, `127.0.0.1:7555`, and `emulator-5554`, these may all point to the same Android instance. The tool checks each instance's boot UUID and treats matching UUIDs as aliases. If several different Android kernels are connected, it selects the one uniquely running Google One or the only one with Google One installed. It does **not** guess if the identification is inconclusive: specify `-Serial emulator-5554` (using a serial that really appears in `adb devices`). The single-step CLI exits rather than asking for an interactive device choice.
 
 For setup only:
 
@@ -87,7 +87,7 @@ For the complete original sequence (environment check, offer listing, Steps 2–
 .\run-all.ps1 -AllStages
 ```
 
-**Resume after an active 12-month plan:** Do not repeat Step 2. The wrapper now requires `NO ACTIVE` before any Step 2 checkout. After reviewing the active Google AI Pro plan and next renewal date in Google Play, you can explicitly start at Step 3:
+**Resume after an active 12-month plan:** Do not repeat Step 2. For the guided `-AllStages` flow, the wrapper asks for a **numbered confirmation** that Google Play shows no active subscription before the Step 2 checkout. The text `NO ACTIVE` is no longer an input requirement. After reviewing the active Google AI Pro plan and next renewal date in Google Play, you can explicitly start at Step 3:
 
 ```powershell
 .\run-all.ps1 -AllStages -StartStep 3
@@ -97,7 +97,7 @@ This asks you to choose 1 (Continue), 2 (Skip) or 0 (Stop), and does not infer w
 
 The active Play Store email is detected automatically; `-Email` can specify an expected account. `-Force` passes the original Python `--force` to bypass **only** the account-verification check, after a numbered approval prompt. Normally it is unnecessary.
 
-For `-AllStages`, all approvals use **1 = Continue, 2 = Skip / End run, 0 = Stop**. After each attempted subscription stage, review the Google Play plan, next payment date, and price before selecting 1. Optional Step 5 requires another numeric approval. Individual `-Step 2`, `-Step 3`, `-Step 4` or `-Step 5` commands are **non-interactive at the PowerShell confirmation layer**: no `RUN N`, `NO ACTIVE` or `VERIFIED` input is requested. Selecting a checkout step explicitly authorizes that attempt, which may tap Subscribe automatically if the current terms appear eligible. If the device or Play account is ambiguous, the standalone step fails closed with a diagnostic rather than asking for input. Check the real subscription and renewal date after the step. The default command remains read-only (`-Step 1`).
+For `-AllStages`, all approvals use **1 = Continue, 2 = Skip / End run, 0 = Stop**. After each attempted subscription stage, review the Google Play plan, next payment date, and price before selecting 1. Optional Step 5 requires another numeric approval. Individual `-Step 2`, `-Step 3`, `-Step 4` or `-Step 5` commands are **non-interactive at the PowerShell confirmation layer**: no `RUN N`, `NO ACTIVE` or `VERIFIED` input is requested. Selecting a checkout step explicitly authorizes that attempt, which may tap Subscribe automatically if the current terms appear eligible. If the device or Play account is ambiguous, the standalone step fails closed with a diagnostic rather than asking for input. Check the real subscription and renewal date after the step. The explicit CLI command `-Step 1` remains the read-only offer-listing mode; running `.\run-all.ps1` **without arguments opens the Textual dashboard**.
 
 The original Python code can click **Subscribe** automatically on a screen it interprets as a zero-priced checkout. This is a real billing flow, not a simulation, and the claimed subscription extensions are not guaranteed.
 
