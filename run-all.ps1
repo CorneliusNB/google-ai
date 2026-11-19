@@ -43,6 +43,19 @@ function Run-Command([string]$Program, [string[]]$Arguments) {
         Stop-Workflow ("Command exited with code {0}: {1}" -f $LASTEXITCODE, $Program)
     }
 }
+function Get-RuntimeValue([string[]]$LookupArgs) {
+    $output = @(& $Python "scripts/runtime-lookup.py" @LookupArgs)
+    if ($LASTEXITCODE -ne 0) {
+        Stop-Workflow "Runtime lookup failed. Verify the Python and ADB environment."
+    }
+    $resultLine = $output | Where-Object { $_ -match '^RUNTIME_RESULT:[A-Za-z0-9+/=]*$' } | Select-Object -Last 1
+    if ($null -eq $resultLine) {
+        Stop-Workflow "No machine-readable runtime result was returned."
+    }
+    $encoded = ([string]$resultLine).Substring("RUNTIME_RESULT:".Length)
+    return [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded))
+}
+
 function Read-PythonReport([string]$AccountKey) {
     $reportFile = Join-Path $PSScriptRoot ("ultra0-report\{0}.json" -f $AccountKey)
     if (-not (Test-Path -LiteralPath $reportFile)) {
@@ -74,17 +87,7 @@ try {
     $Adb = if ($adbCommand) { $adbCommand.Source } else { "" }
     if (-not $Adb) {
         Note "ADB is not on PATH. Locating an existing ADB or installing platform-tools."
-        $adbQuery = 'import setup_env; print("ADB_RESOLVED=" + setup_env.find_adb())'
-        $adbOutput = @(& $Python -c $adbQuery)
-        if ($LASTEXITCODE -ne 0) {
-            Stop-Workflow "ADB resolution failed. See README troubleshooting for manual installation."
-        }
-        foreach ($line in $adbOutput) {
-            Write-Host $line
-            if ($line.StartsWith("ADB_RESOLVED=")) {
-                $Adb = $line.Substring("ADB_RESOLVED=".Length).Trim()
-            }
-        }
+        $Adb = Get-RuntimeValue @("adb")
     }
     if (-not $Adb) {
         Stop-Workflow "adb.exe was not found. Install Android SDK platform-tools or configure PATH and retry."
@@ -142,16 +145,7 @@ try {
     }
 
     Stage "4. Read current Google Play account"
-    $accountCode = "import sys; import ultra0 as u; u.ADB=u.find_adb(); u.pick_device(preferred=sys.argv[1]); print('PLAY_ACCOUNT='+ (u.current_play_account() or ''))"
-    $accountOutput = @(& $Python -c $accountCode $Serial)
-    $playAccount = ""
-    if ($LASTEXITCODE -eq 0) {
-        foreach ($line in $accountOutput) {
-            if ($line -match '^PLAY_ACCOUNT=(.*)$') {
-                $playAccount = $Matches[1].Trim().ToLowerInvariant()
-            }
-        }
-    }
+    $playAccount = (Get-RuntimeValue @("play-account", "--serial", $Serial)).Trim().ToLowerInvariant()
     if ($playAccount) { Note ("Detected Play Store account: {0}" -f $playAccount) }
     else { Write-Warning "Could not read Google Play account. Open the Play Store profile menu in MuMu." }
 
