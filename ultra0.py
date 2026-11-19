@@ -428,8 +428,8 @@ def accounts_on_device() -> list:
 
 
 def add_account(email, password, totp_secret="") -> bool:
-    """把账号加到手机。没有 2FA 也能走；卡住时交给人处理。"""
-    step(f"把账号加到手机：{email}")
+    """Add a Google account on Android, pausing for manual verification when needed."""
+    step(f"Adding account to Android: {email}")
     before = len(accounts_on_device())
     sh("shell", "am start -a android.settings.ADD_ACCOUNT_SETTINGS")
     time.sleep(3)
@@ -438,18 +438,18 @@ def add_account(email, password, totp_secret="") -> bool:
 
     pos = find_edit()
     if pos:
-        for _ in range(3):                      # 输入后回读校验，防吞字
+        for _ in range(3):                      # Verify the typed email to catch missing characters.
             tap(*pos); time.sleep(0.8)
-            sh("shell", "input keyevent 123")   # 光标到行尾
+            sh("shell", "input keyevent 123")   # Move cursor to end.
             for _ in range(60):
-                sh("shell", "input keyevent 67")  # 退格清空
+                sh("shell", "input keyevent 67")  # Backspace to clear the field.
             type_text(email); time.sleep(1)
             cur = " ".join(n["text"] for n in nodes(ui_xml()) if "@" in n["text"])
             if email.lower() in cur.lower():
                 break
-            warn(f"输入被吞，重试（当前：{cur[:40]}）")
+            warn(f"Email input was incomplete; retrying (current: {cur[:40]})")
         else:
-            warn("邮箱多次输入不完整")
+            warn("Could not enter the complete email after several attempts")
         tap_text("下一步", "Next"); time.sleep(6)
 
     if find_edit():
@@ -457,33 +457,33 @@ def add_account(email, password, totp_secret="") -> bool:
         type_text(password); time.sleep(1)
         tap_text("下一步", "Next"); time.sleep(7)
 
-    # 逐步推进：已知界面自动点，未知/验证界面交给人
+    # Advance through recognized screens; ask the user to handle unknown screens.
     unknown_rounds = 0
     for _ in range(90):
         if len(accounts_on_device()) > before:
-            ok("账号已加入设备")
+            ok("Google account added to Android")
             return True
         xml = ui_xml()
         text = " ".join(n["text"] for n in nodes(xml) if n["text"])
 
         if "此账号已在您的设备上" in text or "already on your device" in text.lower():
-            ok("账号已在设备上")
+            ok("This Google account is already on the device")
             return True
         if "找不到此账号" in text or "Couldn't find your Google Account" in text:
-            warn("Google 说找不到这个账号（检查邮箱拼写）")
+            warn("Google could not find this account; check the email address")
             return False
         if "密码不正确" in text or "Wrong password" in text:
-            warn("密码不正确")
+            warn("Google account password was rejected")
             return False
 
         if ("两步验证" in text or "2-Step" in text or "输入验证码" in text):
             if totp_secret and find_edit():
                 code = totp(totp_secret)
-                note(f"2FA 验证码：{code}")
+                note(f"Two-factor verification code: {code}")
                 tap(*find_edit()); type_text(code); time.sleep(1)
                 tap_text("下一步", "Next"); time.sleep(8)
                 continue
-            wait_human("手机上出现两步验证，请在手机上输入验证码完成", 300)
+            wait_human("Two-step verification required; complete the check on Android.", 300)
             continue
 
         if tap_text("以后再说", "Not now"):
@@ -494,35 +494,35 @@ def add_account(email, password, totp_secret="") -> bool:
             time.sleep(2); continue
 
         if any(k in text for k in ("证明您不是自动程序", "验证身份", "请输入电话号码", "无法验证", "确认是您本人")):
-            wait_human("手机上出现人机/身份验证，请在手机上手动完成", 300)
+            wait_human("Complete the CAPTCHA or identity verification on Android.", 300)
             continue
 
         unknown_rounds += 1
         if unknown_rounds >= 8:
-            wait_human("当前界面脚本不认识，请手动完成加号，完成后继续", 300)
+            wait_human("Unrecognized Android screen; finish account setup manually.", 300)
             unknown_rounds = 0
         time.sleep(2)
 
     if len(accounts_on_device()) > before:
-        ok("账号已加入设备")
+        ok("Google account added to Android")
         return True
-    warn("加号超时")
+    warn("Timed out adding the Google account")
     return False
 
 
 def add_card(card: dict) -> bool:
-    """在 Google Pay 里添加一张卡（卡号/有效期/CVC/持卡人/邮编）。"""
+    """Add a payment card through the original Google Pay UI workflow."""
     if not card:
         return True
-    step(f"添加付款方式：{card['number'][-4:].rjust(len(card['number']), '*')}")
+    step(f"Adding a payment method ending in {card['number'][-4:]}")
     sh("shell", "am start -a android.intent.action.VIEW "
                 "-d 'https://pay.google.com/gp/w/u/0/home/paymentmethods'")
     time.sleep(10)
     if not tap_text("Add a payment method", "添加付款方式", "添加信用卡", "Add card"):
-        warn("没找到添加入口，跳过绑卡（可手动添加）")
+        warn("Could not find the add-card entry; enter the payment method manually")
         return False
     time.sleep(9)
-    # 依次填：卡号 → 月 → 年 → CVC → 姓名 → 地址 → 城市
+    # Field order: card number, month, year, CVC, name, street, and city.
     edits = [n for n in nodes(ui_xml()) if "EditText" in n["cls"]]
     mm = re.sub(r"\D", "", card["exp"])[:2] or "01"
     yy = re.sub(r"\D", "", card["exp"])[2:][-2:] or "30"
@@ -535,10 +535,10 @@ def add_card(card: dict) -> bool:
         tap(edits[i]["x"], edits[i]["y"]); time.sleep(0.6)
         type_text(val); time.sleep(0.5)
     if not tap_text("Save", "保存"):
-        wait_human("请手动点「保存」完成绑卡，然后继续", 240)
+        wait_human("Tap Save in Google Pay manually, then continue.", 240)
     else:
         time.sleep(8)
-    ok("绑卡流程已提交")
+    ok("Payment method form submitted")
     return True
 
 
@@ -576,8 +576,8 @@ def current_play_account() -> str:
 
 
 def switch_play(email) -> bool:
-    """切 Play 账号，UI 上确认不了就返回 False（绝不猜）。"""
-    step(f"切换到 Play 账号：{email}")
+    """Switch Play Store account, but fail closed when the active account cannot be verified."""
+    step(f"Switching to Play Store account: {email}")
     want = email.lower()
     sh("shell", f"am force-stop {VENDING}")
     sh("shell", f"am force-stop {PKG}")
@@ -585,7 +585,7 @@ def switch_play(email) -> bool:
                 f"--es authAccount {email}")
     time.sleep(9)
     if current_play_account() == want:
-        ok("Play 账号已确认"); return True
+        ok("Google Play account verified"); return True
     for n in nodes(ui_xml()):
         if "账号和设置" in n["desc"] or "Account and settings" in n["desc"]:
             tap(n["x"], n["y"]); time.sleep(3); break
@@ -598,8 +598,8 @@ def switch_play(email) -> bool:
     sh("shell", "input keyevent 4")
     got = current_play_account()
     if got == want:
-        ok("Play 账号已确认"); return True
-    warn(f"Play 账号没切过来（当前：{got or '未知'}）——中止，避免跑错号")
+        ok("Google Play account verified"); return True
+    warn(f"Google Play account did not switch (current: {got or 'unknown'}). Aborting to avoid the wrong account.")
     return False
 
 
@@ -629,7 +629,7 @@ def launch_app() -> int:
 
 
 def build_js(plan: str = "auto", list_only: bool = False, stack: bool = False, old_token: str = "", stack_mode=None, activity_method="auto") -> str:
-    """按 plan 选择要查询的商品：5x=20TB，20x=30TB（隐藏带试用 ID）。"""
+    """Build the product query for the requested Google Play plan."""
     if activity_method not in ("auto", "choose", "thread"):
         raise ValueError(f"Unsupported activity method: {activity_method}")
     js = FRIDA_JS.replace('var ACTIVITY_METHOD="auto";',
@@ -660,7 +660,7 @@ def build_js(plan: str = "auto", list_only: bool = False, stack: bool = False, o
 
 def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_token="", stack_mode=None, activity_method="auto") -> dict:
     import frida
-    step("注入计费模块，查询免费试用")
+    step("Injecting billing module to inspect introductory offers")
     dev = frida.get_usb_device(timeout=10)
     sess = dev.attach(pid)
     res = {"offers": [], "launched": None, "purchase": None, "activity": None, "errors": []}
@@ -684,7 +684,7 @@ def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_
             note(f"Activity found via {p.get('method')}: {p.get('name')}")
         elif ev == "launched":
             res["launched"] = p
-            ok(f"已拉起收银台：{p}")
+            ok(f"Google Play billing flow response: {p}")
         elif ev == "purchase_cb":
             res["purchase"] = p
         elif ev and ("err" in ev or ev.startswith("no_")):
@@ -731,7 +731,7 @@ def diagnose_launch_failure(fr: dict) -> tuple:
 
 
 def handle_verify(password="") -> bool:
-    """买完可能要求重新输密码；顺手关掉 Play 积分提示。"""
+    """Handle optional Google Play identity verification and Play Points prompts."""
     changed = False
     for _ in range(12):
         blob = " ".join(n["text"] for n in nodes(ui_xml()) if n["text"])
