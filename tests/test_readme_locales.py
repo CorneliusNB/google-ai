@@ -32,9 +32,8 @@ class ReadmeLocalesTests(unittest.TestCase):
             with self.subTest(file=path):
                 text = (ROOT / path).read_text(encoding="utf-8")
                 for reference in REQUIRED_REFERENCES:
-                    self.assertIn(reference if reference != path else "English"
-                                  if path == "README.md" else reference.split(".")[1],
-                                  text)
+                    if reference != path:
+                        self.assertIn(f"({reference})", text)
                 self.assertEqual(text.count("```") % 2, 0, path)
 
     def test_important_safety_and_operational_details_are_present(self):
@@ -48,7 +47,7 @@ class ReadmeLocalesTests(unittest.TestCase):
         for path in DOCS:
             source = ROOT / path
             text = source.read_text(encoding="utf-8")
-            links = re.findall(r"(?<!!)\\[[^]]+\\]\\(([^)]+)\\)", text)
+            links = re.findall(r"(?<!!)\[[^]]+\]\(([^)]+)\)", text)
             for target in links:
                 if target.startswith(("https://", "http://", "mailto:", "#")):
                     continue
