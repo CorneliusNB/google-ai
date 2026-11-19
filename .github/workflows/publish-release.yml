@@ -117,5 +117,5 @@ jobs:
           else
             args+=(--latest)
           fi
-          gh "\${args[@]}"
+          gh "${args[@]}"
           echo "Published https://github.com/$GITHUB_REPOSITORY/releases/tag/$VERSION"
