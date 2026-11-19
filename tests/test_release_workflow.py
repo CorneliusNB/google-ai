@@ -44,6 +44,27 @@ class ReusableReleaseWorkflowTests(unittest.TestCase):
         self.assertIn(".github/workflows/publish-release.yml", content)
         self.assertNotIn("publish-v1.0.1.yml", content)
 
+    def test_windows_smoke_preserves_exact_source_and_sha256(self):
+        workflow = (WORKFLOW_DIR / "windows-release-smoke.yml").read_text(encoding="utf-8")
+        for term in (
+            "Get-FileHash",
+            "-Algorithm SHA256",
+            "actions/upload-artifact@v4",
+            "eplus-ai-toolkit-source-${{ github.sha }}",
+            "eplus-ai-toolkit-source.zip.sha256",
+            "retention-days: 14",
+            "if-no-files-found: error",
+        ):
+            with self.subTest(term=term):
+                self.assertIn(term, workflow)
+
+    def test_manual_hardware_checklist_links_tested_artifact(self):
+        content = (ROOT / "docs" / "WINDOWS-SMOKE-TEST.md").read_text(encoding="utf-8")
+        self.assertIn("actions/workflows/windows-release-smoke.yml", content)
+        self.assertIn("Get-FileHash", content)
+        self.assertIn("14 days", content)
+        self.assertIn("not* a published GitHub Release", content)
+
     def test_manual_checklist_applies_to_future_versions(self):
         content = (ROOT / "docs" / "WINDOWS-SMOKE-TEST.md").read_text(encoding="utf-8")
         self.assertIn("Publish ePlus AI Toolkit (manual)", content)
