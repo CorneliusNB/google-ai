@@ -51,6 +51,7 @@ function Show-Banner {
     Write-Host "  +----------------------------------------------------+" -ForegroundColor DarkCyan
     Write-Host "  |  GOOGLE AI  /  MuMu Toolkit                       |" -ForegroundColor Cyan
     Write-Host "  +----------------------------------------------------+" -ForegroundColor DarkCyan
+    Write-Host "  Original: @gylive   |   Maintained: @hoangsvit" -ForegroundColor DarkGray
     $mode = if ($AllStages) { "Full flow from Step $StartStep" } else { "Step $Step" }
     Write-Host ("  Mode: {0}" -f $mode) -ForegroundColor Gray
 }

@@ -27,6 +27,17 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertIn('Write-Host "     [2] Skip / End run"', ps)
         self.assertIn('if ($AllStages) {\n                if (-not (Confirm-Exact "Confirm Google Play shows NO ACTIVE', ps)
 
+    def test_original_author_and_maintainer_attribution(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
+        notice = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
+        self.assertIn("github.com/gylive/google-ultra", readme)
+        self.assertIn("David Nguyen (@hoangsvit)", readme)
+        self.assertIn("Original: @gylive", ps)
+        self.assertIn("Maintained: @hoangsvit", ps)
+        self.assertIn("Copyright (c) 2026 gylive", notice)
+        self.assertIn("MIT License", notice)
+
     def test_no_checkout_by_default(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         self.assertIn("[int]$Step = 1", ps)

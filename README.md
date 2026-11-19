@@ -73,3 +73,11 @@ Read-only offers and stage diagnostics are saved under `ultra0-report/`. A statu
 - [Security and billing precautions](SECURITY.md)
 
 The project's GitHub Actions test Python, PowerShell, and mocked Frida/Billing behavior. They do **not** perform real Google Play transactions.
+
+## Credits & contributors
+
+- **Original author — [gylive](https://github.com/gylive):** created the upstream [google-ultra](https://github.com/gylive/google-ultra) project and its Python, ADB, Frida, and Google Play Billing implementation.
+- **Maintainer — [David Nguyen (@hoangsvit)](https://github.com/hoangsvit):** imported and adapted the project for Windows/MuMu, added step-based commands and terminal menus, and maintained device compatibility, tests, and documentation.
+- **Community:** see the [contributors history](https://github.com/hoangsvit/google-ai/graphs/contributors).
+
+Contributions and bug reports are welcome; see [Contributing](CONTRIBUTING.md). The original author's **MIT copyright and license notice** are preserved in [Third-party notices](THIRD_PARTY_NOTICES.md).
