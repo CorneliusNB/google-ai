@@ -93,7 +93,9 @@ class GoogleAITUI(App[None]):
     #quickstart { margin: 1 0; }
     #advanced_label { color: #78cfe8; margin-top: 1; }
     #advanced { display: none; height: auto; }
+    #next, #stop { display: none; }
     #advanced Button { margin-bottom: 0; }
+    #welcome { text-style: bold; margin: 1 0; }
     #elapsed, #activity { color: #9dbcd2; }
     #quick_hint { margin-bottom: 1; }
     #debug_log { display: none; height: 9; border: solid #29465e; }
@@ -313,6 +315,8 @@ class GoogleAITUI(App[None]):
         self.query_one("#step", Select).disabled = True
         self.query_one("#next", Button).disabled = True
         self.query_one("#stop", Button).disabled = False
+        self.query_one("#stop", Button).display = True
+        self.query_one("#next", Button).display = False
         self.query_one("#step_result", Static).update(f"Step {step} · {STAGES[step].label}")
         self._set_status("Running — check MuMu if prompted")
         self._set_message("Preparing tools and checking Google Play. Missing dependencies are installed automatically.")
@@ -425,6 +429,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#sequence", Button).disabled = False
         self.query_one("#step", Select).disabled = False
         self.query_one("#stop", Button).disabled = True
+        self.query_one("#stop", Button).display = False
         self._started_at = None
         self.query_one("#activity", Static).update("Step finished. Review the result above.")
         self._set_status(outcome.title)
@@ -438,8 +443,10 @@ class GoogleAITUI(App[None]):
             self.query_one("#step_result", Static).update(report_summary(report))
         if outcome.can_review and self.sequence and step < 5 and not self._stop_after_step:
             self.query_one("#next", Button).disabled = False
+            self.query_one("#next", Button).display = True
         else:
             self.query_one("#next", Button).disabled = True
+            self.query_one("#next", Button).display = False
             self.sequence = False
         if outcome.code == "checkout_requested":
             self.notify("Review the actual subscription in Google Play.", severity="warning")
