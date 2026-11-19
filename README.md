@@ -52,6 +52,38 @@ For **interactive** stages that can open Google Play checkout (only after review
 
 The guided script requires explicit confirmation for each live stage, validates the selected Play account, and halts between stages for subscription verification. It never uses `--force`. A CI pass **does not** prove real billing compatibility with your device.
 
+## Step-by-step workflow
+
+Run all commands from the repository root. **The recommended path is Step 0 to Step 2**; it inspects the device and available offers without starting checkout.
+
+| Step | What happens | How to run | Purchase risk |
+| --- | --- | --- | --- |
+| **0 — Setup** | Confirm Python and install or reuse ADB / Frida; connect MuMu | `python setup_env.py` | No purchase (but may update Android tooling/settings) |
+| **1 — Device check** | Check ADB, Android/root, Google Play Store and Google One | `.\\run-all.ps1 -Serial emulator-5554 -SetupOnly` | No purchase |
+| **2 — List offers** | Verify the active Play account when readable, query offers and diagnose Activity compatibility | `.\\run-all.ps1 -Serial emulator-5554 -ListOnly` | No checkout |
+| **3 — Optional live stage 1** | Original claimed 12-month offer (`pro12`) | Use the guided command below | May initiate a real subscription |
+| **4 — Optional live stage 2** | Original claimed additional six-month offer (`pro6 --stack`) | Continue only after manual subscription verification | May initiate a real subscription |
+| **5 — Optional live stage 3** | Original claimed additional six-month offer (`pro6b --stack`) | Continue only after another manual verification | May initiate a real subscription |
+
+```powershell
+# Step 0: Update the repository and locate/install ADB
+git pull --ff-only
+python setup_env.py
+
+# Step 1: Check device, Frida and Google Play (no checkout)
+.\\run-all.ps1 -Serial emulator-5554 -SetupOnly
+
+# Step 2: Inspect available offers (no checkout)
+.\\run-all.ps1 -Serial emulator-5554 -ListOnly
+
+# Steps 3-5: OPTIONAL interactive billing stages; may initiate real transactions
+.\\run-all.ps1 -Serial emulator-5554 -Email "your-email@gmail.com"
+```
+
+Replace `emulator-5554` with the online device serial returned by `adb devices`. The interactive command verifies the target account and requires **two explicit confirmations for each stage** (`RUN 1` / `I ACCEPT 1`, and so on). It also asks you to verify the subscription in Google Play before offering the next stage. Press Enter without the requested phrase to stop.
+
+**Do not assume 12 + 6 + 6 months can be combined.** The original author's offer names and price phases do not guarantee eligibility, billing dates, trial stacking or renewal costs. Non-list mode may automatically click Subscribe; always check the real terms and active subscription at **Google Play Store → Payments & subscriptions → Subscriptions**. Avoid running legacy `.bat` checkout shortcuts, which use `--force` and bypass account checks.
+
 ## Project layout
 
 ```text
