@@ -418,10 +418,14 @@ class GoogleAITUI(App[None]):
         child_env = os.environ.copy()
         child_env["PYTHONIOENCODING"] = "utf-8"
         child_env["PYTHONUTF8"] = "1"
+        if self._cancel_requested:
+            return -1
+        options = ({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+                   if os.name == "nt" else {"start_new_session": True})
         with subprocess.Popen(
             command, cwd=self.repo, env=child_env, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-            text=True, encoding="utf-8", errors="replace", bufsize=1
+            text=True, encoding="utf-8", errors="replace", bufsize=1, **options
         ) as child:
             self._child = child
             if child.stdout:
@@ -442,7 +446,11 @@ class GoogleAITUI(App[None]):
                 setup = self.repo / "setup_env.py"
                 if not setup.is_file():
                     raise FileNotFoundError("setup_env.py is missing from the project directory")
-                if self._execute([sys.executable, str(setup)]) != 0:
+                setup_code = self._execute([sys.executable, str(setup)])
+                if self._cancel_requested:
+                    self.call_from_thread(self._finished, step, Outcome("cancelled", "Check stopped", "Cancelled read-only check."), None)
+                    return
+                if setup_code != 0:
                     self.call_from_thread(
                         self._finished, step,
                         Outcome("setup_failed", "Setup did not finish",
@@ -452,9 +460,15 @@ class GoogleAITUI(App[None]):
 
             # Never treat a report from setup or a previous invocation as the
             # outcome of the selected step.
+            if self._cancel_requested:
+                self.call_from_thread(self._finished, step, Outcome("cancelled", "Check stopped", "Cancelled read-only check."), None)
+                return
             started = time.time()
             command = command_for_step(step, self.repo)
             return_code = self._execute(command)
+            if self._cancel_requested:
+                self.call_from_thread(self._finished, step, Outcome("cancelled", "Check stopped", "Cancelled read-only check."), None)
+                return
             report = read_fresh_report(self.repo / "ultra0-report", step, started)
             result = outcome_for_stage(step, return_code, report)
             self.call_from_thread(self._finished, step, result, report)
@@ -519,6 +533,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#step", Select).disabled = False
         self.query_one("#stop", Button).disabled = True
         self.query_one("#stop", Button).display = False
+        self.query_one("#exit", Button).disabled = False
         self._started_at = None
         self.query_one("#activity", Static).update("Step finished. Review the result above.")
         self._set_workflow(step, "done" if outcome.code in ("listed", "environment_ok") else "review")
@@ -538,9 +553,12 @@ class GoogleAITUI(App[None]):
             self.query_one("#next", Button).disabled = True
             self.query_one("#next", Button).display = False
             self.sequence = False
+        if self._exit_after_step:
+            self.exit()
+            return
         if outcome.code == "checkout_requested":
             self.notify("Review the actual subscription in Google Play.", severity="warning")
-        elif outcome.code not in ("listed", "environment_ok"):
+        elif outcome.code not in ("listed", "environment_ok", "cancelled"):
             self.notify("Step stopped; check the result before another attempt.", severity="warning")
 
 
