@@ -46,6 +46,10 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_launch_diagnostics.py' -v
       - name: Multi-device configuration and Activity fallback tests
         run: python -m unittest discover -s tests -p 'test_activity_config.py' -v
+      - name: Subscription update token guard tests (no Android)
+        run: python -m unittest discover -s tests -p 'test_purchase_token.py' -v
+      - name: Subscription update JavaScript safety tests
+        run: node --test tests/test_subscription_update.test.mjs
       - name: Dependency-free Frida Activity fallback JavaScript tests
         run: node --test tests/test_activity_lookup.test.mjs
       - name: PowerShell end-to-end script parse and help check
