@@ -2,7 +2,7 @@
 
 This guide describes the maintained **Python + ADB + Frida** workflow. The Playwright wrapper was removed because it only delegated to the same Python script and added an unnecessary Node.js dependency. The optional **pure JavaScript test** for the Frida hook still uses Node.js in CI; end users do **not** need Node.js.
 
-[Back to README](../README.md) · [Security precautions](../SECURITY.md) · [Original Chinese guide](../使用说明.txt)
+[Back to README](../README.md) · [Security precautions](../SECURITY.md) · [Original stage reference (English)](ORIGINAL-STEPS.md)
 
 > **Safety:** Offer data and a first pricing phase of 0 do **not** prove that a promotion applies to the account, that the subscription is active, or that time can be stacked. The original `ultra0.py` may automatically click **Subscribe** when not run in `--list` mode. Always inspect Google's live pricing, recurring charges, cancellation terms and actual subscription record in Google Play.
 
@@ -101,12 +101,12 @@ On some Android 15 / API 35 x86_64 emulator builds, Frida `Java.choose()` raises
 
 | Stage | Original shortcut | Python option |
 | --- | --- | --- |
-| Claimed 12-month offer | `2_Pro_12个月_第1步.bat` | `--plan pro12` |
-| Claimed additional six months | `3_Pro_加6个月_第2步.bat` | `--plan pro6 --stack` |
-| Claimed additional six months | `4_Pro_加6个月_第3步.bat` | `--plan pro6b --stack` |
-| Optional alternative six months | `5_Pro_备用6个月.bat` | `--plan pro6c --stack` |
+| Claimed 12-month offer | `02-pro-12-months.bat` | `--plan pro12` |
+| Claimed additional six months | `03-pro-add-6-months.bat` | `--plan pro6 --stack` |
+| Claimed additional six months | `04-pro-add-6-months-again.bat` | `--plan pro6b --stack` |
+| Optional alternative six months | `05-pro-alternative-6-months.bat` | `--plan pro6c --stack` |
 
-The legacy `.bat` files use `--force` to bypass account verification and may initiate purchase flows. They remain available to preserve the original author's files, but the safer guided PowerShell entrypoint uses `--no-switch` and checks account identity. The original 12+6+6 stacking claim is unverified and cannot be inferred from offer identifiers.
+The legacy-compatible `.bat` files use `--force` to bypass account verification and may initiate purchase flows. They remain available to preserve the original author's files, but the safer guided PowerShell entrypoint uses `--no-switch` and checks account identity. The original 12+6+6 stacking claim is unverified and cannot be inferred from offer identifiers.
 
 ## Common failures
 

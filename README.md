@@ -2,7 +2,7 @@
 
 Python + ADB + Frida utilities for inspecting Google Play promotional offers, diagnosing Android compatibility, and optionally running the original author's subscription flow. **Playwright is not required or installed.**
 
-**Documentation:** [Detailed setup and troubleshooting](docs/DETAILED-GUIDE.md) · [Chinese README](README.zh-CN.md) · [Original Chinese instructions](使用说明.txt) · [Security](SECURITY.md)
+**Documentation:** [Detailed setup and troubleshooting](docs/DETAILED-GUIDE.md) · [Historical author notes (English)](docs/AUTHOR-NOTES.md) · [Original step reference (English)](docs/ORIGINAL-STEPS.md) · [Security](SECURITY.md)
 
 > **Important:** Offer discovery is not subscription eligibility. The original billing code can automatically press Subscribe and charge a payment method. Google determines actual pricing, free periods and renewal dates; the 12 + 6 + 6 month stacking claim has **not** been independently verified. Prefer read-only commands first.
 

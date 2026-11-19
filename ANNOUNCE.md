@@ -1,31 +1,27 @@
-# 发帖文案（直接复制）
+# English release announcement drafts
 
-## 版一：正常拉群
+These drafts intentionally describe the toolkit without guaranteeing a free subscription or eligibility.
 
-> Google AI Ultra 一年 $0，路子跑通了。
+## Short announcement
+
+> **Google AI Android Toolkit**
 >
-> 原理不复杂：Ultra 的 12 个月免费试用根本没做在页面上，只藏在 Play 结算库的返回里。
-> 脚本借 Google One 自己的进程把这几个 offer 问出来，挑免费期最长的那个拉起 Play 收银台，确认 0 元就开好了。
-> 20TB 存储，到期前取消不花钱。
+> A Python + ADB + Frida research and diagnostics repository for inspecting Google Play promotional offer data in a rooted Android environment.
 >
-> 代码和教程都在这里，私密仓库刚开的公开：
-> https://github.com/gylive/google-ultra
+> Includes Android 15 Activity compatibility diagnostics, an English CLI, Windows PowerShell setup and mock tests.
 >
-> 环境要求就一条：root 过的安卓机 + 一根数据线。教程从装 Python 开始写，零基础能跟。
+> Offer data is not evidence that a trial is available, and the optional billing workflow can initiate a real subscription. Always verify pricing and renewal terms directly in Google Play.
 >
-> 有问题进群说，二维码在下面。进不来就加我微信，我拉你。
+> Repository: https://github.com/hoangsvit/google-ai
 
-（配图：assets/wechat-group.jpg）
+## Technical announcement
 
-## 版二：群进不去时的补救
-
-> 上面那个群二维码过期了或者满了，扫这个加我，备注「Ultra」，我拉你进群。
+> The repository separates the Python entrypoint, Frida hook, bundled Android module, diagnostics and tests.
 >
-> 代码在这：https://github.com/gylive/google-ultra
+> Run `run-all.ps1 -ListOnly` to inspect the device and offer metadata without opening checkout. On supported environments, a guided workflow can optionally request a billing flow with explicit confirmations.
+>
+> The author's claims about stacking promotional periods have not been independently verified.
 
-（配图：assets/wechat-admin.jpg）
+## One-line summary
 
-## 版三：一句话版（发评论区/转发用）
-
-> Ultra 一年免费的路子跑通了，代码和零基础教程：https://github.com/gylive/google-ultra
-> 群满了就加我微信拉你。
+> Android Google Play offer diagnostics (Python, ADB and Frida), with English documentation and read-only commands: https://github.com/hoangsvit/google-ai

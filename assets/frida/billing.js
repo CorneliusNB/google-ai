@@ -1,7 +1,7 @@
-// Ultra0 注入脚本：多商品查询 → 自动挑最长免费试用 → 主线程拉起收银台
+// Frida billing hook: query products, select the best available introductory offer, and optionally open checkout.
 var dexLoader=null, ctxRef=null, clientRef=null;
-var PRODUCTS=["g1.play.20tb","g1.play.ai.pro","g1.30tb"];   // 5x / 20x(带试用) / 20x(另一档)
-var PREFER="";        // 空=自动挑最长；可传 "eft-12month" 等
+var PRODUCTS=["g1.play.20tb","g1.play.ai.pro","g1.30tb"];   // 5x / 20x introductory offer / alternate 20x
+var PREFER="";        // Empty selects the longest introductory period; can prefer an offer ID such as "eft-12month".
 var ACTIVITY_METHOD="auto"; // auto=choose then ActivityThread; choose/thread force one
 function L(v){ Java.classFactory.loader=v; }
 function S(o){ send(o); }
@@ -185,13 +185,13 @@ function launch(pd, offer, oldTok){
   var l=Java.use("java.util.ArrayList").$new(); l.add(pdp);
   var b=BFP.newBuilder().setProductDetailsParamsList(l);
   if(oldTok){
-    // 订阅升级：旧 purchaseToken + CHARGE_FULL_PRICE(5)
-    // 这样 Play 会把「剩余试用期折算」后顺延，而不是"换成同档、日期不变"
+    // Subscription replacement: existing purchaseToken with replacement mode CHARGE_FULL_PRICE (5).
+    // The original author expected trial proration; the actual date and billing are decided by Google Play.
     try{
       var SUP=Java.use("com.android.billingclient.api.BillingFlowParams$SubscriptionUpdateParams");
       var md = (typeof STACK_MODE !== "undefined" && STACK_MODE) ? STACK_MODE : 5;
       var sb=SUP.newBuilder();
-      // 这个 Billing 版本用 setReplaceProrationMode（旧名 setReplaceSkusProrationMode）
+      // This Billing API build uses setReplaceProrationMode (formerly setReplaceSkusProrationMode).
       var mode_set=false;
       try{ sb=sb.setReplaceProrationMode(md); mode_set=true; }
       catch(e1){

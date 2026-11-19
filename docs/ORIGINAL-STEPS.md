@@ -1,0 +1,38 @@
+# Historical Google AI Pro stage reference (English)
+
+> The original author claimed the following promotional sequence existed. The alleged 12 + 6 + 6 + optional 6 month stacking is **unverified** and may be ineligible, unavailable, paid, or rejected by Google Play. This is a translation of the procedure's intent, **not a promise of free service**.
+
+## Environment
+
+Use a compatible rooted Android emulator with the Google Play Store and Google One installed. Sign in to the desired Google account. Install Python 3.10+, Android platform-tools and the Frida version required by this repository. Verify the account and payment conditions in Google Play.
+
+Run `setup-environment.bat` to invoke the original setup helper, or use the maintained `run-all.ps1 -SetupOnly` command. Setup may install dependencies, restart Frida, and modify emulator network settings.
+
+## Maintained entrypoints
+
+| Action | Filename | Description |
+| --- | --- | --- |
+| Check environment | `00-environment-check.bat` | Checks ADB, Frida and required Android packages |
+| Read available offers | `01-list-offers.bat` | Queries offers; no checkout |
+| Original stage 1 | `02-pro-12-months.bat` | Claimed one-year promotional flow; **possible purchase** |
+| Original stage 2 | `03-pro-add-6-months.bat` | Claimed subscription replacement with `--stack`; **possible purchase** |
+| Original stage 3 | `04-pro-add-6-months-again.bat` | Additional claimed `--stack` flow; **possible purchase** |
+| Alternate stage | `05-pro-alternative-6-months.bat` | Claimed alternative offer; **possible purchase** |
+
+These legacy-compatible batch files preserve the original `--force` option and **do not verify the Play account**. Prefer the guided `run-all.ps1` entrypoint, which checks the account and explicitly asks for consent before each live stage.
+
+## What the original script attempts
+
+For a product with an existing subscription, it may read an existing `purchaseToken` from Google Play's local database and construct `BillingFlowParams.SubscriptionUpdateParams` to request a subscription replacement. The author claimed this could extend a promotional trial, but an accepted API call or offer token does not establish an entitlement or a new renewal date. Only Google's live checkout and subscription record establish actual terms.
+
+Do not assume a cancelled subscription is eligible for stacking or that cancellation preserves an advertised term. After any transaction, check the **actual renewal date and currency** in Google Play Store → Payments & subscriptions → Subscriptions. Do not confirm purchases simply because a summary says the price is zero.
+
+## Troubleshooting
+
+- **Account mismatch:** Verify the active Play Store profile; do not bypass the check.
+- **Connection timeout:** Confirm the device, internet connectivity and running apps.
+- **Activity lookup errors:** Inspect the Frida/Android Runtime version and run `python scripts/diagnose-activity.py --serial YOUR_DEVICE`.
+- **Offer ineligible or checkout price is nonzero:** Stop and review the actual terms in Play Store.
+- **Unknown subscription result:** Check the subscription record directly; don't rerun automatic checkout until you know what happened.
+
+Read [the maintained English guide](DETAILED-GUIDE.md) and [security notes](../SECURITY.md) before running the optional live billing flow.

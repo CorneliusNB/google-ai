@@ -18,6 +18,6 @@ python setup_env.py
 
 echo.
 echo ------------------------------------------------------------
-echo   Done. If all green, double-click 2_Pro_12m_step1.bat
+echo   Setup finished. Next: run-all.ps1 -ListOnly (no checkout)
 echo ------------------------------------------------------------
 pause
