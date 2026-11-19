@@ -91,16 +91,19 @@ class GoogleAITUI(App[None]):
         border: round #2b5577; background: #101f35;
         padding: 0 1; overflow-y: auto; scrollbar-size: 1 1;
     }
-    #results { width: 1fr; min-width: 26; min-height: 0; margin-left: 1; }
+    #results { width: 1fr; min-width: 26; min-height: 0; margin-left: 1; overflow-y: auto; scrollbar-size: 1 1; }
     .section { color: #6cdbf8; text-style: bold; margin: 0 0 1 0; }
     #workflow { height: auto; margin-bottom: 1; }
     .workflow-step { color: #b4cbe0; height: 1; }
     #nav_help, #debug, #exit {
         width: 100%; height: 3; margin: 0;
     }
-    #quickstart, #nav_home, #nav_quick, #advanced, #sequence, #run_all {
-        display: none;
-    }
+    #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
+    #quickstart { display: block; width: 100%; height: 3; margin: 0 0 1 0; }
+    #advanced_toggle { width: 100%; height: 3; margin: 0; }
+    #workflow_actions { display: none; height: auto; margin-top: 1; border-top: solid #285d83; padding-top: 1; }
+    #status_panel { min-height: 8; overflow-y: auto; scrollbar-size: 1 1; }
+
     #welcome_panel {
         height: auto; border: round #2b97bc;
         background: #112b49; padding: 1 2; margin-bottom: 1;
@@ -142,7 +145,9 @@ class GoogleAITUI(App[None]):
     Screen.compact #details { height: 1; }
     Screen.compact #device, Screen.compact #account { height: 1; border: none; }
     Screen.compact #welcome_panel { padding: 0 1; }
-    Screen.compact #quick_hint { display: none; }
+    Screen.compact #quick_hint, Screen.compact #read_only { display: none; }
+    Screen.compact #welcome_panel { padding: 0 1; }
+    Screen.compact #quickstart, Screen.compact #advanced_toggle { height: 3; }
     Screen.narrow #form_row { layout: vertical; }
     Screen.narrow #step_field { margin: 1 0 0 0; }
     Screen.narrow #run_row { layout: vertical; }
@@ -206,8 +211,10 @@ class GoogleAITUI(App[None]):
                     yield Button("Exit toolkit", id="exit")
                 with Vertical(id="results"):
                     with Vertical(id="welcome_panel"):
-                        yield Static("RUN WORKFLOW", id="welcome")
-                        yield Static("Choose a run mode, then select the starting step.", id="quick_hint")
+                        yield Static("GET STARTED · READ-ONLY CHECK", id="welcome")
+                        yield Static("Check MuMu connection and Google AI offers without opening checkout.", id="quick_hint")
+                        yield Button("Check Device & Offers", id="quickstart", variant="success")
+                        yield Button("Advanced: Run by step  +", id="advanced_toggle")
                         with Vertical(id="workflow_actions"):
                             with Horizontal(id="form_row"):
                                 with Vertical(classes="field", id="mode_field"):
@@ -231,12 +238,11 @@ class GoogleAITUI(App[None]):
                             yield Button("Verified in Google Play → Next",
                                          id="next", disabled=True)
                             yield Button("Stop after current step", id="stop", disabled=True)
-                            yield Button("Check Device & Offers", id="quickstart")
-                            yield Static("Checkout steps require explicit confirmation.", id="read_only")
+                            yield Static("Steps 2–5 can open checkout and require confirmation.", id="read_only")
                     with Vertical(id="status_panel"):
                         yield Static("LIVE STATUS", classes="section")
                         yield Static("Ready — no check started", id="state")
-                        yield Static("Choose a run mode and press Run above.", id="message")
+                        yield Static("Press Check Device & Offers to begin. Advanced modes are optional.", id="message")
                         yield Static("", id="step_result")
                         yield Static("Elapsed: --", id="elapsed")
                         yield Static("Waiting for your action.", id="activity")
@@ -273,6 +279,16 @@ class GoogleAITUI(App[None]):
             self.query_one("#mode", Select).value = "from"
         self._update_run_mode()
 
+    @on(Button.Pressed, "#advanced_toggle")
+    def advanced_pressed(self) -> None:
+        self.advanced_visible = not self.advanced_visible
+        panel = self.query_one("#workflow_actions", Vertical)
+        panel.display = self.advanced_visible
+        self.query_one("#advanced_toggle", Button).label = (
+            "Hide advanced steps  −" if self.advanced_visible
+            else "Advanced: Run by step  +"
+        )
+
     @on(Select.Changed, "#mode")
     def mode_changed(self, event: Select.Changed) -> None:
         self._update_run_mode()
@@ -302,8 +318,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#mode_hint", Static).update(hint)
 
     def action_toggle_advanced(self) -> None:
-        # Legacy test/keyboard entrypoint: run options now stay visible.
-        return
+        self.advanced_pressed()
 
     def _refresh_elapsed(self) -> None:
         if not self.busy or self._started_at is None:
