@@ -1,5 +1,7 @@
 # ePlus AI Toolkit
 
+**Languages:** **English** · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
+
 A Windows-focused terminal toolkit for inspecting Google AI Pro offers through an Android emulator, ADB, Frida and Google Play. The Textual dashboard wraps the existing PowerShell/Python engine and preserves the original author's workflow.
 
 <img width="1902" height="912" alt="ePlus AI Toolkit terminal dashboard" src="https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3" />
