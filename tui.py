@@ -24,7 +24,9 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Static
 
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
-    needs_setup, outcome_for_stage, read_fresh_report, report_summary, validate_step
+    needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, \
+    report_summary, validate_step
+from device_diagnostics import ConnectionDiagnosis, inspect_connection
 
 
 class Approval(ModalScreen[bool]):
@@ -99,7 +101,7 @@ class GoogleAITUI(App[None]):
     .section { color: #6cdbf8; text-style: bold; margin: 0 0 1 0; }
     #workflow { height: auto; margin-bottom: 1; }
     .workflow-step { color: #b4cbe0; height: 1; }
-    #nav_help, #debug, #exit {
+    #nav_help, #diagnose, #debug, #exit {
         width: 100%; height: 3; margin: 0;
     }
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
@@ -136,7 +138,12 @@ class GoogleAITUI(App[None]):
     }
     #state { color: #f2f9ff; text-style: bold; margin: 1 0 0 0; }
     #message { color: #c5ddee; }
-    #step_result { color: #8cdfbb; }
+    #step_result { color: #8cdfbb; height: auto; }
+    #offers_title { display: none; color: #8edff1; text-style: bold; margin-top: 1; }
+    #offer_view {
+        display: none; height: 8; min-height: 4; margin-top: 1;
+        border: round #285a80; background: #081a2d;
+    }
     #elapsed, #activity { color: #95c4dd; }
     #debug_log {
         display: none; height: 1fr; min-height: 3;
@@ -176,6 +183,7 @@ class GoogleAITUI(App[None]):
         self.start_sequence = start_sequence
         self.debug_visible = initial_debug
         self.busy = False
+        self._diagnosing = False
         self.sequence = False
         self.current_step: int | None = None
         self._child: subprocess.Popen[str] | None = None
@@ -213,6 +221,7 @@ class GoogleAITUI(App[None]):
                             yield Static(f"○  {stage.number}. {stage.label}",
                                          id=f"stage_{stage.number}", classes="workflow-step")
                     yield Button("Help & Guide", id="nav_help")
+                    yield Button("Diagnose Android connection", id="diagnose")
                     yield Button("Show technical details", id="debug")
                     yield Button("Exit toolkit", id="exit")
                 with Vertical(id="results"):
@@ -250,6 +259,8 @@ class GoogleAITUI(App[None]):
                         yield Static("Ready — no check started", id="state")
                         yield Static("Press Check Device & Offers to begin. Advanced modes are optional.", id="message")
                         yield Static("", id="step_result")
+                        yield Static("AVAILABLE OFFERS · FIRST PHASE ONLY", id="offers_title")
+                        yield RichLog(id="offer_view", wrap=True, highlight=False, markup=False)
                         yield Static("Elapsed: --", id="elapsed")
                         yield Static("Waiting for your action.", id="activity")
                         yield Button("Completed action on Android", id="manual", disabled=True)
@@ -276,6 +287,43 @@ class GoogleAITUI(App[None]):
     def help_pressed(self) -> None:
         self._set_message("Start with a read-only offer check. Steps 2-5 can request "
                           "real payments; verify the account, terms and renewal date.")
+
+    @on(Button.Pressed, "#diagnose")
+    def diagnose_pressed(self) -> None:
+        if self.busy or self._diagnosing:
+            return
+        self._diagnosing = True
+        self.query_one("#diagnose", Button).disabled = True
+        self.query_one("#quickstart", Button).disabled = True
+        self.query_one("#run", Button).disabled = True
+        self._set_status("Inspecting Android connection...")
+        self._set_message(
+            "Checking local ADB, Android transport and Google One. No checkout, "
+            "installation or emulator reset; adb devices may start the local ADB server."
+        )
+        self.inspect_android_connection()
+
+    @work(thread=True, exclusive=True, group="android-connection")
+    def inspect_android_connection(self) -> None:
+        try:
+            diagnosis = inspect_connection()
+        except Exception:
+            diagnosis = ConnectionDiagnosis(
+                "error", "Connection check could not complete", (),
+                "Check the ADB installation and try again. No checkout was started.",
+            )
+        self.call_from_thread(self._diagnosis_done, diagnosis)
+
+    def _diagnosis_done(self, diagnosis: ConnectionDiagnosis) -> None:
+        self._diagnosing = False
+        self.query_one("#diagnose", Button).disabled = False
+        self.query_one("#quickstart", Button).disabled = False
+        self.query_one("#run", Button).disabled = False
+        self._set_status(diagnosis.headline)
+        self._set_message(diagnosis.guidance)
+        self.query_one("#step_result", Static).update("\n".join(diagnosis.details))
+        self.query_one("#offers_title", Static).display = False
+        self.query_one("#offer_view", RichLog).display = False
 
     def on_mount(self) -> None:
         self.set_interval(1, self._refresh_elapsed)
@@ -363,7 +411,7 @@ class GoogleAITUI(App[None]):
 
     def _confirm_stage(self, step: int, sequence: bool,
                        previous_verified: bool = False) -> None:
-        if self.busy:
+        if self.busy or self._diagnosing:
             return
         if step == 2:
             title = "Start initial 12-month checkout?"
@@ -389,7 +437,7 @@ class GoogleAITUI(App[None]):
 
     @on(Button.Pressed, "#run")
     def selected_pressed(self) -> None:
-        if self.busy:
+        if self.busy or self._diagnosing:
             return
         mode = self.query_one("#mode", Select).value
         if mode == "all":
@@ -512,7 +560,7 @@ class GoogleAITUI(App[None]):
             self.query_one("#exit", Button).disabled = True
 
     def _start(self, step: int, sequence: bool) -> None:
-        if self.busy:
+        if self.busy or self._diagnosing:
             return
         self.busy = True
         self.sequence = sequence
@@ -525,6 +573,9 @@ class GoogleAITUI(App[None]):
         self._last_output.clear()
         self._run_output.clear()
         self.query_one("#debug_log", RichLog).clear()
+        self.query_one("#offer_view", RichLog).clear()
+        self.query_one("#offer_view", RichLog).display = False
+        self.query_one("#offers_title", Static).display = False
         self.query_one("#device", Static).update(
             "ANDROID DEVICE\nADB • Auto-detect" if self.macos_mode
             else "ANDROID DEVICE\nMuMu • Auto-detect"
@@ -540,6 +591,7 @@ class GoogleAITUI(App[None]):
             else "Connecting to MuMu and preparing tools..."
         )
         self.query_one("#quickstart", Button).disabled = True
+        self.query_one("#diagnose", Button).disabled = True
         self.query_one("#run", Button).disabled = True
         self.query_one("#sequence", Button).disabled = True
         self.query_one("#mode", Select).disabled = True
@@ -683,6 +735,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True
         self.query_one("#quickstart", Button).disabled = False
+        self.query_one("#diagnose", Button).disabled = False
         self.query_one("#run", Button).disabled = False
         self.query_one("#sequence", Button).disabled = False
         self.query_one("#mode", Select).disabled = False
@@ -703,6 +756,13 @@ class GoogleAITUI(App[None]):
         self._set_message(instruction)
         if step == 1:
             self.query_one("#step_result", Static).update(report_summary(report))
+            if isinstance(report, dict):
+                offer_view = self.query_one("#offer_view", RichLog)
+                offer_view.clear()
+                for item in offer_explorer_lines(report):
+                    offer_view.write(item)
+                offer_view.display = True
+                self.query_one("#offers_title", Static).display = True
             if self.macos_mode and isinstance(report, dict):
                 detected = report.get("detected_play_account")
                 if isinstance(detected, str) and detected:
