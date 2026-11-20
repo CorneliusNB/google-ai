@@ -217,4 +217,4 @@ Voir aussi [structure et maintenance](docs/PROJECT.md), [utilisation et CLI](doc
 
 ## Crédits**Auteur d'origine :** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **Maintenance :** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). Les mentions MIT de l'auteur initial sont conservées dans `THIRD_PARTY_NOTICES.md`.
 
-[Centre de documentation](docs/README.md) · [Guide complet en français](docs/i18n/README.fr.md) · [Sécurité des paiements](docs/SAFETY.md)
+[Centre de documentation](docs/README.md) · [Guide historique en français](docs/i18n/README.fr.md) · [Sécurité des paiements](docs/SAFETY.md)
