@@ -27,9 +27,14 @@ bypass for Mac.
 
 ## Requirements
 
-- macOS, Python 3.10+ and network access to install packages.
-- Android SDK Platform-Tools (ADB) on PATH. Homebrew option:
+- macOS with the built-in **Terminal** app and a POSIX shell (**zsh** or **bash**). **PowerShell is not needed**. Do not run Windows `.ps1` / `.bat` launchers or Windows-only `setup_env.py` on macOS.
+- **Git**, **Python 3.10+** (use `python3` in Terminal) and network access to install packages. Install Git via Xcode Command Line Tools or Homebrew if it is missing.
+- Android SDK Platform-Tools (**ADB**) on PATH, installed separately. With Homebrew:
+
+  ```sh
   brew install android-platform-tools
+  adb devices
+  ```
 - A rooted Android device or compatible Android emulator with Google One and
   Google Play Store. MuMuPlayer Pro for Mac is an option on Apple Silicon,
   not Intel. Root and Frida compatibility depend on the actual Android build.
@@ -44,6 +49,7 @@ rooted Android device. Then clone the project in Terminal:
 ```sh
 git clone https://github.com/hoangsvit/google-ai.git
 cd google-ai
+adb devices  # Confirm your authorized Android device is connected
 sh run-macos.sh
 ```
 

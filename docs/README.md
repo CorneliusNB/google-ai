@@ -2,10 +2,23 @@
 
 [← Project overview](../README.md) · [Security](../SECURITY.md) · [GitHub Releases](https://github.com/hoangsvit/google-ai/releases)
 
-This is the **version-controlled documentation hub** for the Windows and macOS toolkit. Start with the platform guide, then follow only the instructions relevant to your goal. The repository README stays intentionally short.
+This is the **version-controlled documentation hub** for the Windows and macOS toolkit. Start with the platform guide, then follow only the instructions relevant to your goal. The main README retains the original full user guide format, including Windows and macOS installation and detailed usage.
 
 > [!CAUTION]
 > **Unofficial project. Steps 2–5 can initiate real Google Play charges.** A listed offer or a $0 introductory price does not prove subscription eligibility, activation or renewal. Review the current account, today's charge, later prices and subscription details directly in Google Play. See [Safety & billing](SAFETY.md).
+
+## Platform software requirements
+
+| | Windows | macOS |
+| --- | --- | --- |
+| Shell | **PowerShell 5.1+** | **Terminal (zsh/bash)**; PowerShell is **not** needed |
+| Python and Git | Python **3.10+** and Git | Python **3.10+** and Git |
+| Android | Root/ADB-enabled MuMuPlayer or authorized Android device with Google Play Store and Google One | Rooted compatible Android device/emulator with both apps; MuMuPlayer Pro for Mac is an Apple Silicon option, not Intel |
+| ADB and Frida | Windows launcher can locate/install Platform-Tools and prepare Frida **16.5.9** | Install ADB separately (e.g. `brew install android-platform-tools`); Mac launcher installs Frida **16.5.9** into `.venv` |
+| Launcher | `.\run-all.ps1` | `sh run-macos.sh` or `ePlus-AI-Toolkit.command` |
+| Setup guide | [Windows requirements and installation](INSTALLATION.md) | [macOS requirements and installation](MACOS-PREVIEW.md) |
+
+Only the macOS host / mocked logic is covered by automated checks; real Mac/MuMu billing has not been validated. Choose the appropriate guide and do not run the Windows-only `.ps1`, `.bat`, or `setup_env.py` path on macOS.
 
 ## Start here
 
@@ -24,7 +37,7 @@ This is the **version-controlled documentation hub** for the Windows and macOS t
 
 ## Detailed guides in other languages
 
-The translated detailed guides preserve the full usage explanations previously found in the root READMEs:
+Detailed localized historical guides are also available alongside the full root-language READMEs:
 
 - [Vietnamese](i18n/README.vi.md) · [Simplified Chinese](i18n/README.zh-CN.md) · [Japanese](i18n/README.ja.md)
 - [Korean](i18n/README.ko.md) · [Spanish](i18n/README.es.md) · [French](i18n/README.fr.md)

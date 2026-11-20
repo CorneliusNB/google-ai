@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve this Windows/MuMu adaptation. The original implementation comes from [gylive/google-ultra](https://github.com/gylive/google-ultra); current maintenance is by [David Nguyen (@hoangsvit)](https://github.com/hoangsvit).
+Thanks for helping improve the Windows and macOS implementations of this toolkit. The original implementation comes from [gylive/google-ultra](https://github.com/gylive/google-ultra); current maintenance is by [David Nguyen (@hoangsvit)](https://github.com/hoangsvit).
 
 ## Report an issue
 
@@ -21,14 +21,25 @@ The experimental [full macOS port](docs/MACOS-PREVIEW.md) includes Steps 0–5 a
 
 Open a [pull request](https://github.com/hoangsvit/google-ai/pulls) targeting `dev` with one focused improvement. Keep the original step mappings intact, explain any behavior change, and add mock tests for fixes. Do not run live subscription checkout in CI.
 
-Before opening the PR, prepare the **test-only Textual dependency** and run the Python suite (no Android device or purchase required):
+Before opening the PR, prepare the **test-only Textual dependency** and run the Python suite (no Android device or purchase required). Use the shell appropriate for your OS:
+
+**Windows PowerShell:**
 
 ```powershell
 python -m pip install -r requirements-tui.txt
 python -m unittest discover -s tests -v
 ```
 
-If Node.js and PowerShell are available, also run the offline JavaScript and PowerShell checks used by GitHub Actions:
+**macOS Terminal (zsh/bash, no PowerShell):**
+
+```sh
+python3 -m pip install -r requirements-tui.txt
+python3 -m unittest discover -s tests -v
+python3 -m py_compile macos_runner.py
+sh -n run-macos.sh
+```
+
+If Node.js and PowerShell are available (**Windows or a host where PowerShell is deliberately installed**), also run the offline JavaScript and PowerShell checks used by GitHub Actions. **Mac contributors do not need to install PowerShell**; CI runs the Windows-specific suite separately:
 
 ```powershell
 node --test tests/test_activity_lookup.test.mjs tests/test_subscription_update.test.mjs
@@ -43,10 +54,10 @@ Documentation and terminal usability fixes are welcome. Preserve attribution to 
 
 ## Documentation changes
 
-- Keep root README files as short overviews. Move procedures, diagnostics and legacy references to the [documentation hub](docs/README.md). Root overviews must still show direct, parallel Windows and macOS setup steps; keep branch-specific preview guidance in [the Mac guide](docs/MACOS-PREVIEW.md).
-- Update the English topic page first, then review the translated detailed guides in `docs/i18n/` if the change affects user-facing instructions. Each root language README links to its detailed guide.
+- Preserve the original detailed format of all root READMEs (Windows + macOS setup, dashboard, CLI, troubleshooting, safety and credits). Keep additional technical guidance in the [documentation hub](docs/README.md); do not require users to switch branches to install either platform.
+- Update the full English README and six root-language READMEs together. Review topic-specific docs and historical translations under `docs/i18n/` for consistency.
 - Always preserve billing warnings and verification requirements. Do not confuse a Google Play offer listing, submitted checkout or authorization hold with successful subscription activation.
-- Before submitting a PR, run `python -m unittest discover -s tests -p 'test_readme_locales.py' -v` and `python -m unittest discover -s tests -p 'test_docs_navigation.py' -v` to check links and README size.
+- Before submitting a PR, run `python -m unittest discover -s tests -p 'test_readme_locales.py' -v` and `python -m unittest discover -s tests -p 'test_docs_navigation.py' -v` to check links, classic README structure and platform installation guidance.
 
 ## Translations
 
