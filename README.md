@@ -2,7 +2,7 @@
 
 **Languages:** **English** · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-A Windows-focused terminal toolkit for inspecting Google AI Pro offers through an Android emulator, ADB, Frida and Google Play. The Textual dashboard wraps the existing PowerShell/Python engine and preserves the original author's workflow.
+A terminal toolkit for **Windows and macOS** to inspect Google AI Pro offers through Android, ADB, Frida and Google Play. The shared Textual dashboard uses a PowerShell/Python launcher on Windows and a native Python adapter on macOS.
 
 <img width="1902" height="912" alt="ePlus AI Toolkit terminal dashboard" src="https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3" />
 
@@ -22,7 +22,22 @@ Read the **[full disclaimer](DISCLAIMER.md)** and [security precautions](SECURIT
 
 ## Install and prepare
 
-### Requirements
+**Choose the instructions for your operating system.** Windows runs PowerShell; macOS runs Terminal with a POSIX shell (zsh/bash). **PowerShell is not required or used on macOS.**
+
+| Software / configuration | Windows | macOS |
+| --- | --- | --- |
+| Terminal and shell | **PowerShell 5.1+** | Built-in **Terminal**, using **zsh** or **bash**; **no PowerShell** |
+| Python | **3.10+** (command: `python`) | **3.10+** (command: `python3`); launcher creates a local `.venv` |
+| Git | Install Git for Windows | Install Git (Xcode Command Line Tools or Homebrew are options) |
+| Android connection | Rooted, ADB-enabled Android instance; **MuMuPlayer for Windows** is supported by the project workflow | Rooted Android device or compatible emulator; **MuMuPlayer Pro for Mac** is an Apple Silicon option, not an Intel Mac solution |
+| Android apps | Google Play Store and Google One, signed in to the intended account | Same; must be available on the chosen Android device/emulator |
+| ADB / Platform-Tools | Launcher can locate/download ADB when needed | Install separately, e.g. `brew install android-platform-tools`; verify with `adb devices` |
+| Frida | **16.5.9**, prepared by the Windows setup helper as needed | **16.5.9**, installed into the local `.venv` by the Mac launcher; Android-side compatibility must be checked |
+| Start command | `.\run-all.ps1` | `sh run-macos.sh` (or `ePlus-AI-Toolkit.command`) |
+
+Both platforms need an authorized, correctly configured Android environment. The macOS implementation covers Steps 0–5 in code, but real Mac/MuMu checkout compatibility has **not** been verified. See the dedicated [Windows guide](docs/INSTALLATION.md) and [macOS guide](docs/MACOS-PREVIEW.md).
+
+### Windows requirements
 
 - **Windows** with PowerShell **5.1+** and Python **3.10+**.
 - **MuMuPlayer installed separately**, started with an Android instance that permits root and ADB access.
@@ -77,6 +92,28 @@ If you encounter errors when running the latest repository version, you can try 
 
 A **source ZIP is not a prebuilt `.exe` or installer**. Keep the release in a **separate folder** from your current clone so you can compare versions and roll back without overwriting files. Release builds may lack newer bug fixes, and they still require Windows, Python, MuMuPlayer, ADB/Frida and the same billing precautions. If the error persists, check [Troubleshooting](#troubleshooting-and-results) or [report an issue](https://github.com/hoangsvit/google-ai/issues).
 
+## macOS — Install and run
+
+**macOS uses Terminal (zsh/bash), not PowerShell.** Do not run `.ps1` / `.bat` launchers or the Windows-only `setup_env.py` on a Mac.
+
+The native [macOS implementation](docs/MACOS-PREVIEW.md) supports **Steps 0–5**, including guided subscription stages, without using the Windows PowerShell setup helper. It reuses the existing Python/Frida Android engine and shared Textual dashboard. **Steps 2–5 can create real Google Play charges**, so each requires a separate confirmation, an identifiable current Play account and an available matching offer. The adapter never uses `--force`.
+
+**Requirements:** macOS, **Git**, Python 3.10+, Android SDK Platform-Tools/ADB (Homebrew: `brew install android-platform-tools`), and a rooted Android device/emulator with Google Play Store and Google One. **MuMuPlayer Pro for Mac supports Apple Silicon**; Intel Macs require another compatible rooted Android setup.
+
+Open **Terminal** and install from the default repository branch:
+
+```sh
+git clone https://github.com/hoangsvit/google-ai.git
+cd google-ai
+adb devices
+sh run-macos.sh
+```
+
+The launcher prepares Textual and Frida 16.5.9 in a local `.venv`. Optional commands: `sh run-macos.sh --check` (Android/Frida check; may alter settings), `sh run-macos.sh --list` (offers only), and `sh run-macos.sh --step 2` (preselect Step 2 in the TUI; **does not automatically pay**). The `ePlus-AI-Toolkit.command` file is a Finder-friendly Terminal launcher, **not a signed or notarized .app**.
+
+The macOS adapter exposes **Steps 0–5**. **Steps 2–5 may initiate real Google Play charges** and require explicit confirmation. No real Mac/MuMu checkout or subscription activation has been validated. [Full macOS guide](docs/MACOS-PREVIEW.md).
+
+
 ## Use the dashboard (recommended)
 
 ### Start with Check Device & Offers
@@ -124,7 +161,7 @@ Neither Stop nor closing the terminal reverses an existing Google Play transacti
 
 ## PowerShell CLI (advanced)
 
-The dashboard and the CLI reuse the same PowerShell/Python engine. Explicit command arguments bypass the TUI.
+**Windows only:** These PowerShell commands apply to `run-all.ps1`, not macOS. On a Mac, use the POSIX `run-macos.sh` launcher and [Mac-specific commands](docs/MACOS-PREVIEW.md). The Windows dashboard and CLI reuse the same PowerShell/Python engine. Explicit command arguments bypass the TUI.
 
 ### Safe offer check and diagnostics
 
@@ -137,7 +174,7 @@ The dashboard and the CLI reuse the same PowerShell/Python engine. Explicit comm
 
 Local technical logs are stored under `logs/`, while fresh offer and stage reports are under `ultra0-report/`. **Do not share raw logs or full reports** without removing account identifiers and sensitive billing/purchase tokens.
 
-The standalone `setup_env.py` and `setup-environment.bat` remain troubleshooting/repair tools, not mandatory steps before launching the dashboard.
+The standalone `setup_env.py` and [`tools/windows/setup-environment.bat`](tools/windows/setup-environment.bat) remain troubleshooting/repair tools, not mandatory steps before launching the dashboard.
 
 ### Checkout commands — may charge money
 
@@ -183,7 +220,7 @@ Only use a `-Serial` observed through ADB. `-Email` constrains the account expec
 
 Verify subscription, payment amount, currency and renewal terms under **[Google Play Subscriptions](https://play.google.com/store/account/subscriptions)**. For developer-facing status codes and advanced platform/Frida problems, see [Detailed setup and troubleshooting](docs/DETAILED-GUIDE.md).
 
-**Platform support:** This README documents the Windows workflow. A macOS read-only prototype was closed without merging because it did not offer full feature parity. Do not assume the Windows checkout flow works on macOS.
+**Platform support:** Windows and macOS use separate launchers. The macOS port has not been validated with a real Mac/MuMu or Google Play transaction; see [macOS guide](docs/MACOS-PREVIEW.md).
 
 ## Community support and related projects
 
@@ -191,7 +228,26 @@ If you need help installing or using ePlus AI Toolkit, see the [ePlus Telegram s
 
 **Can't access the Google AI Pro offer?** You may also explore [Muse Invite Hub](https://github.com/ePlus-DEV/muse-invite-hub) ([browse or share Muse invite codes](https://muse.eplus.dev/)), another ePlus.DEV community project. Muse invite codes are for a **separate service**, are not a substitute for Google AI Pro subscriptions, and do **not** unlock or guarantee Google AI Pro access. Muse code availability and eligibility may vary.
 
+## Repository structure
+
+Active launchers and the Python modules they invoke stay at the repository root. **Use `run-all.ps1` on Windows or `run-macos.sh` on macOS.**
+
+| Location | Purpose |
+| --- | --- |
+| `run-all.ps1` | Windows entrypoint (Textual dashboard and guided CLI) |
+| `run-macos.sh`, `ePlus-AI-Toolkit.command`, `macos_runner.py` | macOS launcher and adapter (Steps 0–5; real-device checkout not validated) |
+| `tui.py`, `tui_core.py`, `ultra0.py`, `setup_env.py`, `device_selector.py`, `query_sku.py` | Active Python runtime and supporting tools; kept in place for compatibility |
+| [`tools/windows/`](tools/windows/README.md) | Optional manual Windows setup shortcut; not required for normal launch |
+| [`legacy/windows/`](legacy/windows/README.md) | Historical batch shortcuts; some bypass account checks with `--force` and may initiate a **real charge**. Use the maintained launcher instead |
+| `scripts/`, `assets/` | Runtime helpers and bundled Android/Frida assets |
+| `tests/`, `.github/workflows/`, `docs/` | Offline regression tests, CI and reference documentation |
+
 ## Documentation and contributing
+
+- [Documentation hub](docs/README.md)
+- [Repository structure and maintenance](docs/PROJECT.md)
+- [Dashboard usage & PowerShell CLI](docs/USAGE.md)
+- [Billing safety](docs/SAFETY.md)
 
 - [Install guide — GitHub Wiki](https://github.com/hoangsvit/google-ai/wiki/Install)
 - [Detailed setup and troubleshooting](docs/DETAILED-GUIDE.md)

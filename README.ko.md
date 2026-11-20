@@ -2,9 +2,10 @@
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md)
 
+
 > **기준 문서:** [영어 README](README.md). 이 번역은 주요 사용법과 주의사항을 설명합니다. 내용이 다르면 최신 소스 코드와 영어 README를 확인하세요.
 
-**ePlus AI Toolkit**은 주로 **Windows**에서 사용하는 터미널 도구입니다. **PowerShell, Python, ADB, Frida, Android 에뮬레이터(MuMuPlayer)**를 통해 Google One / Google Play의 Google AI Pro 프로모션 정보를 확인합니다. Textual UI와 CLI는 같은 실행 엔진을 사용합니다.
+**ePlus AI Toolkit**은 **Windows와 macOS**에서 사용하는 터미널 도구입니다. **Windows에서는 PowerShell, macOS에서는 Terminal(zsh/bash)**을 사용하며 Python, ADB, Frida 및 호환 Android 기기/에뮬레이터를 통해 Google One / Google Play의 Google AI Pro 프로모션 정보를 확인합니다. Textual UI와 CLI는 같은 실행 엔진을 사용합니다.
 
 ![ePlus AI Toolkit 화면](https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3)
 
@@ -63,6 +64,21 @@ adb devices
 ```
 
 **Source code (zip)은 미리 빌드된 `.exe`나 설치 프로그램이 아닙니다.** 기존 소스 폴더를 덮어쓰지 말고 **별도 폴더**에 보관하세요. 이전 릴리스에는 최신 버그 수정이 빠져 있을 수 있습니다. Windows, Python, MuMuPlayer, ADB/Frida와 결제 관련 주의사항은 여전히 필요합니다. 문제가 계속되면 [문제 해결 가이드](docs/DETAILED-GUIDE.md) 또는 [Issues](https://github.com/hoangsvit/google-ai/issues)를 확인하세요.
+
+## macOS — 설치 및 실행
+
+macOS에서는 **Git**, **Python 3.10+**, **Android SDK Platform-Tools (ADB)**를 설치하세요(Homebrew: `brew install android-platform-tools`). Google Play Store/Google One이 있는 루팅 Android 기기 또는 호환 에뮬레이터가 필요합니다. Mac용 **MuMuPlayer Pro는 Apple Silicon 지원**, Intel Mac은 다른 Android 환경이 필요합니다.
+
+**Terminal**에서 실행:
+
+```sh
+git clone https://github.com/hoangsvit/google-ai.git
+cd google-ai
+adb devices
+sh run-macos.sh
+```
+
+`sh run-macos.sh`는 **0–5단계**가 포함된 Textual 대시보드를 엽니다. `--check`는 환경을 확인하며 설정을 바꿀 수 있고, `--list`는 혜택 조회만 수행합니다. `--step 2`는 화면에서 단계를 선택할 뿐 **자동 결제하지 않습니다**. 2–5단계는 실제 요금이 발생할 수 있어 단계별 승인이 필요합니다. **실제 Mac/MuMu에서 결제는 아직 검증되지 않았습니다.** [Mac 상세 안내](docs/MACOS-PREVIEW.md)를 참고하세요.
 
 ## 3. 대시보드 사용법
 
@@ -140,7 +156,7 @@ ADB에서 실제로 표시되는 시리얼만 사용하세요. `-Force`는 계�
 - **결제 제출 시도:** 구독 성공과 다릅니다. 재시도 전에 Google Play에서 상태를 확인하세요.
 - **결제 보안 오류(예: OR-REH-04):** 결제 단계를 중단하고 공식 보안 절차를 확인하세요.
 
-로그는 `logs/`, 보고서는 `ultra0-report/`에 저장됩니다. **계정 정보, 토큰, 결제 정보를 포함한 원본 파일을 공유하지 마세요.** CI는 정적/모의 테스트만 수행하며 실제 결제 성공을 검증하지 않습니다. **macOS 전체 지원은 아직 없습니다.**
+로그는 `logs/`, 보고서는 `ultra0-report/`에 저장됩니다. **계정 정보, 토큰, 결제 정보를 포함한 원본 파일을 공유하지 마세요.** CI는 정적/모의 테스트만 수행하며 실제 결제 성공을 검증하지 않습니다. 
 
 ## 커뮤니티 지원 및 관련 프로젝트
 
@@ -153,3 +169,5 @@ ePlus AI Toolkit 설치나 사용에 문제가 있다면 [ePlus Telegram 지원�
 [영어 README](README.md) · [설치 Wiki](https://github.com/hoangsvit/google-ai/wiki/Install) · [상세 가이드](docs/DETAILED-GUIDE.md) · [원본 단계](docs/ORIGINAL-STEPS.md) · [면책 고지](DISCLAIMER.md) · [보안](SECURITY.md) · [기여](CONTRIBUTING.md) · [저작권 고지](THIRD_PARTY_NOTICES.md)
 
 **원저자:** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **관리자:** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). 원본 MIT 저작권 고지는 `THIRD_PARTY_NOTICES.md`에 보존되어 있습니다.
+
+[문서 모음](docs/README.md) · [한국어 상세 안내](docs/i18n/README.ko.md) · [결제 안전](docs/SAFETY.md)

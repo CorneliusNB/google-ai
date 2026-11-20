@@ -2,15 +2,25 @@
 
 Instructions for coding agents working in this repository. Read this file, `README.md`, `CONTRIBUTING.md`, and `SECURITY.md` before changing code. Prefer the implementation on the current target branch over old PR descriptions, screenshots, or previous task summaries.
 
+## macOS full-stage port constraints
+
+- `run-macos.sh` launches the shared Textual dashboard with Steps 0–5. `macos_runner.py` is the macOS-native adapter to the **unchanged** Android engine; do not invoke Windows-only `setup_env.py` on Mac.
+- Do not bypass stage confirmation, current Google Play account lookup, exact offer ID or zero-price introductory phase validation. The Mac adapter intentionally does **not** support `--force` or automatic account switching.
+- Steps 2–5 may initiate real charges. Every stage requires a separate TUI approval, and continuing a sequence requires user verification of the subscription and renewal date in Google Play. The native CLI requires explicit authorization flags.
+- macOS CI is restricted to unit and integration mocks; never run a real checkout in CI, and never claim that a successful host run verifies actual Mac/MuMu billing.
+- Follow the existing dev-first PR workflow, but treat real Mac/Android hardware validation and publication as separate release gates. Preserve Windows behavior.
+
+
 ## Project purpose and boundaries
 
-**ePlus AI Toolkit** is a Windows/PowerShell + Python application for inspecting Google AI Pro offers on Android/MuMu. The Textual UI must remain an interface to the existing engine, not a second implementation of Android, Frida, account, offer, or Google Play Billing logic.
+**ePlus AI Toolkit** is a Windows and macOS Python toolkit for inspecting Google AI Pro offers on Android. Windows uses PowerShell (`run-all.ps1`) and its setup helper; macOS uses Terminal/zsh/bash (`run-macos.sh` and `macos_runner.py`) and must never be instructed to run the Windows `.ps1` or `.bat` setup tools. The Textual UI must remain an interface to the existing engine, not a second implementation of Android, Frida, account, offer, or Google Play Billing logic.
 
-- **`run-all.ps1`** — main entrypoint. No parameters launches the Textual dashboard; explicit `-Step N`, `-Cli`, or `-AllStages` use the CLI path. Read the real parameter and approval logic before changing an option.
+- **`run-macos.sh` / `macos_runner.py`** — macOS-only POSIX launcher and native stage adapter; no PowerShell or Windows `setup_env.py` on Macs.
+- **`run-all.ps1`** — Windows entrypoint. No parameters launches the Textual dashboard; explicit `-Step N`, `-Cli`, or `-AllStages` use the CLI path. Read the real parameter and approval logic before changing an option.
 - **`tui.py`** — Textual dashboard, user confirmations, subprocess orchestration, live output and safe Stop/Exit handling.
 - **`tui_core.py`** — stage mapping, command construction, setup requirements, fresh-report validation and outcome interpretation.
 - **`ultra0.py`** — upstream-derived Android/Frida/Google Play integration; treat changes here as high risk.
-- **`setup_env.py`**, `scripts/`, `setup-environment.bat` — environment detection, setup and compatibility.
+- **`setup_env.py`**, `scripts/`, `tools/windows/setup-environment.bat` — environment detection, setup and compatibility. Historical `legacy/windows/*.bat` shortcuts are not the supported entrypoint; preserve their relative paths and explicitly flag their `--force` risk.
 - **`tests/`** — offline regression checks. Test with mocks instead of connecting to real Google accounts or buying subscriptions.
 - **`README.md`**, `docs/`, `SECURITY.md`, `THIRD_PARTY_NOTICES.md` — public guidance, provenance and safety constraints.
 
@@ -39,22 +49,39 @@ The UI is for everyday users, not just developers:
 - Design and test terminal widths/heights around **90×20 and 110×35**; also handle narrower terminals without hiding the primary action or status behind an unscrollable panel.
 - Do not hide actionable error information solely inside Debug. User-facing error summaries should explain what failed and what is safe to do next; technical details may include sanitized diagnostics.
 
+## Branch routing and integration
+
+- `main` is the production/release branch. Never develop new features or reorganize files directly on `main`.
+- `dev` is the shared integration branch. Create feature/fix branches **from `dev`** and open Draft PRs **targeting `dev`**; run relevant Linux and Windows checks before integration.
+- After validation, promote **`dev` → `main`** through a separate reviewed PR. Only publish a release from tested `main`. Do not merge feature branches straight into `main`.
+- Keep active Windows entrypoints and imported Python modules at their current paths until tests prove a separate migration safe; move legacy installers/shortcuts with path updates and documentation.
+
 ## Development workflow
 
 1. Inspect the latest target branch, existing PRs/issues and relevant code. Do not base a new change on an unrelated unmerged PR or overwrite concurrent work.
 2. Prefer the smallest focused patch. Keep `tui.py` for interaction/layout and `tui_core.py` for pure parsing, stage and outcome rules. Never duplicate checkout/Frida routines inside TUI.
 3. Add regression tests for each bug. In tests, mock `subprocess.Popen` or the relevant application methods; **never** connect to a production emulator or initiate a Google Play transaction.
-4. Run, when available:
+4. Run, when available, using the shell native to the host:
 
+   **Windows PowerShell:**
+   
    ```powershell
    python -m unittest discover -s tests -v
    python -m py_compile tui.py tui_core.py
    ```
 
+   **macOS Terminal (zsh/bash; no PowerShell required):**
+
+   ```sh
+   python3 -m unittest discover -s tests -v
+   python3 -m py_compile tui.py tui_core.py macos_runner.py
+   sh -n run-macos.sh
+   ```
+
    Also run repository CI/static checks and any targeted test files affected by the patch. For layout changes, verify widget visibility, geometry, focus and scrollability at both compact and normal terminal sizes.
 5. Review UI change impact on Step 1 and on the Step 2–5 approval gates. Verify disabled buttons are disabled in **logic as well as appearance**.
 6. Update `README.md` and relevant docs when commands, labels, run modes, safety behavior, prerequisites or screenshots change. Avoid shipping code and outdated documentation together.
-7. Open a focused **Draft PR** with: problem, affected files, behavioral changes, tests/results, any unverified Windows/MuMu assumptions, and billing-risk implications. Do not merge or push directly to `main` without explicit authorization. A green CI run is not proof of real-device compatibility.
+7. Open a focused **Draft PR targeting `dev`** with: problem, affected files, behavioral changes, tests/results, any unverified Windows/MuMu assumptions, and billing-risk implications. Do not merge or push directly to `main` without explicit authorization. A green CI run is not proof of real-device compatibility.
 
 ## Change-specific checklists
 
@@ -75,6 +102,12 @@ The UI is for everyday users, not just developers:
 - Read only reports generated by the current invocation; stale reports cannot authorize another checkout.
 - Keep error codes and account masking consistent.
 - Do not infer free months, subscription activation, future billing or eligibility from offer metadata or UI prompts.
+
+## Documentation source of truth
+
+Keep the original detailed README format for English and all six localized README files: disclaimer, Windows installation, macOS installation, Textual dashboard, advanced CLI, troubleshooting, support and credits. The default-branch installation commands must work without switching branches. Maintain topic-specific references in `docs/README.md`, `docs/INSTALLATION.md`, `docs/USAGE.md`, `docs/SAFETY.md`, `docs/TROUBLESHOOTING.md`, `docs/PROJECT.md` and `docs/MACOS-PREVIEW.md`. The historical localized guides under `docs/i18n/` remain as additional references.
+
+When moving or changing guidance, keep original safety, billing and credit statements accurate, fix relative links from the document's new directory, and update `tests/test_readme_locales.py` and `tests/test_docs_navigation.py`. Do not collapse the root README to a short landing page again, or claim Mac hardware compatibility based on CI.
 
 ## Source of truth and reporting
 

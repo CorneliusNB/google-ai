@@ -2,9 +2,10 @@
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
+
 > **权威版本：**[英文 README](README.md)。本翻译说明主要操作和风险；若有差异，请以当前代码及英文 README 为准。
 
-这是一个主要面向 **Windows** 的终端工具，通过 **PowerShell、Python、ADB、Frida 和 Android 模拟器（MuMuPlayer）** 检查 Google One / Google Play 中的 Google AI Pro 优惠。Textual 界面与 CLI 使用同一底层引擎。
+这是一个支持 **Windows 和 macOS** 的终端工具，通过 **Windows PowerShell 或 macOS Terminal（zsh/bash）**，配合 Python、ADB、Frida 与兼容的 Android 设备/模拟器检查 Google One / Google Play 中的 Google AI Pro 优惠。Textual 界面与 CLI 使用同一底层引擎。
 
 ![ePlus AI Toolkit 界面](https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3)
 
@@ -63,6 +64,21 @@ adb devices
 ```
 
 **Source code (zip) 不是预编译的 `.exe` 或安装程序。** 建议将发布版本放在**独立文件夹**，不要覆盖当前仓库。旧版本可能缺少最新修复；仍需 Windows、Python、MuMuPlayer、ADB/Frida，并遵守相同的支付安全注意事项。如果问题仍在，请参考[故障排查](docs/DETAILED-GUIDE.md)或[提交 Issue](https://github.com/hoangsvit/google-ai/issues)。
+
+## macOS — 安装和启动
+
+macOS 需安装 **Git**、**Python 3.10+** 与 **Android SDK Platform-Tools (ADB)**（Homebrew：`brew install android-platform-tools`）。连接已 root、具有 Google Play Store 和 Google One 的 Android 设备或兼容模拟器。Mac 版 **MuMuPlayer Pro 支持 Apple Silicon**，Intel Mac 需要其他兼容 Android 环境。
+
+在 **Terminal** 中执行：
+
+```sh
+git clone https://github.com/hoangsvit/google-ai.git
+cd google-ai
+adb devices
+sh run-macos.sh
+```
+
+`sh run-macos.sh` 打开包含 **步骤 0–5** 的 Textual 界面。`--check` 检查环境（可能改变配置）；`--list` 仅查询优惠；`--step 2` 只预选该步骤，**不会自动付款**。步骤 2–5 可能产生真实费用，必须逐步确认。**真实 Mac/MuMu 上的支付尚未验证。** 参阅 [Mac 详细指南](docs/MACOS-PREVIEW.md)。
 
 ## 3. Textual 界面
 
@@ -140,7 +156,7 @@ CLI 确认选项为 **1 = Continue（继续）、2 = End run（结束）、0 = S
 - **已尝试提交结账：**不等于成功续订；重新操作前必须在 Google Play 上确认。
 - **支付安全错误（如 OR-REH-04）：**停止付费步骤，按官方流程处理账号安全问题。
 
-日志位于 `logs/`，报告位于 `ultra0-report/`。**不要公开包含账户、token 或支付信息的原始文件。** CI 只运行静态/模拟测试，**不验证真实交易**。完整 **macOS** 支持尚未完成。
+日志位于 `logs/`，报告位于 `ultra0-report/`。**不要公开包含账户、token 或支付信息的原始文件。** CI 只运行静态/模拟测试，**不验证真实交易**。
 
 ## 社区支持及相关项目
 
@@ -153,3 +169,5 @@ CLI 确认选项为 **1 = Continue（继续）、2 = End run（结束）、0 = S
 [英文 README](README.md) · [安装 Wiki](https://github.com/hoangsvit/google-ai/wiki/Install) · [详细指南](docs/DETAILED-GUIDE.md) · [原始步骤说明](docs/ORIGINAL-STEPS.md) · [免责声明](DISCLAIMER.md) · [安全说明](SECURITY.md) · [贡献](CONTRIBUTING.md) · [第三方版权声明](THIRD_PARTY_NOTICES.md)
 
 **原作者：**[@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra)。**维护者：**[David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev)。原始 MIT 版权声明保留在 `THIRD_PARTY_NOTICES.md`。
+
+[文档主页](docs/README.md) · [中文详细指南](docs/i18n/README.zh-CN.md) · [付款安全](docs/SAFETY.md)

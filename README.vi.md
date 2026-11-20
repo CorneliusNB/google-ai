@@ -2,9 +2,10 @@
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
+
 > **Nguồn chuẩn:** [README tiếng Anh](README.md). Bản dịch này giúp sử dụng công cụ; nếu có khác biệt về tính năng, hãy đối chiếu mã nguồn và README tiếng Anh.
 
-Bộ công cụ dòng lệnh dành chủ yếu cho **Windows**, sử dụng **PowerShell, Python, ADB, Frida và máy ảo Android (MuMuPlayer)** để kiểm tra ưu đãi Google AI Pro thông qua Google One/Google Play. Giao diện Textual sử dụng chung bộ xử lý với chế độ CLI.
+Bộ công cụ dòng lệnh cho **Windows và macOS**, sử dụng **PowerShell (chỉ Windows)** hoặc **Terminal (zsh/bash, macOS)** cùng Python, ADB, Frida và thiết bị/máy ảo Android tương thích để kiểm tra ưu đãi Google AI Pro thông qua Google One/Google Play. Giao diện Textual sử dụng chung bộ xử lý với chế độ CLI.
 
 ![Giao diện ePlus AI Toolkit](https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3)
 
@@ -65,6 +66,21 @@ Nếu phiên bản mới nhất chạy từ source gặp lỗi, bạn có thể 
 ```
 
 **Source code (zip) không phải ứng dụng `.exe` hay bộ cài dựng sẵn.** Nên giữ bản phát hành trong **thư mục riêng**, không chép đè lên bản source đang dùng. Bản phát hành cũ có thể chưa chứa những bản sửa lỗi mới và vẫn cần Windows, Python, MuMuPlayer, ADB/Frida cùng các lưu ý về thanh toán. Nếu lỗi vẫn xảy ra, xem [hướng dẫn khắc phục](docs/DETAILED-GUIDE.md) hoặc [tạo Issue](https://github.com/hoangsvit/google-ai/issues).
+
+## macOS — Cài đặt và khởi chạy
+
+Trên **macOS**, cài **Git**, **Python 3.10+** và **Android SDK Platform-Tools (ADB)** (Homebrew: `brew install android-platform-tools`). Kết nối thiết bị Android có root và Google Play Store/Google One, hoặc máy ảo Android tương thích. **MuMuPlayer Pro trên Mac hỗ trợ Apple Silicon**; Mac Intel cần thiết bị hoặc máy ảo khác.
+
+Mở **Terminal** và chạy:
+
+```sh
+git clone https://github.com/hoangsvit/google-ai.git
+cd google-ai
+adb devices
+sh run-macos.sh
+```
+
+Lệnh `sh run-macos.sh` mở cùng giao diện Textual với **Steps 0–5**. `--check` kiểm tra môi trường (có thể thay đổi cấu hình), `--list` chỉ liệt kê ưu đãi, và `--step 2` chỉ mở TUI với Step 2 được chọn — **không tự thanh toán**. Các Steps 2–5 có thể phát sinh phí thật và yêu cầu xác nhận riêng. **Chưa kiểm thử giao dịch trên Mac/MuMu thực tế.** Xem [hướng dẫn Mac chi tiết](docs/MACOS-PREVIEW.md).
 
 ## 3. Sử dụng giao diện
 
@@ -155,3 +171,5 @@ Nếu gặp vấn đề khi cài đặt hoặc sử dụng ePlus AI Toolkit, hã
 [README tiếng Anh](README.md) · [Wiki Install](https://github.com/hoangsvit/google-ai/wiki/Install) · [Hướng dẫn kỹ thuật](docs/DETAILED-GUIDE.md) · [Các bước gốc](docs/ORIGINAL-STEPS.md) · [Disclaimer](DISCLAIMER.md) · [Bảo mật](SECURITY.md) · [Đóng góp](CONTRIBUTING.md) · [Thông báo bản quyền](THIRD_PARTY_NOTICES.md)
 
 **Tác giả gốc:** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **Người duy trì:** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). Giữ nguyên thông báo MIT của tác giả gốc trong `THIRD_PARTY_NOTICES.md`.
+
+[Trung tâm tài liệu](docs/README.md) · [Hướng dẫn tiếng Việt đầy đủ](docs/i18n/README.vi.md) · [An toàn thanh toán](docs/SAFETY.md)

@@ -2,9 +2,10 @@
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
+
 > **正本：**[英語版 README](README.md)。この翻訳は利用方法と注意事項をまとめたものです。差異がある場合は現在のソースコードと英語版を確認してください。
 
-**ePlus AI Toolkit** は、主に **Windows** 向けのターミナルツールです。**PowerShell・Python・ADB・Frida・Android エミュレーター（MuMuPlayer）** を使用し、Google One / Google Play 上の Google AI Pro オファーを調べます。Textual UI と CLI は共通の実行エンジンを使用します。
+**ePlus AI Toolkit** は、**Windows と macOS** 向けのターミナルツールです。**Windows では PowerShell、macOS では Terminal（zsh/bash）** を使い、Python・ADB・Frida・対応 Android 端末／エミュレーターで、Google One / Google Play 上の Google AI Pro オファーを調べます。Textual UI と CLI は共通の実行エンジンを使用します。
 
 ![ePlus AI Toolkit の画面](https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3)
 
@@ -63,6 +64,21 @@ adb devices
 ```
 
 **Source code (zip) はビルド済み `.exe` やインストーラーではありません。** 現在の作業フォルダーを上書きせず、**別のフォルダー**に保存してください。古いリリースには最近の修正が含まれない場合があります。Windows、Python、MuMuPlayer、ADB/Frida および決済に関する注意事項は変わりません。解決しない場合は[トラブルシューティング](docs/DETAILED-GUIDE.md)や [Issues](https://github.com/hoangsvit/google-ai/issues) を参照してください。
+
+## macOS — インストールと起動
+
+macOS では **Git**、**Python 3.10+**、**Android SDK Platform-Tools (ADB)** をインストールします（Homebrew: `brew install android-platform-tools`）。root 対応で Google Play Store と Google One が利用できる Android 端末または互換エミュレーターが必要です。Mac の **MuMuPlayer Pro は Apple Silicon 向け**で、Intel Mac は別の Android 環境が必要です。
+
+**Terminal** で実行：
+
+```sh
+git clone https://github.com/hoangsvit/google-ai.git
+cd google-ai
+adb devices
+sh run-macos.sh
+```
+
+`sh run-macos.sh` は **ステップ 0–5** を含む Textual 画面を開きます。`--check` は環境を確認し設定を変更する場合があり、`--list` はオファー照会のみです。`--step 2` は画面の初期選択だけで、**自動決済しません**。ステップ 2–5 は実際に請求される可能性があり、毎回確認が必要です。**Mac/MuMu 実機での決済は未検証です。** [Mac 詳細ガイド](docs/MACOS-PREVIEW.md) を参照。
 
 ## 3. ダッシュボードの使い方
 
@@ -140,7 +156,7 @@ TUI とは異なり、個別の `-Step 2..5` には **PowerShell 側で追加の
 - **チェックアウト送信表示：**契約成立とは限りません。再試行前に Google Play で確認。
 - **セキュリティエラー（例：OR-REH-04）：**課金ステップを止めて正規のアカウント保護手順に従う。
 
-ログは `logs/`、レポートは `ultra0-report/` に保存されます。**アカウント情報、トークン、決済情報を含む生データを共有しないでください。** CI は静的・モックテストのみで、実購入を検証しません。**macOS フル対応は未実装です**。
+ログは `logs/`、レポートは `ultra0-report/` に保存されます。**アカウント情報、トークン、決済情報を含む生データを共有しないでください。** CI は静的・モックテストのみで、実購入を検証しません。
 
 ## コミュニティサポートと関連プロジェクト
 
@@ -153,3 +169,5 @@ ePlus AI Toolkit のインストールや使用に問題があれば、[ePlus �
 [英語版 README](README.md) · [Install Wiki](https://github.com/hoangsvit/google-ai/wiki/Install) · [詳細ガイド](docs/DETAILED-GUIDE.md) · [原作者のステップ](docs/ORIGINAL-STEPS.md) · [免責事項](DISCLAIMER.md) · [セキュリティ](SECURITY.md) · [貢献](CONTRIBUTING.md) · [著作権表示](THIRD_PARTY_NOTICES.md)
 
 **原作者：**[@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra)。**メンテナー：**[David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev)。元の MIT 著作権表示は `THIRD_PARTY_NOTICES.md` に保持しています。
+
+[ドキュメント一覧](docs/README.md) · [日本語詳細ガイド](docs/i18n/README.ja.md) · [決済の注意事項](docs/SAFETY.md)
