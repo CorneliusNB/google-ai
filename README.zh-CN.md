@@ -116,10 +116,10 @@ sh run-macos.sh
 
 ## 3. Textual 界面
 
-步骤执行期间，Check Device & Offers、Run 及模式/Step 选择会锁定，以免并发运行。Step 0 可能修改本地配置；Step 1 不会主动付款，但准备工作可能调整 ADB/Frida。只有在 Google Play 核实结果后才应继续下一步。**Stop/Exit 无法撤销已经提交的交易。**
+在某个步骤运行期间，**Check Device & Offers**、**Run** 以及模式和步骤选择功能会暂时锁定，避免重复执行。Step 0 可能修改电脑上的设置；Step 1 虽不会主动付款，但在准备过程中可能调整 ADB/Frida。请先到 Google Play 核实结果，再进入下一步。**点击 Stop 或 Exit 并不能撤销已提交的交易。**
 
 
-点击 **Check Device & Offers** 执行 **Step 1 — Available offers**：查询优惠，**不会发起订阅结账**。查看 **Live Status** 和 **Show technical details** 以判断运行情况；30 秒无新日志不一定是死机。
+点击 **Check Device & Offers** 执行 **Step 1 — Available offers**：查询优惠，**不会发起订阅结账**。可通过 **Live Status** 和 **Show technical details** 查看进度。如果 30 秒内没有新日志，程序会给出提醒，但这**不一定表示程序卡住了**。
 
 在 **Advanced: Run by step** 中，可选择：
 
@@ -145,6 +145,8 @@ TUI 中**每个结账步骤均需单独批准**。当工具提示已尝试提交
 **停止与退出：**Step 0–1 的 Stop 会请求终止本地检查。Step 2–5 的 **Stop after this step** 只阻止后续步骤，**不会强制中断正在进行的支付**。**Q / Exit** 在结账期间会等当前步骤结束；**D** 切换技术日志，**R** 执行当前选择。
 
 ## 4. PowerShell 命令行操作（高级）
+
+**仅适用于 Windows。** 以下命令在 PowerShell 中使用。Mac 用户请改用 `run-macos.sh`，并参考 [macOS 使用指南](docs/MACOS-PREVIEW.md)。启动时指定参数会直接进入 CLI 模式，而不是打开 Textual 界面。
 
 **查询/诊断：不发起结账**
 
@@ -193,7 +195,7 @@ CLI 确认选项为 **1 = Continue（继续）、2 = End run（结束）、0 = S
 - **已尝试提交结账：**不等于成功续订；重新操作前必须在 Google Play 上确认。
 - **支付安全错误（如 OR-REH-04）：**停止付费步骤，按官方流程处理账号安全问题。
 
-日志位于 `logs/`，报告位于 `ultra0-report/`。**不要公开包含账户、token 或支付信息的原始文件。** CI 只运行静态/模拟测试，**不验证真实交易**。
+日志位于 `logs/`，报告位于 `ultra0-report/`。**不要公开包含账户、token 或支付信息的原始文件。** CI 仅执行静态检查和模拟测试，**不会进行或验证真实的 Google Play 交易**。
 
 ## 社区支持及相关项目
 
