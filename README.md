@@ -114,6 +114,15 @@ The launcher prepares Textual and Frida 16.5.9 in a local `.venv`. Optional comm
 The macOS adapter exposes **Steps 0–5**. **Steps 2–5 may initiate real Google Play charges** and require explicit confirmation. No real Mac/MuMu checkout or subscription activation has been validated. [Full macOS guide](docs/MACOS-PREVIEW.md).
 
 
+## Connection diagnostics and Offer Explorer (Windows + macOS)
+
+The dashboard includes two **inspection-first** actions, adapted from the upstream project's guided Android setup and offer overview:
+
+- **Diagnose Android connection:** checks whether an existing ADB executable is available, enumerates authorized Android transports, reads device ABI, checks for Google One and reports the host Frida version. It offers platform-specific guidance: Windows uses PowerShell and MuMu/Android Platform-Tools; macOS uses Terminal/zsh/bash and can install ADB with Homebrew. **It never installs software, connects/restarts the emulator, starts Frida or initiates billing**. Invoking \`adb devices\` may start the local ADB server.
+- **Check Device & Offers (Step 1):** the existing Android/Frida listing flow now shows an **Offer Explorer** below live status. It displays only product ID, offer ID, first billing period and whether the first phase reports zero/nonzero pricing. No offer token, purchase token, raw account identifier, or payment card data is displayed. The query itself may perform Android setup; unlike the connection diagnostic, it is not a zero-side-effect operation.
+
+**Important:** A zero first phase does *not* prove trial eligibility, subscription activation, renewal dates or future prices. The current Android report does not include the complete multi-phase renewal schedule, so the Offer Explorer deliberately labels future pricing as **unverified**. Confirm terms and charges directly with Google Play.
+
 ## Use the dashboard (recommended)
 
 ### Start with Check Device & Offers
