@@ -719,8 +719,12 @@ def build_js(plan: str = "auto", list_only: bool = False, stack: bool = False, o
         # Google AI Pro 5TB（g1.2tb.ai.subs_variant）：12months-eft / 6months-eft / 6months-eft-2 / 6months-eft-ss-2026
         prefer = {"pro12": "12months-eft", "pro6": "6months-eft",
                   "pro6b": "6months-eft-2", "pro6c": "6months-eft-ss-2026"}.get(plan, "12months-eft")
+        # Read-only listing: inspect all three AI Pro identifiers documented
+        # upstream. Checkout stages still query ONLY their existing product.
+        products = ('var PRODUCTS=["g1.2tb.ai.subs_variant","g1.play.2tb.ai","g1.2tb.ai"];'
+                    if list_only else 'var PRODUCTS=["g1.2tb.ai.subs_variant"];')
         js = js.replace('var PRODUCTS=["g1.play.20tb","g1.play.ai.pro","g1.30tb"];',
-                        'var PRODUCTS=["g1.2tb.ai.subs_variant"];')
+                        products)
         js = js.replace('var PREFER="";', 'var PREFER="%s";' % prefer, 1)
     return js
 
