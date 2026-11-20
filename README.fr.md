@@ -1,5 +1,7 @@
 # ePlus AI Toolkit — Français
 
+<!-- Source README.md git-blob: 66dc72117e92b338bad604c5fd83517588cf878a -->
+
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
 **Aperçu macOS :** la [version Mac](docs/MACOS-PREVIEW.md) implémente les étapes 0–5. Les étapes 2–5 peuvent entraîner de vrais frais et exigent une confirmation distincte ; la compatibilité des paiements avec un véritable Mac/MuMu reste non vérifiée.
@@ -21,6 +23,22 @@
 Ce projet est **indépendant, sans affiliation, parrainage ni approbation officielle** de Google, Google One, Google Play, NetEase ou MuMuPlayer. Le logiciel est fourni **en l'état**, sans garantie concernant les offres, les résultats d'abonnement ou la compatibilité. Utilisez-le uniquement sur vos appareils et comptes ou avec autorisation, conformément aux lois et conditions des plateformes. Consultez la [décharge complète (anglais)](DISCLAIMER.md) et les [précautions de sécurité](SECURITY.md).
 
 ## 1. Prérequis et installation de MuMuPlayer
+
+**Choisissez les consignes de votre système.** Windows utilise PowerShell et macOS utilise Terminal (zsh/bash), **sans PowerShell**.
+
+| Logiciel / configuration | Windows | macOS |
+| --- | --- | --- |
+| Terminal | **PowerShell 5.1+** | **Terminal**, zsh/bash |
+| Python | **3.10+** (`python`) | **3.10+** (`python3`), environnement local `.venv` |
+| Git | Git pour Windows | Git via Xcode Command Line Tools ou Homebrew |
+| Android | Appareil rooté avec ADB; prise en charge du parcours MuMuPlayer Windows | Android rooté ou émulateur compatible; MuMuPlayer Pro sur Mac concerne **Apple Silicon**, pas Intel |
+| Applications | Google Play Store et Google One avec le bon compte | Les mêmes applications sur l'appareil Android choisi |
+| ADB | Le lanceur peut rechercher/télécharger Platform-Tools | Installer séparément, p. ex. `brew install android-platform-tools`; vérifier `adb devices` |
+| Frida | **16.5.9**, assistant de configuration Windows | **16.5.9** dans `.venv`; compatibilité Android à vérifier |
+| Démarrage | `.\run-all.ps1` | `sh run-macos.sh` ou `ePlus-AI-Toolkit.command` |
+
+Les deux plateformes exigent un environnement Android autorisé et correctement configuré. Le code macOS prend en charge Steps 0–5, mais **aucun paiement réel sur Mac/MuMu n'a été vérifié**. Voir les guides [Windows](docs/INSTALLATION.md) et [macOS](docs/MACOS-PREVIEW.md).
+
 
 - **Windows**, PowerShell **5.1+** et Python **3.10+**.
 - **Installer MuMuPlayer séparément**, lancer Android avec root et débogage ADB activés.
@@ -81,7 +99,19 @@ sh run-macos.sh
 
 `sh run-macos.sh` ouvre l'interface Textual avec les **étapes 0–5**. `--check` contrôle l'environnement (et peut modifier les réglages), `--list` consulte seulement les offres, et `--step 2` présélectionne l'étape **sans payer automatiquement**. Les étapes 2–5 peuvent entraîner de vrais frais et nécessitent une confirmation individuelle. **Les paiements sur un vrai Mac/MuMu restent non vérifiés.** Consultez le [guide Mac détaillé](docs/MACOS-PREVIEW.md).
 
+## Diagnostic de connexion et Offer Explorer (Windows + macOS)
+
+Le tableau de bord propose deux actions centrées sur la **consultation**, adaptées de la configuration Android et de la liste des offres du projet d'origine :
+
+- **Diagnose Android connection :** détecte ADB existant, énumère les appareils Android autorisés, lit l'ABI, vérifie la présence de Google One et indique la version de Frida sur l'hôte. Sous Windows, les conseils concernent PowerShell, MuMu et Platform-Tools ; sous macOS, Terminal/zsh/bash et Homebrew. L'action **n'installe rien, ne connecte/redémarre pas l'émulateur, ne lance pas Frida et n'effectue aucun paiement**. La commande `adb devices` peut démarrer le serveur ADB local.
+- **Check Device & Offers (Step 1) :** exécute la consultation Android/Frida existante et affiche **Offer Explorer** sous Live Status, avec seulement l'ID du produit, l'ID de l'offre, la première période de facturation et le caractère nul/non nul du premier prix. **Aucun jeton d'offre/achat, identifiant brut de compte ou donnée bancaire** n'est affiché. Cette consultation peut préparer Android et **n'est donc pas sans effets secondaires**.
+
+Un prix initial nul **ne prouve ni éligibilité, ni activation, ni date de renouvellement ou prix ultérieur**. En mode liste seulement, Step 1 interroge `g1.2tb.ai.subs_variant`, `g1.play.2tb.ai` et `g1.2tb.ai` ; Steps 2–5 gardent leurs requêtes ciblées. Le rapport Android ne donne pas toutes les phases tarifaires : Offer Explorer affiche les futurs prix comme **non vérifiés**. Vérifiez les conditions dans Google Play.
+
 ## 3. Interface Textual
+
+Pendant l'exécution d'une étape, Check Device & Offers, Run et les sélecteurs de mode/étape sont désactivés. Step 0 peut modifier le système local ; Step 1 ne paie pas, mais sa préparation peut modifier ADB/Frida. Next n'est proposé qu'après un résultat vérifiable sur Google Play. **Stop/Exit ne peut annuler une transaction déjà transmise.**
+
 
 **Check Device & Offers** exécute **Step 1 — Available offers**, pour consulter les offres **sans déclencher de paiement**. Surveillez **Live Status** et **Show technical details** ; l'absence de nouveaux journaux pendant 30 secondes ne signifie pas forcément que l'outil est bloqué.
 
@@ -157,17 +187,34 @@ Utilisez uniquement un identifiant de périphérique réellement affiché par AD
 - **Paiement demandé :** ne signifie pas que l'abonnement a été activé ou prolongé ; vérifiez Google Play avant de réessayer.
 - **Erreur de sécurité du paiement (ex. OR-REH-04) :** arrêtez les étapes de paiement et suivez les procédures officielles.
 
-Les journaux se trouvent dans `logs/` et les rapports dans `ultra0-report/`. **Ne partagez pas de données non masquées contenant comptes, jetons ou informations de paiement.** La CI effectue seulement des tests statiques/simulés, **pas de véritables achats**. La prise en charge complète de 
+Les journaux se trouvent dans `logs/` et les rapports dans `ultra0-report/`. **Ne partagez pas de données non masquées contenant comptes, jetons ou informations de paiement.** La CI effectue seulement des tests statiques/simulés, **pas de véritables achats**. La compatibilité de paiement sur Mac/MuMu réel n'a pas été vérifiée.
+
 ## Assistance communautaire et projets associés
 
 Si vous rencontrez des problèmes pour installer ou utiliser ePlus AI Toolkit, vous pouvez contacter la communauté et échanger des conseils sur la [publication d'assistance et de discussion Telegram d'ePlus](https://t.me/eplus_news/29). Pour les bugs reproductibles, vous pouvez aussi [ouvrir une issue GitHub](https://github.com/hoangsvit/google-ai/issues). **Ne publiez jamais de mots de passe, de codes OTP/2FA, de jetons d'offre ou d'achat, de journaux non anonymisés ou de données bancaires.** Il ne s'agit pas du support officiel de Google.
 
 **Vous n'êtes pas éligible à l'offre Google AI Pro ?** Vous pouvez découvrir un autre projet communautaire d'ePlus.DEV : [Muse Invite Hub](https://github.com/ePlus-DEV/muse-invite-hub), pour [rechercher ou partager des codes d'invitation Muse](https://muse.eplus.dev/). **Muse est un service distinct** : ses invitations **ne donnent pas accès à Google AI Pro et ne remplacent pas** un abonnement Google AI Pro. La disponibilité des codes et les conditions géographiques ou de compte peuvent varier.
 
+## Structure du dépôt
+
+Les lanceurs et modules Python actifs restent à la racine pour des raisons de compatibilité. Utilisez `run-all.ps1` sous Windows et `run-macos.sh` sous macOS.
+
+| Emplacement | Rôle |
+| --- | --- |
+| `run-all.ps1` | Lanceur Windows : interface Textual et CLI guidée |
+| `run-macos.sh`, `ePlus-AI-Toolkit.command`, `macos_runner.py` | Lanceur/adaptateur macOS Steps 0–5 ; paiement réel non vérifié |
+| `tui.py`, `tui_core.py`, `ultra0.py`, `setup_env.py`, `device_selector.py`, `query_sku.py` | Moteur Python et outils actifs |
+| [`tools/windows/`](tools/windows/README.md) | Configuration manuelle facultative Windows |
+| [`legacy/windows/`](legacy/windows/README.md) | Anciens raccourcis, certains avec `--force` pouvant entraîner de **vrais frais** |
+| `scripts/`, `assets/` | Utilitaires et ressources Android/Frida |
+| `tests/`, `.github/workflows/`, `docs/` | Tests hors ligne, CI et documentation |
+
 ## Documentation et crédits
 
 [README anglais](README.md) · [Wiki Install](https://github.com/hoangsvit/google-ai/wiki/Install) · [Guide détaillé](docs/DETAILED-GUIDE.md) · [Étapes d'origine](docs/ORIGINAL-STEPS.md) · [Décharge](DISCLAIMER.md) · [Sécurité](SECURITY.md) · [Contribuer](CONTRIBUTING.md) · [Mentions légales](THIRD_PARTY_NOTICES.md)
 
-**Auteur d'origine :** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **Maintenance :** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). Les mentions MIT de l'auteur initial sont conservées dans `THIRD_PARTY_NOTICES.md`.
+Voir aussi [structure et maintenance](docs/PROJECT.md), [utilisation et CLI](docs/USAGE.md), [sécurité des paiements](docs/SAFETY.md), [notes historiques](docs/AUTHOR-NOTES.md) et [consignes pour agents](AGENTS.md). GitHub Actions vérifie Python, PowerShell, Textual et Frida/Billing au moyen de simulations, **sans véritables paiements**. Une CI verte ne valide ni le matériel ni l'éligibilité.
 
-[Centre de documentation](docs/README.md) · [Guide complet en français](docs/i18n/README.fr.md) · [Sécurité des paiements](docs/SAFETY.md)
+## Crédits**Auteur d'origine :** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **Maintenance :** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). Les mentions MIT de l'auteur initial sont conservées dans `THIRD_PARTY_NOTICES.md`.
+
+[Centre de documentation](docs/README.md) · [Guide historique en français](docs/i18n/README.fr.md) · [Sécurité des paiements](docs/SAFETY.md)
