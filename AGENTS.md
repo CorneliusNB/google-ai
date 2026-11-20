@@ -108,6 +108,9 @@ The UI is for everyday users, not just developers:
 - Translate from `README.md` on the **current target branch**, never from a prior localized README or `docs/i18n/`. `README.md` is the English content source; `README.en.md` is an English redirect.
 - Preserve all eleven canonical major topics, code commands, sections, links, payment warnings, limitations, and technical details in all **six** root localized READMEs. Do not replace full translations with condensed overviews.
 - Each root translation contains `<!-- Source README.md git-blob: SHA -->`. Update that marker **only after examining and translating the exact canonical blob**. The gate in `tests/test_readme_source_parity.py` detects stale markers and some missing topics.
+- Write each locale as **natural, reader-friendly documentation**, not a word-for-word machine translation. Prefer the idiomatic technical vocabulary, sentence order, polite form, and punctuation normally used by native speakers of that language. Avoid importing English words such as "checkout", "preflight", "launcher" or "repository" when a clear, common local-language expression exists.
+- Keep **actual UI control labels, command syntax, product IDs, file paths, URLs, numerical thresholds and billing/security meanings** unchanged. A natural rewrite must not weaken any warning or introduce unsupported feature claims.
+- Perform a final human-quality language pass: read paragraphs as a user would, check consistency of register, Markdown code fences, punctuation, and heading/body separation. The structural tests only catch easily detectable errors.
 - This gate is **not a linguistic quality review**: verify wording and actual code behavior manually. In particular never soften the real-billing warnings or imply compatibility and eligibility have been confirmed.
 - The guides under `docs/i18n/` are supplemental historical references, **not** the source for root translations; link users to current root translations first.
 
