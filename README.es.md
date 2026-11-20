@@ -216,4 +216,4 @@ La documentación incluye [estructura del proyecto](docs/PROJECT.md), [uso del p
 
 ## Créditos**Autor original:** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **Mantenedor:** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). El aviso MIT del autor original permanece en `THIRD_PARTY_NOTICES.md`.
 
-[Centro de documentación](docs/README.md) · [Guía completa en español](docs/i18n/README.es.md) · [Seguridad de pagos](docs/SAFETY.md)
+[Centro de documentación](docs/README.md) · [Guía histórica en español](docs/i18n/README.es.md) · [Seguridad de pagos](docs/SAFETY.md)
