@@ -235,4 +235,4 @@ Các mục tài liệu chuẩn gồm [cấu trúc dự án](docs/PROJECT.md), [c
 
 **Tác giả gốc:** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **Người duy trì:** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). Giữ nguyên thông báo MIT của tác giả gốc trong [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); giấy phép này không mặc nhiên áp dụng cho các đóng góp mới không liên quan. [Danh sách người đóng góp](https://github.com/hoangsvit/google-ai/graphs/contributors).
 
-[Trung tâm tài liệu](docs/README.md) · [Hướng dẫn tiếng Việt đầy đủ](docs/i18n/README.vi.md) · [An toàn thanh toán](docs/SAFETY.md)
+[Trung tâm tài liệu](docs/README.md) · [Tài liệu tham khảo cũ (tiếng Việt)](docs/i18n/README.vi.md) · [An toàn thanh toán](docs/SAFETY.md)
