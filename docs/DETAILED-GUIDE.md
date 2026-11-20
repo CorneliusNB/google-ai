@@ -10,11 +10,11 @@ This guide describes the maintained **Python + ADB + Frida** workflow. The Playw
 
 ## Read-only connection help and offer display
 
-In the Textual dashboard, **Diagnose Android connection** checks an already-installed ADB binary, lists connected Android transports and detects Android ABI, Google One and the host Frida version. It gives Windows/PowerShell or macOS/Terminal guidance without running the Android setup or checkout. Note that \`adb devices\` may start the host ADB server. Multiple online transports are intentionally treated as ambiguous rather than choosing an account/device at random.
+In the Textual dashboard, **Diagnose Android connection** checks an already-installed ADB binary, lists connected Android transports and detects Android ABI, Google One and the host Frida version. It gives Windows/PowerShell or macOS/Terminal guidance without running the Android setup or checkout. Note that `adb devices` may start the host ADB server. Multiple online transports are intentionally treated as ambiguous rather than choosing an account/device at random.
 
 The **Offer Explorer** appears only after Step 1 produces a fresh report. It renders allowlisted, non-secret metadata from the existing query: product ID, offer ID, first-phase period and whether first-phase pricing is zero, nonzero or unavailable. It does **not** display offer tokens, account credentials or exact future renewal prices, because the current report does not contain the latter. This is not a checkout, eligibility, active subscription or renewal-date verifier.
 
-For security, never share a raw \`ultra0-report/\` file: it may contain internal offer tokens even though the dashboard hides them. Use the existing per-stage payment confirmations for Steps 2–5; these can initiate real charges.
+For security, never share a raw `ultra0-report/` file: it may contain internal offer tokens even though the dashboard hides them. Use the existing per-stage payment confirmations for Steps 2–5; these can initiate real charges.
 
 ## Prerequisites
 
