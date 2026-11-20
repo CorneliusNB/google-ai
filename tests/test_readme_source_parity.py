@@ -45,6 +45,24 @@ class ReadmeSourceParityTests(unittest.TestCase):
                     self.assertIn(detail, localized, "Missing translation detail: " + detail)
                 self.assertEqual(localized.count(chr(96) * 3) % 2, 0)
 
+    def test_translation_markdown_is_clean(self):
+        """Guard against artifacts from hand-edited translations.
+
+        This is a structural check, not a substitute for review by a
+        fluent speaker or an assurance of semantic translation quality.
+        """
+        for locale in LOCALES:
+            with self.subTest(locale=locale):
+                localized = (ROOT / ("README." + locale + ".md")).read_text(encoding="utf-8")
+                self.assertNotIn("§", localized, "Unconverted Markdown delimiter placeholder")
+                self.assertIsNone(
+                    re.search(r"^## [^\n]+\*\*[^\n]+$", localized, re.MULTILINE),
+                    "Heading is joined to bold body text, likely missing a newline",
+                )
+                self.assertIn("## 3.", localized)
+                self.assertIn("## 4.", localized)
+                self.assertIn("## 5.", localized)
+
     def test_english_alias_links_to_root_source(self):
         self.assertIn("(README.md)", (ROOT / "README.en.md").read_text(encoding="utf-8"))
 
