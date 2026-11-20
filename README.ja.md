@@ -216,4 +216,4 @@ ePlus AI Toolkit のインストールや使用に問題があれば、[ePlus �
 
 ## クレジット**原作者：**[@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra)。**メンテナー：**[David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev)。元の MIT 著作権表示は `THIRD_PARTY_NOTICES.md` に保持しています。
 
-[ドキュメント一覧](docs/README.md) · [日本語詳細ガイド](docs/i18n/README.ja.md) · [決済の注意事項](docs/SAFETY.md)
+[ドキュメント一覧](docs/README.md) · [旧版の日本語参考資料](docs/i18n/README.ja.md) · [決済の注意事項](docs/SAFETY.md)
