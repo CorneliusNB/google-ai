@@ -118,9 +118,9 @@ Trên bảng điều khiển có hai chức năng kiểm tra được phát tri�
 
 ## 3. Sử dụng giao diện
 
-Chọn **Check Device & Offers** để thực hiện **Step 1 — Available offers**, truy vấn ưu đãi **không khởi tạo checkout**. Theo dõi **Live Status**, mở **Show technical details** khi cần và kiểm tra tài khoản trong Google Play. Việc không có log mới trong 30 giây chỉ là cảnh báo thiếu hoạt động, **không phải kết luận treo**.
+Nhấn **Check Device & Offers** để chạy **Step 1 — Available offers** và kiểm tra ưu đãi mà **không bắt đầu thanh toán**. Bạn có thể theo dõi tiến trình tại **Live Status**, chọn **Show technical details** để xem thông tin kỹ thuật và kiểm tra đúng tài khoản trong Google Play. Nếu 30 giây không có thông báo mới, công cụ sẽ cảnh báo; điều đó **chưa có nghĩa là chương trình đã bị treo**.
 
-Step 1 chỉ liệt kê ưu đãi, không chủ động mua hàng; nhưng preflight bên dưới vẫn có thể tải/sửa ADB hoặc Frida và đổi cấu hình máy ảo/mạng. **Step 0 — Environment cũng có thể thay đổi cấu hình cục bộ**, không phải tác vụ hoàn toàn chỉ đọc. Sidebar hiển thị sáu bước; các ô Android Device/Google Account lấy từ đầu ra thật, che định danh tài khoản. Liên kết ghi công tác giả gốc và người duy trì có thể bấm trong terminal hỗ trợ.
+Step 1 không mua hàng, nhưng quá trình chuẩn bị vẫn có thể tải hoặc sửa ADB/Frida và thay đổi cấu hình máy ảo hoặc mạng. **Step 0 — Environment cũng có thể thay đổi môi trường trên máy**, nên không được xem là thao tác hoàn toàn chỉ đọc. Thanh bên hiển thị sáu bước; thông tin trong Android Device và Google Account được lấy từ kết quả thực tế, đồng thời che bớt dữ liệu nhận dạng tài khoản. Những terminal có hỗ trợ liên kết sẽ cho phép mở trang của tác giả gốc và người duy trì.
 
 Mục **Advanced: Run by step** gồm:
 
@@ -141,15 +141,15 @@ Mục **Advanced: Run by step** gồm:
 
 Tên 12/6 tháng là **tên lịch sử của các bước**, không phải cam kết được cộng thêm thời hạn. Nếu đã có gói đang hoạt động, **không chạy lại Step 2**.
 
-Trước **mỗi bước checkout trên TUI**, cần phê duyệt riêng. Khi công cụ báo đã thử gửi checkout, hãy xác minh gói đang hoạt động, số tiền và ngày gia hạn tại [Google Play Subscriptions](https://play.google.com/store/account/subscriptions). Chỉ chọn **Verified in Google Play → Next** sau khi bạn đã tự xác minh trong Google Play. **Công cụ không thể tự xác nhận giao dịch đã thành công.**
+Trước **mỗi bước thanh toán trên giao diện**, bạn phải xác nhận riêng. Nếu công cụ báo đã thử gửi yêu cầu thanh toán, hãy tự kiểm tra gói đang sử dụng, khoản tiền phải trả và ngày gia hạn tại [Google Play Subscriptions](https://play.google.com/store/account/subscriptions). Chỉ chọn **Verified in Google Play → Next** sau khi bạn đã tự xác minh trong Google Play. **Công cụ không thể tự xác nhận giao dịch đã thành công.**
 
-Trong khi một bước đang chạy, các nút **Check Device & Offers**, Run, chọn chế độ và chọn Step đều bị khóa để không chạy chồng. Help và log kỹ thuật vẫn dùng được. Chỉ hiển thị **Next** khi kết quả checkout cho phép người dùng kiểm chứng trong chuỗi có hướng dẫn; lỗi hoặc trạng thái không rõ ràng không cho phép tiếp tục.
+Khi một bước đang chạy, các nút **Check Device & Offers**, **Run** và các tùy chọn chế độ hoặc bước sẽ tạm khóa để tránh chạy nhiều thao tác cùng lúc. Bạn vẫn có thể xem trợ giúp và nhật ký kỹ thuật. Nút **Next** chỉ xuất hiện khi kết quả thanh toán có thể được kiểm tra trước khi tiếp tục; nếu xảy ra lỗi hoặc chưa rõ kết quả, công cụ không cho chuyển sang bước kế tiếp.
 
-**Stop/Exit:** Step 0–1 có thể yêu cầu dừng tiến trình cục bộ. Với Step 2–5, **Stop after this step** ngăn chạy bước tiếp theo, **không ép dừng giao dịch đang xử lý**. **Q / Exit** sẽ đợi bước thanh toán hiện tại kết thúc. **D** mở/đóng log kỹ thuật; **R** chạy chế độ đã chọn.
+**Dừng hoặc thoát:** Với Steps 0–1, bạn có thể yêu cầu dừng tiến trình trên máy. Với Steps 2–5, **Stop after this step** chỉ ngăn công cụ chạy tiếp bước sau, **không buộc dừng giao dịch đang xử lý**. Nếu nhấn **Q / Exit** trong lúc thanh toán, công cụ sẽ đợi bước hiện tại kết thúc rồi mới thoát. Phím **D** bật/tắt nhật ký kỹ thuật, còn **R** chạy theo chế độ đã chọn.
 
 ## 4. PowerShell CLI (nâng cao)
 
-**Chỉ dành cho Windows.** Các lệnh PowerShell không áp dụng cho macOS; Mac dùng `run-macos.sh` và [hướng dẫn riêng](docs/MACOS-PREVIEW.md). Khi truyền tham số tường minh, launcher chạy CLI thay vì mở Textual TUI.
+**Chỉ dành cho Windows.** Các lệnh PowerShell không áp dụng cho macOS; Mac dùng `run-macos.sh` và [hướng dẫn riêng](docs/MACOS-PREVIEW.md). Khi truyền tham số cụ thể, lệnh sẽ chạy ở chế độ CLI thay vì mở giao diện Textual.
 
 **Kiểm tra, không mua hàng:**
 
@@ -160,7 +160,7 @@ Trong khi một bước đang chạy, các nút **Check Device & Offers**, Run, 
 .\run-all.ps1 -Cli
 ```
 
-Log kỹ thuật nằm trong §logs/§, còn báo cáo phiên chạy mới nhất nằm ở §ultra0-report/§. **Không công khai log hoặc báo cáo thô** chứa email, token và thông tin thanh toán. §setup_env.py§ và [§tools/windows/setup-environment.bat§](tools/windows/setup-environment.bat) chỉ là công cụ khắc phục lỗi hoặc sửa môi trường, không phải bước cài đặt bắt buộc trước dashboard.
+Log kỹ thuật nằm trong `logs/`, còn báo cáo phiên chạy mới nhất nằm ở `ultra0-report/`. **Không công khai log hoặc báo cáo thô** chứa email, token và thông tin thanh toán. `setup_env.py` và [`tools/windows/setup-environment.bat`](tools/windows/setup-environment.bat) chỉ là công cụ khắc phục lỗi hoặc sửa môi trường, không phải bước cài đặt bắt buộc trước dashboard.
 
 **Các lệnh sau có thể kích hoạt thanh toán thật:**
 
@@ -171,16 +171,16 @@ Log kỹ thuật nằm trong §logs/§, còn báo cáo phiên chạy mới nhấ
 .\run-all.ps1 -Step 5
 ```
 
-Khác với TUI, chạy một bước riêng bằng `-Step 2..5` **không có thêm hộp thoại phê duyệt trong PowerShell**. Chỉ thực hiện khi thực sự có ý định checkout và đã xem điều khoản.
+Khác với giao diện Textual, khi chạy riêng từng bước bằng `-Step 2..5`, PowerShell **không yêu cầu xác nhận thêm lần nữa**. Chỉ dùng các lệnh này nếu bạn chủ động muốn thực hiện giao dịch có thể phát sinh phí và đã đọc kỹ điều khoản.
 
-Chuỗi có xác nhận từng giai đoạn:
+Chạy nhiều bước theo hướng dẫn, có xác nhận ở từng giai đoạn:
 
 ```powershell
 .\run-all.ps1 -AllStages
 .\run-all.ps1 -AllStages -StartStep 3
 ```
 
-CLI dùng **1 = Continue, 2 = End run, 0 = Stop**. Tự kiểm tra kết quả trong Google Play trước khi chuyển bước. `-StartStep 3` không xác minh các bước trước đã thành công.
+Khi chương trình yêu cầu lựa chọn, nhập **1 = Continue (tiếp tục), 2 = End run (kết thúc), 0 = Stop (dừng)**. Hãy tự xác minh kết quả trên Google Play trước khi chuyển sang bước tiếp theo. `-StartStep 3` không xác minh các bước trước đã thành công.
 
 Chọn thiết bị hoặc tài khoản dự kiến:
 
@@ -189,7 +189,7 @@ Chọn thiết bị hoặc tài khoản dự kiến:
 .\run-all.ps1 -AllStages -Email "account@gmail.com"
 ```
 
-Chỉ sử dụng serial thực tế từ ADB. Tránh `-Force` vì nó bỏ qua bước kiểm tra khớp tài khoản, **không** vượt qua điều kiện ưu đãi hay giới hạn thanh toán của Google.
+Chỉ nhập mã thiết bị (serial) thực sự xuất hiện trong danh sách ADB. Tránh `-Force` vì nó bỏ qua bước kiểm tra khớp tài khoản, **không** vượt qua điều kiện ưu đãi hay giới hạn thanh toán của Google.
 
 ## 5. Kết quả và xử lý lỗi
 
@@ -198,12 +198,12 @@ Chỉ sử dụng serial thực tế từ ADB. Tránh `-Force` vì nó bỏ qua 
 - **Không có ưu đãi:** mở Google One/Play Store, rồi chạy lại **Step 1**.
 - **Sai tài khoản:** xác nhận đúng hồ sơ Google Play, không bỏ qua xác minh.
 - **Checkout đã gửi nhưng chưa xác nhận:** không coi là gia hạn; kiểm tra trực tiếp Google Play trước khi thử lại.
-- **§already_subscribed§ hoặc §ineligible§:** dừng lại, không thử các bước thanh toán khác khi chưa xác minh.
-- **Lỗi Unicode trên Windows:** cập nhật repository; launcher duy trì cấu hình UTF-8 khi chuyển log qua pipe.
+- **`already_subscribed` hoặc `ineligible`:** dừng lại, không thử các bước thanh toán khác khi chưa xác minh.
+- **Lỗi hiển thị ký tự trên Windows:** cập nhật mã nguồn mới nhất; trình khởi chạy đã được cấu hình dùng UTF-8 khi chuyển dữ liệu đầu ra.
 - **Đã gửi yêu cầu checkout:** đó chỉ là thao tác cố gắng gửi, **không phải xác nhận đã kích hoạt hoặc gia hạn**.
 - **Lỗi bảo mật thanh toán (ví dụ OR-REH-04):** dừng các bước thanh toán, kiểm tra thông báo bảo mật chính thức.
 
-Nhật ký chạy được lưu trong `logs/`, còn báo cáo nằm trong `ultra0-report/`. **Không chia sẻ log/report chưa ẩn email, token hoặc dữ liệu thanh toán**. CI chỉ kiểm thử tĩnh/mock, không kiểm chứng mua hàng thật. **khả năng tương thích checkout trên Mac/MuMu thực tế chưa được xác minh**.
+Nhật ký chạy được lưu trong `logs/`, còn báo cáo nằm trong `ultra0-report/`. **Không chia sẻ nhật ký hoặc báo cáo khi chưa che email, token và thông tin thanh toán**. CI chỉ thực hiện kiểm thử tĩnh và mô phỏng; không xác minh giao dịch mua hàng thật. **Quy trình thanh toán trên Mac/MuMu thực tế vẫn chưa được kiểm chứng**.
 
 ## Hỗ trợ cộng đồng và dự án liên quan
 
