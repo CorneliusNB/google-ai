@@ -216,4 +216,4 @@ ePlus AI Toolkit 설치나 사용에 문제가 있다면 [ePlus Telegram 지원�
 
 ## 기여자 및 크레딧**원저자:** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **관리자:** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). 원본 MIT 저작권 고지는 `THIRD_PARTY_NOTICES.md`에 보존되어 있습니다.
 
-[문서 모음](docs/README.md) · [한국어 상세 안내](docs/i18n/README.ko.md) · [결제 안전](docs/SAFETY.md)
+[문서 모음](docs/README.md) · [이전 한국어 참고 안내](docs/i18n/README.ko.md) · [결제 안전](docs/SAFETY.md)
