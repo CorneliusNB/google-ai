@@ -216,4 +216,4 @@ CLI 确认选项为 **1 = Continue（继续）、2 = End run（结束）、0 = S
 
 ## 致谢**原作者：**[@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra)。**维护者：**[David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev)。原始 MIT 版权声明保留在 `THIRD_PARTY_NOTICES.md`。
 
-[文档主页](docs/README.md) · [中文详细指南](docs/i18n/README.zh-CN.md) · [付款安全](docs/SAFETY.md)
+[文档主页](docs/README.md) · [历史中文参考指南](docs/i18n/README.zh-CN.md) · [付款安全](docs/SAFETY.md)
