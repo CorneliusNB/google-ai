@@ -211,3 +211,44 @@ def report_summary(report: dict | None) -> str:
     if isinstance(offers, list):
         return f"{len(offers)} offers returned (eligibility not verified)"
     return str(report.get("status", "Unknown result"))
+
+
+# Only display the non-secret metadata that the existing Step 1 report supplies.
+# Tokens, account identifiers, raw titles and purchase objects must not be rendered.
+_SAFE_OFFER_FIELD = re.compile(r"^[A-Za-z0-9._:-]{1,72}$")
+
+
+def _offer_field(value: object) -> str:
+    text = str(value) if value is not None else ""
+    return text if _SAFE_OFFER_FIELD.fullmatch(text) else "(unavailable)"
+
+
+def offer_explorer_lines(report: dict | None, limit: int = 20) -> list[str]:
+    """Format observed introductory phases; never infer eligibility or renewal.
+
+    The source report contains only the *first* pricing phase for each offer.
+    Never call a non-zero first phase 'free', never guess the currency, and do
+    not render raw Frida payloads (which may include offer tokens).
+    """
+    if not isinstance(report, dict) or not isinstance(report.get("offers"), list):
+        return ["No fresh offer details available."]
+    items = [o for o in report["offers"] if isinstance(o, dict)]
+    if not items:
+        return ["No offers returned. Eligibility remains unknown."]
+    rows = ["PRODUCT / OFFER  |  FIRST PHASE  |  INTRO PRICE"]
+    for offer in items[:max(0, limit)]:
+        product = _offer_field(offer.get("product"))
+        offer_id = _offer_field(offer.get("id"))
+        period = _offer_field(offer.get("period"))
+        micros = offer.get("micros")
+        if isinstance(micros, (int, str)) and str(micros) == "0":
+            price = "zero (not eligibility)"
+        elif isinstance(micros, (int, str)) and str(micros).isdigit():
+            price = "nonzero (currency unknown)"
+        else:
+            price = "unknown"
+        rows.append(f"{product} / {offer_id}  |  {period}  |  {price}")
+    if len(items) > max(0, limit):
+        rows.append(f"... {len(items) - max(0, limit)} more offer(s) not shown.")
+    rows.append("Future renewal price, account eligibility and active subscription NOT verified.")
+    return rows
