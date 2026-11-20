@@ -117,7 +117,7 @@ Le tableau de bord propose deux fonctions de vérification issues du parcours de
 
 ## 3. Interface Textual
 
-Pendant l'exécution d'une étape, Check Device & Offers, Run et les sélecteurs de mode/étape sont désactivés. Step 0 peut modifier le système local ; Step 1 ne paie pas, mais sa préparation peut modifier ADB/Frida. Next n'est proposé qu'après un résultat vérifiable sur Google Play. **Stop/Exit ne peut annuler une transaction déjà transmise.**
+Lorsqu'une étape est en cours, les commandes **Check Device & Offers**, **Run** et les sélecteurs de mode ou d'étape sont désactivés pour éviter les exécutions simultanées. L'étape 0 peut modifier la configuration locale ; l'étape 1 ne déclenche pas de paiement, mais peut préparer ADB et Frida. Vérifiez le résultat dans Google Play avant de poursuivre avec **Next**. **Arrêter ou fermer l'outil n'annule pas une transaction déjà transmise.**
 
 
 **Check Device & Offers** exécute **Step 1 — Available offers**, pour consulter les offres **sans déclencher de paiement**. Surveillez **Live Status** et **Show technical details** ; l'absence de nouveaux journaux pendant 30 secondes ne signifie pas forcément que l'outil est bloqué.
@@ -146,6 +146,8 @@ Dans le TUI, **chaque étape de paiement exige une approbation distincte**. Mêm
 **Arrêt/sortie :** Stop pour les étapes 0–1 demande l'arrêt du processus local. Pour les étapes 2–5, **Stop after this step** bloque les étapes suivantes, mais **n'interrompt pas de force un paiement en cours**. Pendant un paiement, **Q / Exit** attend la fin de l'étape actuelle. **D** affiche/masque le journal technique ; **R** lance le mode choisi.
 
 ## 4. Commandes PowerShell (utilisateurs avancés)
+
+**Sous Windows uniquement.** Ces commandes utilisent PowerShell. Sur Mac, utilisez `run-macos.sh` et le [guide macOS](docs/MACOS-PREVIEW.md). Les paramètres explicites lancent le mode CLI à la place de l'interface Textual.
 
 **Consultation/diagnostic, sans paiement :**
 
@@ -194,7 +196,7 @@ Utilisez uniquement un identifiant de périphérique réellement affiché par AD
 - **Paiement demandé :** ne signifie pas que l'abonnement a été activé ou prolongé ; vérifiez Google Play avant de réessayer.
 - **Erreur de sécurité du paiement (ex. OR-REH-04) :** arrêtez les étapes de paiement et suivez les procédures officielles.
 
-Les journaux se trouvent dans `logs/` et les rapports dans `ultra0-report/`. **Ne partagez pas de données non masquées contenant comptes, jetons ou informations de paiement.** La CI effectue seulement des tests statiques/simulés, **pas de véritables achats**. La compatibilité de paiement sur Mac/MuMu réel n'a pas été vérifiée.
+Les journaux se trouvent dans `logs/` et les rapports dans `ultra0-report/`. **Ne partagez pas de données non masquées contenant comptes, jetons ou informations de paiement.** Les tests automatisés de la CI utilisent des simulations et **ne vérifient aucun achat réel**. La compatibilité de paiement sur Mac/MuMu réel n'a pas été vérifiée.
 
 ## Assistance communautaire et projets associés
 
