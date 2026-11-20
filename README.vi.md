@@ -5,53 +5,53 @@
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
 
-> **Nguồn chuẩn:** [README tiếng Anh](README.md). Bản dịch này giúp sử dụng công cụ; nếu có khác biệt về tính năng, hãy đối chiếu mã nguồn và README tiếng Anh.
+> **Tài liệu gốc:** [README tiếng Anh](README.md). Nội dung bên dưới được diễn đạt bằng tiếng Việt để dễ theo dõi, đồng thời giữ nguyên các lệnh, điều kiện và lưu ý an toàn. Khi thông tin khác với chương trình thực tế, hãy ưu tiên kiểm tra mã nguồn và tài liệu gốc.
 
-Bộ công cụ dòng lệnh cho **Windows và macOS**, sử dụng **PowerShell (chỉ Windows)** hoặc **Terminal (zsh/bash, macOS)** cùng Python, ADB, Frida và thiết bị/máy ảo Android tương thích để kiểm tra ưu đãi Google AI Pro thông qua Google One/Google Play. Giao diện Textual sử dụng chung bộ xử lý với chế độ CLI.
+**ePlus AI Toolkit** giúp bạn kiểm tra các ưu đãi Google AI Pro được hiển thị qua Google One và Google Play trên thiết bị Android. Công cụ chạy trên **Windows và macOS**: Windows sử dụng PowerShell, còn macOS sử dụng Terminal (zsh/bash). Cả giao diện Textual lẫn chế độ dòng lệnh đều dùng chung bộ xử lý Python, ADB và Frida.
 
 ![Giao diện ePlus AI Toolkit](https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3)
 
 > [!CAUTION]
-> **Đây là công cụ không chính thức và có rủi ro thanh toán.** Các bước **2–5** có thể mở quy trình thanh toán thật trên Google Play và tự nhấn **Subscribe**. Việc nhìn thấy ưu đãi hoặc mức giá ban đầu bằng 0 **không chứng minh** tài khoản đủ điều kiện, được miễn phí, đã kích hoạt hay đã gia hạn. Trước khi checkout, phải xác minh tài khoản, số tiền trả hôm nay, giá gia hạn và ngày thanh toán tiếp theo **trên Google Play**. Dừng công cụ không thể hoàn tác giao dịch đã gửi.
+> **Đây không phải công cụ chính thức của Google và có thể phát sinh chi phí.** Ở các bước **2–5**, công cụ có thể mở trang thanh toán Google Play và tự nhấn **Subscribe**. Ưu đãi xuất hiện trong danh sách, mức giá đầu tiên bằng 0 hoặc thông báo đã gửi yêu cầu thanh toán **không có nghĩa là** bạn đủ điều kiện, được dùng miễn phí hay đã gia hạn thành công. Trước khi thực hiện, hãy kiểm tra đúng tài khoản, khoản tiền phải trả ngay, mức phí những kỳ sau và ngày gia hạn trong **Google Play**. Dừng công cụ không hủy được giao dịch đã gửi.
 
 > [!NOTE]
 > **Xác thực thẻ có thể tạm giữ tiền dù hóa đơn Google Play hiển thị 0 USD.** Bạn có thể thấy khoản **giữ tiền chờ xử lý khoảng 3 USD** (hoặc mức khác) để xác thực thẻ. **3 USD chỉ là mức tham khảo, không phải phí cố định của Google hoặc bằng chứng đã thanh toán gói đăng ký.** Khoản tạm giữ có thể làm giảm số dư khả dụng; theo Google, lệnh xác thực này không phải giao dịch mua hàng và thường được giải tỏa trong **1–14 ngày làm việc**, tùy ngân hàng. Nếu tiền được hạch toán thành khoản trừ thực tế hoặc lệnh giữ tiền còn tồn tại sau 14 ngày làm việc, hãy liên hệ ngân hàng và Google Payments. [Nguồn chính thức của Google Play](https://support.google.com/googleplay/answer/6224192?hl=en).
 
 ## Tuyên bố miễn trừ trách nhiệm
 
-Dự án độc lập, **không liên kết, được tài trợ hoặc chứng thực** bởi Google, Google One, Google Play, NetEase hay MuMuPlayer. Phần mềm cung cấp **nguyên trạng**, không bảo đảm ưu đãi, khả năng tương thích hay kết quả đăng ký. Chỉ sử dụng với thiết bị và tài khoản mà bạn có quyền kiểm soát, tuân thủ quy định và điều khoản dịch vụ. Xem [Disclaimer đầy đủ (tiếng Anh)](DISCLAIMER.md) và [Lưu ý bảo mật](SECURITY.md).
+ePlus AI Toolkit là dự án độc lập, **không thuộc và không được Google, Google One, Google Play, NetEase hay MuMuPlayer tài trợ hoặc xác nhận**. Phần mềm được cung cấp theo hiện trạng, không bảo đảm bạn sẽ nhận được ưu đãi, đăng ký thành công hoặc chạy được trên mọi thiết bị. Việc chuẩn bị môi trường có thể thay đổi cấu hình Android, Frida hoặc mạng. Chỉ dùng với tài khoản và thiết bị bạn sở hữu hoặc được phép sử dụng, đồng thời tuân thủ điều khoản liên quan. Đọc thêm [tuyên bố miễn trừ trách nhiệm](DISCLAIMER.md) và [hướng dẫn an toàn](SECURITY.md).
 
 ## 1. Chuẩn bị
 
-**Chọn hướng dẫn theo hệ điều hành.** Windows sử dụng PowerShell, còn macOS dùng Terminal (zsh/bash). **Không cần và không sử dụng PowerShell trên macOS.**
+**Chọn hướng dẫn phù hợp với hệ điều hành đang dùng.** Trên Mac, bạn không cần cài hay chạy PowerShell.
 
-| Phần mềm / cấu hình | Windows | macOS |
+| Thành phần | Windows | macOS |
 | --- | --- | --- |
-| Terminal và shell | **PowerShell 5.1+** | Terminal có sẵn, **zsh/bash**, không cần PowerShell |
-| Python | **3.10+** (lệnh `python`) | **3.10+** (`python3`); launcher tạo `.venv` cục bộ |
-| Git | Git for Windows | Git qua Xcode Command Line Tools hoặc Homebrew |
-| Thiết bị Android | Máy Android có root và ADB; dự án hỗ trợ quy trình **MuMuPlayer cho Windows** | Android có root hoặc máy ảo tương thích; **MuMuPlayer Pro trên Mac** chỉ là lựa chọn cho Apple Silicon, không dành cho Mac Intel |
-| Ứng dụng | Google Play Store và Google One đăng nhập đúng tài khoản | Tương tự trên thiết bị/máy ảo đã chọn |
-| ADB / Platform-Tools | Launcher có thể tìm/tải ADB khi cần | Cài riêng, ví dụ `brew install android-platform-tools`; kiểm tra bằng `adb devices` |
-| Frida | **16.5.9**, helper Windows có thể chuẩn bị | **16.5.9** trong `.venv`, vẫn cần kiểm tra tương thích Android |
-| Khởi chạy | `.\run-all.ps1` | `sh run-macos.sh` hoặc `ePlus-AI-Toolkit.command` |
+| Terminal | **PowerShell 5.1 trở lên** | **Terminal** với zsh hoặc bash |
+| Python | **3.10 trở lên**, dùng lệnh `python` | **3.10 trở lên**, dùng `python3`; công cụ tự tạo môi trường `.venv` |
+| Git | Git for Windows | Git từ Xcode Command Line Tools hoặc Homebrew |
+| Android | Thiết bị hoặc máy ảo đã bật root và ADB; hướng dẫn của dự án hỗ trợ **MuMuPlayer cho Windows** | Thiết bị Android có root hoặc máy ảo tương thích; **MuMuPlayer Pro cho Mac** chỉ phù hợp với Apple Silicon, không hỗ trợ Intel Mac |
+| Ứng dụng Android | Google Play Store và Google One, đã đăng nhập đúng tài khoản | Tương tự trên thiết bị Android bạn sử dụng |
+| ADB | Công cụ có thể tìm hoặc tải Android SDK Platform-Tools | Cần cài riêng, chẳng hạn `brew install android-platform-tools`; kiểm tra bằng `adb devices` |
+| Frida | **16.5.9**; trình thiết lập Windows có thể chuẩn bị khi cần | **16.5.9** trong `.venv`; vẫn phải kiểm tra khả năng tương thích với Android |
+| Lệnh khởi chạy | `.\run-all.ps1` | `sh run-macos.sh` hoặc `ePlus-AI-Toolkit.command` |
 
-Cả hai nền tảng đều cần môi trường Android được cấp quyền và cấu hình đúng. Mã nguồn macOS hỗ trợ Steps 0–5, nhưng **chưa xác minh khả năng checkout trên Mac/MuMu thực tế**. Xem [hướng dẫn Windows](docs/INSTALLATION.md) và [hướng dẫn macOS](docs/MACOS-PREVIEW.md).
+Dù dùng Windows hay macOS, bạn vẫn cần một môi trường Android đã thiết lập đúng và có quyền truy cập. Mã nguồn hỗ trợ các bước 0–5 trên macOS, nhưng **chưa xác minh được quy trình thanh toán trên Mac/MuMu thực tế**. Xem hướng dẫn riêng cho [Windows](docs/INSTALLATION.md) và [macOS](docs/MACOS-PREVIEW.md).
 
 ### Yêu cầu trên Windows
 
-- **Windows**, PowerShell **5.1+** và Python **3.10+**.
-- Tự cài **MuMuPlayer**, bật quyền root và ADB trên máy ảo Android.
-- Cài **Google Play Store** và **Google One** trong Android; đăng nhập đúng tài khoản cần kiểm tra.
-- Công cụ có thể tìm hoặc tải **Android SDK Platform-Tools (ADB)** và cài **Frida 16.5.9** khi cần. **Không tự tải hoặc cài MuMuPlayer**. Tính tương thích Frida phụ thuộc phiên bản Android.
+- Cài Windows, PowerShell **5.1 trở lên** và Python **3.10 trở lên**.
+- Tự cài MuMuPlayer, khởi động máy ảo Android và bật root cùng ADB.
+- Cài Google Play Store và Google One trong Android, rồi đăng nhập tài khoản cần kiểm tra.
+- Chuẩn bị kết nối ADB và Frida **16.5.9** tương thích. Công cụ có thể hỗ trợ tìm và cài các thành phần này, **nhưng không tự cài MuMuPlayer**.
 
 ### Bước 1 — Cài MuMuPlayer
 
-**MuMuPlayer không được đóng gói trong repo và công cụ không tự tải hay cài máy ảo.**
+Tải MuMuPlayer từ [trang chính thức của NetEase](https://www.mumuplayer.com/download/) và chọn phiên bản Windows. Không nên tải từ các trang chia sẻ không rõ nguồn gốc.
 
-**Link MuMu chính thức:** [mumuplayer.com/download](https://www.mumuplayer.com/download/) (chọn bản Windows). Không dùng nguồn tải không chính thức.
+Sau khi cài đặt, hãy bật quyền root và ADB cho máy ảo. Kiểm tra Google Play Store và Google One đã có sẵn, sau đó đăng nhập đúng tài khoản bạn muốn kiểm tra ưu đãi.
 
-Hướng dẫn cài đặt bổ sung: [GitHub Wiki — Install](https://github.com/hoangsvit/google-ai/wiki/Install).
+Bạn có thể xem thêm [hướng dẫn cài đặt kèm hình ảnh trên GitHub Wiki](https://github.com/hoangsvit/google-ai/wiki/Install).
 
 ## 2. Cài và khởi động
 
@@ -65,14 +65,14 @@ cd google-ai
 .\run-all.ps1
 ```
 
-Nếu đã tải repo trước đó:
+Nếu bạn đã tải mã nguồn về máy từ trước:
 
 ```powershell
 git pull --ff-only
 .\run-all.ps1
 ```
 
-Chạy **không tham số** sẽ mở giao diện **Textual TUI**; không tự chạy checkout. Khi bắt đầu kiểm tra, chương trình có thể tự chuẩn bị Textual, ADB và Frida. Thường **không cần** chạy `setup_env.py` trước. Bước chuẩn bị có thể thay đổi công cụ, proxy/mạng và cấu hình máy ảo.
+Chạy lệnh **không kèm tham số** sẽ mở giao diện **Textual** thay vì tự bắt đầu thanh toán. Khi bắt đầu kiểm tra, chương trình có thể tự chuẩn bị Textual, ADB và Frida. Thường **không cần** chạy `setup_env.py` trước. Bước chuẩn bị có thể thay đổi công cụ, proxy/mạng và cấu hình máy ảo.
 
 Nếu ADB có trong PATH, kiểm tra kết nối:
 
@@ -90,7 +90,7 @@ Nếu phiên bản mới nhất chạy từ source gặp lỗi, bạn có thể 
 .\run-all.ps1
 ```
 
-**Source code (zip) không phải ứng dụng `.exe` hay bộ cài dựng sẵn.** Nên giữ bản phát hành trong **thư mục riêng**, không chép đè lên bản source đang dùng. Bản phát hành cũ có thể chưa chứa những bản sửa lỗi mới và vẫn cần Windows, Python, MuMuPlayer, ADB/Frida cùng các lưu ý về thanh toán. Nếu lỗi vẫn xảy ra, xem [hướng dẫn khắc phục](docs/DETAILED-GUIDE.md) hoặc [tạo Issue](https://github.com/hoangsvit/google-ai/issues).
+**Source code (zip) chỉ là mã nguồn, không phải tệp `.exe` hoặc bộ cài đã dựng sẵn.** Nên giữ bản phát hành trong **thư mục riêng**, không chép đè lên bản source đang dùng. Bản phát hành cũ có thể chưa chứa những bản sửa lỗi mới và vẫn cần Windows, Python, MuMuPlayer, ADB/Frida cùng các lưu ý về thanh toán. Nếu lỗi vẫn xảy ra, xem [hướng dẫn khắc phục](docs/DETAILED-GUIDE.md) hoặc [tạo Issue](https://github.com/hoangsvit/google-ai/issues).
 
 ## macOS — Cài đặt và khởi chạy
 
@@ -107,14 +107,14 @@ sh run-macos.sh
 
 Lệnh `sh run-macos.sh` mở cùng giao diện Textual với **Steps 0–5**. `--check` kiểm tra môi trường (có thể thay đổi cấu hình), `--list` chỉ liệt kê ưu đãi, và `--step 2` chỉ mở TUI với Step 2 được chọn — **không tự thanh toán**. Các Steps 2–5 có thể phát sinh phí thật và yêu cầu xác nhận riêng. **Chưa kiểm thử giao dịch trên Mac/MuMu thực tế.** Xem [hướng dẫn Mac chi tiết](docs/MACOS-PREVIEW.md).
 
-## Chẩn đoán kết nối và Offer Explorer (Windows + macOS)
+## Kiểm tra kết nối Android và xem ưu đãi (Windows + macOS)
 
-Dashboard có hai thao tác ưu tiên **kiểm tra thông tin**, kế thừa cách hướng dẫn cấu hình Android và hiển thị ưu đãi của dự án gốc:
+Trên bảng điều khiển có hai chức năng kiểm tra được phát triển từ hướng dẫn cấu hình Android và danh sách ưu đãi của dự án gốc:
 
-- **Diagnose Android connection:** kiểm tra sự tồn tại của ADB đang có, liệt kê thiết bị Android đã cấp quyền, đọc kiến trúc ABI, kiểm tra ứng dụng Google One và phiên bản Frida trên máy tính. Trên Windows, giao diện hướng dẫn dùng PowerShell, MuMu và Android Platform-Tools; trên macOS dùng Terminal/zsh/bash và có thể cài ADB qua Homebrew. Tính năng này **không tự cài phần mềm, kết nối/khởi động lại máy ảo, chạy Frida hoặc thực hiện thanh toán**. Tuy nhiên, `adb devices` có thể khởi động ADB server cục bộ.
-- **Check Device & Offers (Step 1):** quy trình Android/Frida hiện có sẽ hiển thị **Offer Explorer** bên dưới Live Status. Chỉ hiển thị product ID, offer ID, kỳ thanh toán đầu tiên và trạng thái giá đầu kỳ bằng 0/khác 0; **không hiển thị** offer token, purchase token, định danh tài khoản gốc hoặc dữ liệu thẻ. Việc truy vấn vẫn có thể thiết lập Android; khác với chẩn đoán kết nối, đây **không phải thao tác hoàn toàn không có tác dụng phụ**.
+- **Diagnose Android connection — Kiểm tra kết nối Android:** Xác định ADB đã có trên máy hay chưa, liệt kê thiết bị Android đã cấp quyền kết nối, đọc kiến trúc ABI, kiểm tra ứng dụng Google One và phiên bản Frida trên máy tính. Tùy hệ điều hành, công cụ sẽ hướng dẫn thiết lập bằng PowerShell/MuMu trên Windows hoặc Terminal/Homebrew trên macOS. Chức năng này **không tự cài phần mềm, kết nối hay khởi động lại máy ảo, chạy Frida hoặc thực hiện thanh toán**. Tuy nhiên, lệnh `adb devices` có thể khởi động ADB server trên máy.
+- **Check Device & Offers (Step 1) — Kiểm tra thiết bị và ưu đãi:** Dùng quy trình Android/Frida hiện có để lấy danh sách ưu đãi rồi hiển thị trong **Offer Explorer** bên dưới Live Status. Màn hình chỉ cho biết mã sản phẩm, mã ưu đãi, kỳ thanh toán đầu tiên và việc giá kỳ đầu có bằng 0 hay không. Công cụ **không hiển thị** offer token, purchase token, thông tin tài khoản đầy đủ hoặc dữ liệu thẻ. Khác với tính năng chẩn đoán kết nối, bước này có thể thiết lập lại một số thành phần Android nên **không hoàn toàn chỉ đọc**.
 
-**Lưu ý:** Giá giai đoạn đầu bằng 0 **không chứng minh** đủ điều kiện dùng thử, đã kích hoạt thuê bao, ngày gia hạn hay giá về sau. Step 1 chỉ truy vấn trong chế độ liệt kê ba product ID gốc: `g1.2tb.ai.subs_variant`, `g1.play.2tb.ai` và `g1.2tb.ai`. Các Steps 2–5 vẫn sử dụng truy vấn tương ứng với từng bước. Báo cáo Android hiện chưa cung cấp đầy đủ lịch giá của các kỳ tiếp theo nên Offer Explorer đánh dấu giá tương lai là **chưa xác minh**. Chỉ xác nhận điều khoản và phí trên Google Play.
+**Giá kỳ đầu bằng 0 không đồng nghĩa với việc được dùng miễn phí hoặc gia hạn thành công.** Step 1 chỉ truy vấn danh sách của ba mã sản phẩm `g1.2tb.ai.subs_variant`, `g1.play.2tb.ai` và `g1.2tb.ai`; các bước 2–5 vẫn truy vấn đúng ưu đãi dành cho từng bước. Vì báo cáo Android chưa có đủ thông tin về những kỳ thanh toán tiếp theo, Offer Explorer đánh dấu giá tương lai là **chưa được xác minh**. Hãy đối chiếu các điều khoản và số tiền thực tế ngay trong Google Play.
 
 ## 3. Sử dụng giao diện
 
@@ -141,7 +141,7 @@ Mục **Advanced: Run by step** gồm:
 
 Tên 12/6 tháng là **tên lịch sử của các bước**, không phải cam kết được cộng thêm thời hạn. Nếu đã có gói đang hoạt động, **không chạy lại Step 2**.
 
-Trước **mỗi bước checkout trên TUI**, cần phê duyệt riêng. Khi công cụ báo đã thử gửi checkout, hãy xác minh gói đang hoạt động, số tiền và ngày gia hạn tại [Google Play Subscriptions](https://play.google.com/store/account/subscriptions). Chỉ chọn **Verified in Google Play → Next** sau khi đã tự xác minh; tool **không thể tự chứng minh giao dịch thành công**.
+Trước **mỗi bước checkout trên TUI**, cần phê duyệt riêng. Khi công cụ báo đã thử gửi checkout, hãy xác minh gói đang hoạt động, số tiền và ngày gia hạn tại [Google Play Subscriptions](https://play.google.com/store/account/subscriptions). Chỉ chọn **Verified in Google Play → Next** sau khi bạn đã tự xác minh trong Google Play. **Công cụ không thể tự xác nhận giao dịch đã thành công.**
 
 Trong khi một bước đang chạy, các nút **Check Device & Offers**, Run, chọn chế độ và chọn Step đều bị khóa để không chạy chồng. Help và log kỹ thuật vẫn dùng được. Chỉ hiển thị **Next** khi kết quả checkout cho phép người dùng kiểm chứng trong chuỗi có hướng dẫn; lỗi hoặc trạng thái không rõ ràng không cho phép tiếp tục.
 
@@ -203,7 +203,7 @@ Chỉ sử dụng serial thực tế từ ADB. Tránh `-Force` vì nó bỏ qua 
 - **Đã gửi yêu cầu checkout:** đó chỉ là thao tác cố gắng gửi, **không phải xác nhận đã kích hoạt hoặc gia hạn**.
 - **Lỗi bảo mật thanh toán (ví dụ OR-REH-04):** dừng các bước thanh toán, kiểm tra thông báo bảo mật chính thức.
 
-Log được lưu trong `logs/`, báo cáo trong `ultra0-report/`. **Không chia sẻ log/report chưa ẩn email, token hoặc dữ liệu thanh toán**. CI chỉ kiểm thử tĩnh/mock, không kiểm chứng mua hàng thật. **khả năng tương thích checkout trên Mac/MuMu thực tế chưa được xác minh**.
+Nhật ký chạy được lưu trong `logs/`, còn báo cáo nằm trong `ultra0-report/`. **Không chia sẻ log/report chưa ẩn email, token hoặc dữ liệu thanh toán**. CI chỉ kiểm thử tĩnh/mock, không kiểm chứng mua hàng thật. **khả năng tương thích checkout trên Mac/MuMu thực tế chưa được xác minh**.
 
 ## Hỗ trợ cộng đồng và dự án liên quan
 
@@ -211,25 +211,25 @@ Nếu gặp vấn đề khi cài đặt hoặc sử dụng ePlus AI Toolkit, hã
 
 **Không tham gia được chương trình Google AI Pro?** Bạn có thể tham khảo [Muse Invite Hub](https://github.com/ePlus-DEV/muse-invite-hub), một dự án khác của ePlus.DEV để [tìm kiếm hoặc chia sẻ mã mời Muse](https://muse.eplus.dev/). **Muse là dịch vụ riêng**, mã mời Muse **không kích hoạt và không thay thế** quyền đăng ký Google AI Pro. Mã mời có thể hết lượt hoặc bị giới hạn theo khu vực/tài khoản.
 
-## Cấu trúc repository
+## Cấu trúc mã nguồn
 
-Các launcher đang sử dụng và mô-đun Python được giữ tại thư mục gốc để tương thích. Dùng `run-all.ps1` trên Windows hoặc `run-macos.sh` trên macOS.
+Các tệp khởi chạy và mô-đun Python chính vẫn nằm tại thư mục gốc để bảo đảm tương thích với các hướng dẫn hiện có. Trên Windows dùng `run-all.ps1`, còn trên macOS dùng `run-macos.sh`.
 
-| Vị trí | Chức năng |
+| Đường dẫn | Vai trò |
 | --- | --- |
-| `run-all.ps1` | Điểm khởi chạy Windows: Textual dashboard và CLI có hướng dẫn |
-| `run-macos.sh`, `ePlus-AI-Toolkit.command`, `macos_runner.py` | Launcher và adapter macOS cho Steps 0–5; checkout thiết bị thật chưa được xác minh |
-| `tui.py`, `tui_core.py`, `ultra0.py`, `setup_env.py`, `device_selector.py`, `query_sku.py` | Mô-đun Python đang được sử dụng; giữ nguyên đường dẫn để tương thích |
-| [`tools/windows/`](tools/windows/README.md) | Công cụ thiết lập Windows thủ công, không bắt buộc |
-| [`legacy/windows/`](legacy/windows/README.md) | Lối tắt .bat cũ; một số dùng `--force` bỏ qua kiểm tra tài khoản và có thể **phát sinh thanh toán thật**; ưu tiên launcher chính |
-| `scripts/`, `assets/` | Helper thực thi và tài nguyên Android/Frida đi kèm |
-| `tests/`, `.github/workflows/`, `docs/` | Unit test offline, CI và tài liệu |
+| `run-all.ps1` | Khởi chạy giao diện Textual và chế độ CLI trên Windows |
+| `run-macos.sh`, `ePlus-AI-Toolkit.command`, `macos_runner.py` | Khởi chạy và điều phối các bước 0–5 trên Mac; chưa xác minh thanh toán trên thiết bị thật |
+| `tui.py`, `tui_core.py`, `ultra0.py`, `setup_env.py`, `device_selector.py`, `query_sku.py` | Các mô-đun Python đang được sử dụng |
+| [`tools/windows/`](tools/windows/README.md) | Công cụ thiết lập Windows thủ công, chỉ dùng khi cần |
+| [`legacy/windows/`](legacy/windows/README.md) | Các tệp .bat cũ; một số sử dụng `--force` để bỏ qua bước đối chiếu tài khoản, có thể **phát sinh phí thật**. Nên dùng launcher được duy trì |
+| `scripts/`, `assets/` | Tiện ích hỗ trợ và tài nguyên Android/Frida |
+| `tests/`, `.github/workflows/`, `docs/` | Bộ kiểm thử, GitHub Actions và tài liệu |
 
 ## Tài liệu và đóng góp
 
 [README tiếng Anh](README.md) · [Wiki Install](https://github.com/hoangsvit/google-ai/wiki/Install) · [Hướng dẫn kỹ thuật](docs/DETAILED-GUIDE.md) · [Các bước gốc](docs/ORIGINAL-STEPS.md) · [Disclaimer](DISCLAIMER.md) · [Bảo mật](SECURITY.md) · [Đóng góp](CONTRIBUTING.md) · [Thông báo bản quyền](THIRD_PARTY_NOTICES.md)
 
-Các mục tài liệu chuẩn gồm [cấu trúc dự án](docs/PROJECT.md), [cách dùng dashboard và CLI](docs/USAGE.md), [an toàn thanh toán](docs/SAFETY.md), [lưu ý tác giả](docs/AUTHOR-NOTES.md) và [hướng dẫn AI agent](AGENTS.md). GitHub Actions chỉ kiểm tra Python, PowerShell, Textual và mô phỏng Frida/Billing, **không thực hiện Google Play checkout thật**. CI thành công không chứng minh thiết bị tương thích hoặc tài khoản đủ điều kiện.
+Bạn cũng có thể tham khảo [cấu trúc dự án](docs/PROJECT.md), [cách dùng dashboard và CLI](docs/USAGE.md), [an toàn thanh toán](docs/SAFETY.md), [lưu ý tác giả](docs/AUTHOR-NOTES.md) và [hướng dẫn AI agent](AGENTS.md). GitHub Actions kiểm tra Python, PowerShell, Textual và các tình huống mô phỏng Frida/Billing; **không thực hiện giao dịch Google Play thật**. CI thành công không chứng minh thiết bị tương thích hoặc tài khoản đủ điều kiện.
 
 ## Ghi công
 
