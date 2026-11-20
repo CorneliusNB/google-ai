@@ -130,7 +130,7 @@ class DocumentationNavigationTests(unittest.TestCase):
         self.assertIn("Terminal (zsh/bash)", hub)
         self.assertIn("PowerShell 5.1+", hub)
         self.assertIn("sh run-macos.sh", hub)
-        self.assertIn(r".\\run-all.ps1", hub)
+        self.assertIn(r".\run-all.ps1", hub)
         self.assertIn("PowerShell is not needed", mac_guide)
         self.assertIn("python3", mac_guide)
         self.assertIn("adb devices", mac_guide)

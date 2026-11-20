@@ -33,7 +33,7 @@ Read the **[full disclaimer](DISCLAIMER.md)** and [security precautions](SECURIT
 | Android apps | Google Play Store and Google One, signed in to the intended account | Same; must be available on the chosen Android device/emulator |
 | ADB / Platform-Tools | Launcher can locate/download ADB when needed | Install separately, e.g. `brew install android-platform-tools`; verify with `adb devices` |
 | Frida | **16.5.9**, prepared by the Windows setup helper as needed | **16.5.9**, installed into the local `.venv` by the Mac launcher; Android-side compatibility must be checked |
-| Start command | `.\\run-all.ps1` | `sh run-macos.sh` (or `ePlus-AI-Toolkit.command`) |
+| Start command | `.\run-all.ps1` | `sh run-macos.sh` (or `ePlus-AI-Toolkit.command`) |
 
 Both platforms need an authorized, correctly configured Android environment. The macOS implementation covers Steps 0–5 in code, but real Mac/MuMu checkout compatibility has **not** been verified. See the dedicated [Windows guide](docs/INSTALLATION.md) and [macOS guide](docs/MACOS-PREVIEW.md).
 

@@ -15,7 +15,7 @@ This is the **version-controlled documentation hub** for the Windows and macOS t
 | Python and Git | Python **3.10+** and Git | Python **3.10+** and Git |
 | Android | Root/ADB-enabled MuMuPlayer or authorized Android device with Google Play Store and Google One | Rooted compatible Android device/emulator with both apps; MuMuPlayer Pro for Mac is an Apple Silicon option, not Intel |
 | ADB and Frida | Windows launcher can locate/install Platform-Tools and prepare Frida **16.5.9** | Install ADB separately (e.g. `brew install android-platform-tools`); Mac launcher installs Frida **16.5.9** into `.venv` |
-| Launcher | `.\\run-all.ps1` | `sh run-macos.sh` or `ePlus-AI-Toolkit.command` |
+| Launcher | `.\run-all.ps1` | `sh run-macos.sh` or `ePlus-AI-Toolkit.command` |
 | Setup guide | [Windows requirements and installation](INSTALLATION.md) | [macOS requirements and installation](MACOS-PREVIEW.md) |
 
 Only the macOS host / mocked logic is covered by automated checks; real Mac/MuMu billing has not been validated. Choose the appropriate guide and do not run the Windows-only `.ps1`, `.bat`, or `setup_env.py` path on macOS.
