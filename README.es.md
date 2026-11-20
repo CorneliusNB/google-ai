@@ -117,7 +117,7 @@ El panel incorpora dos funciones de consulta inspiradas en la configuración de 
 
 ## 3. Usar el panel Textual
 
-En una ejecución, los botones Check Device & Offers, Run y los selectores de modo/paso quedan bloqueados. Step 0 puede modificar el entorno local; Step 1 no compra, pero su preflight puede preparar ADB/Frida. Una acción Next solo se permite tras un resultado verificable en Google Play. **Exit/Stop no revierte una compra ya enviada.**
+Mientras se ejecuta un paso, se desactivan **Check Device & Offers**, **Run** y los controles para cambiar de modo o de paso, de modo que no se inicien varias acciones a la vez. El paso 0 puede cambiar ajustes del equipo y el paso 1, aunque no realiza compras, puede preparar ADB/Frida. Antes de continuar con **Next**, comprueba el resultado en Google Play. **Detener o cerrar la aplicación no anula un pago ya enviado.**
 
 
 **Check Device & Offers** ejecuta **Step 1 — Available offers**: consulta ofertas y **no inicia el pago**. Supervisa **Live Status** y **Show technical details**; 30 segundos sin nuevos mensajes no implican necesariamente un bloqueo.
@@ -127,7 +127,7 @@ En **Advanced: Run by step**:
 | Modo | Acción |
 | --- | --- |
 | **One step only** | Ejecuta un único paso seleccionado, del 0 al 5 |
-| **From selected step** | Inicia una secuencia guiada desde el paso 2–5 |
+| **From selected step** | Inicia una secuencia guiada desde el paso que elijas (entre el 2 y el 5) |
 | **All: Steps 2–5** | Inicia la secuencia desde el paso 2; el 5 es opcional |
 
 | Paso | Función | Riesgo |
@@ -146,6 +146,8 @@ El TUI exige **aprobación explícita por cada paso de pago**. Aunque aparezca u
 **Detener/salir:** Stop en los pasos 0–1 solicita cancelar el proceso local. En los pasos 2–5, **Stop after this step** evita los pasos siguientes, pero **no fuerza la interrupción de un pago en curso**. **Q / Exit** espera a que acabe el paso de pago actual. **D** alterna los detalles; **R** inicia el modo seleccionado.
 
 ## 4. Comandos de PowerShell (avanzado)
+
+**Solo para Windows.** Estos comandos utilizan PowerShell; en macOS debes usar `run-macos.sh` y las [instrucciones para Mac](docs/MACOS-PREVIEW.md). Si indicas parámetros, se abre el modo CLI en lugar del panel Textual.
 
 **Consulta y diagnóstico, sin pago:**
 
@@ -194,7 +196,7 @@ Usa solo un número de serie mostrado por ADB. Evita `-Force`: omite la comproba
 - **Pago solicitado:** no confirma una suscripción nueva ni una renovación; revisa Google Play antes de repetirlo.
 - **Error de seguridad de pagos (por ejemplo OR-REH-04):** detén los pasos de pago y sigue el procedimiento oficial.
 
-Los registros están en `logs/` y los informes en `ultra0-report/`. **No compartas archivos sin ocultar correos, tokens y datos de pago.** CI solo ejecuta pruebas estáticas/simuladas y **no valida compras reales**. 
+Los registros están en `logs/` y los informes en `ultra0-report/`. **No compartas archivos sin ocultar correos, tokens y datos de pago.** Las pruebas automáticas de CI se ejecutan con datos simulados y **no verifican compras reales**. 
 ## Soporte comunitario y proyectos relacionados
 
 Si tienes problemas para instalar o utilizar ePlus AI Toolkit, puedes contactar e intercambiar consejos con la comunidad en la [publicación de soporte y debate de ePlus en Telegram](https://t.me/eplus_news/29). Para errores reproducibles, también puedes [abrir un Issue en GitHub](https://github.com/hoangsvit/google-ai/issues). **No compartas contraseñas, códigos OTP/2FA, tokens de ofertas o compras, registros sin anonimizar ni datos de tarjetas.** No es un canal de soporte oficial de Google.
