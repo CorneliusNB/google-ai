@@ -18,6 +18,8 @@ Keep the active platform launchers and imported Python modules at the repository
 
 **Branch policy:** Features and maintenance changes target [`dev`](https://github.com/hoangsvit/google-ai/tree/dev) first. After validation, merge `dev` into `main` through a reviewed PR. Production releases are built from `main`; reorganizing files must not trigger a release.
 
+**Rollback conflict policy:** When `main` contains a previously merged release revert, reconcile its history back into `dev` on a reviewed synchronization branch before a new `dev` → `main` promotion. Inspect the revert against the current `dev` tree; preserve the newer reviewed Windows and macOS implementation, launchers, documentation, and tests rather than accidentally reapplying the obsolete deletion. Verify the reconciled tree and CI, and never force-push or treat an ancestry-only merge as proof of production readiness.
+
 ## Documentation and contributing
 
 - [Install guide — GitHub Wiki](https://github.com/hoangsvit/google-ai/wiki/Install)
