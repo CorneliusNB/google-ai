@@ -5,7 +5,7 @@
 
 > **权威版本：**[英文 README](README.md)。本翻译说明主要操作和风险；若有差异，请以当前代码及英文 README 为准。
 
-这是一个支持 **Windows 和 macOS** 的终端工具，通过 **PowerShell、Python、ADB、Frida 和 Android 模拟器（MuMuPlayer）** 检查 Google One / Google Play 中的 Google AI Pro 优惠。Textual 界面与 CLI 使用同一底层引擎。
+这是一个支持 **Windows 和 macOS** 的终端工具，通过 **Windows PowerShell 或 macOS Terminal（zsh/bash）**，配合 Python、ADB、Frida 与兼容的 Android 设备/模拟器检查 Google One / Google Play 中的 Google AI Pro 优惠。Textual 界面与 CLI 使用同一底层引擎。
 
 ![ePlus AI Toolkit 界面](https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3)
 

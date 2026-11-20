@@ -22,6 +22,21 @@ Read the **[full disclaimer](DISCLAIMER.md)** and [security precautions](SECURIT
 
 ## Install and prepare
 
+**Choose the instructions for your operating system.** Windows runs PowerShell; macOS runs Terminal with a POSIX shell (zsh/bash). **PowerShell is not required or used on macOS.**
+
+| Software / configuration | Windows | macOS |
+| --- | --- | --- |
+| Terminal and shell | **PowerShell 5.1+** | Built-in **Terminal**, using **zsh** or **bash**; **no PowerShell** |
+| Python | **3.10+** (command: `python`) | **3.10+** (command: `python3`); launcher creates a local `.venv` |
+| Git | Install Git for Windows | Install Git (Xcode Command Line Tools or Homebrew are options) |
+| Android connection | Rooted, ADB-enabled Android instance; **MuMuPlayer for Windows** is supported by the project workflow | Rooted Android device or compatible emulator; **MuMuPlayer Pro for Mac** is an Apple Silicon option, not an Intel Mac solution |
+| Android apps | Google Play Store and Google One, signed in to the intended account | Same; must be available on the chosen Android device/emulator |
+| ADB / Platform-Tools | Launcher can locate/download ADB when needed | Install separately, e.g. `brew install android-platform-tools`; verify with `adb devices` |
+| Frida | **16.5.9**, prepared by the Windows setup helper as needed | **16.5.9**, installed into the local `.venv` by the Mac launcher; Android-side compatibility must be checked |
+| Start command | `.\\run-all.ps1` | `sh run-macos.sh` (or `ePlus-AI-Toolkit.command`) |
+
+Both platforms need an authorized, correctly configured Android environment. The macOS implementation covers Steps 0–5 in code, but real Mac/MuMu checkout compatibility has **not** been verified. See the dedicated [Windows guide](docs/INSTALLATION.md) and [macOS guide](docs/MACOS-PREVIEW.md).
+
 ### Windows requirements
 
 - **Windows** with PowerShell **5.1+** and Python **3.10+**.
@@ -78,6 +93,8 @@ If you encounter errors when running the latest repository version, you can try 
 A **source ZIP is not a prebuilt `.exe` or installer**. Keep the release in a **separate folder** from your current clone so you can compare versions and roll back without overwriting files. Release builds may lack newer bug fixes, and they still require Windows, Python, MuMuPlayer, ADB/Frida and the same billing precautions. If the error persists, check [Troubleshooting](#troubleshooting-and-results) or [report an issue](https://github.com/hoangsvit/google-ai/issues).
 
 ## macOS — Install and run
+
+**macOS uses Terminal (zsh/bash), not PowerShell.** Do not run `.ps1` / `.bat` launchers or the Windows-only `setup_env.py` on a Mac.
 
 The native [macOS implementation](docs/MACOS-PREVIEW.md) supports **Steps 0–5**, including guided subscription stages, without using the Windows PowerShell setup helper. It reuses the existing Python/Frida Android engine and shared Textual dashboard. **Steps 2–5 can create real Google Play charges**, so each requires a separate confirmation, an identifiable current Play account and an available matching offer. The adapter never uses `--force`.
 
@@ -144,7 +161,7 @@ Neither Stop nor closing the terminal reverses an existing Google Play transacti
 
 ## PowerShell CLI (advanced)
 
-The dashboard and the CLI reuse the same PowerShell/Python engine. Explicit command arguments bypass the TUI.
+**Windows only:** These PowerShell commands apply to `run-all.ps1`, not macOS. On a Mac, use the POSIX `run-macos.sh` launcher and [Mac-specific commands](docs/MACOS-PREVIEW.md). The Windows dashboard and CLI reuse the same PowerShell/Python engine. Explicit command arguments bypass the TUI.
 
 ### Safe offer check and diagnostics
 

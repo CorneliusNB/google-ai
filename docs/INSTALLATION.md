@@ -4,9 +4,11 @@
 
 ## Install and prepare
 
+**This guide is for Windows only.** Use **PowerShell**, not the macOS Terminal launcher. macOS users should follow the [separate Mac prerequisites and setup guide](MACOS-PREVIEW.md) instead; macOS does **not** need PowerShell.
+
 ### Requirements
 
-- **Windows** with PowerShell **5.1+** and Python **3.10+**.
+- **Windows** with PowerShell **5.1+**, **Python 3.10+** and **Git**.
 - **MuMuPlayer installed separately**, started with an Android instance that permits root and ADB access.
 - **Google Play Store** and **Google One** installed and signed into the intended Google account inside Android.
 - A connection to Android through ADB. The toolkit can locate or download **Android SDK Platform-Tools** when ADB is missing; it does **not** install the Android emulator.

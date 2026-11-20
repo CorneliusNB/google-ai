@@ -121,6 +121,31 @@ class DocumentationNavigationTests(unittest.TestCase):
         self.assertIn("## Repository structure", readme)
         self.assertNotIn("git switch dev", readme)
 
+    def test_shell_commands_and_setup_requirements_are_platform_specific(self):
+        overview = (ROOT / "README.md").read_text(encoding="utf-8")
+        hub = (DOCS / "README.md").read_text(encoding="utf-8")
+        mac_guide = (DOCS / "MACOS-PREVIEW.md").read_text(encoding="utf-8")
+        win_guide = (DOCS / "INSTALLATION.md").read_text(encoding="utf-8")
+        self.assertIn("PowerShell is not required or used on macOS", overview)
+        self.assertIn("Terminal (zsh/bash)", hub)
+        self.assertIn("PowerShell 5.1+", hub)
+        self.assertIn("sh run-macos.sh", hub)
+        self.assertIn(r".\\run-all.ps1", hub)
+        self.assertIn("PowerShell is not needed", mac_guide)
+        self.assertIn("python3", mac_guide)
+        self.assertIn("adb devices", mac_guide)
+        self.assertIn("This guide is for Windows only", win_guide)
+
+        for path in ("README.md", "README.vi.md", "README.es.md",
+                     "README.fr.md", "README.ja.md", "README.ko.md",
+                     "README.zh-CN.md"):
+            with self.subTest(readme=path):
+                text = (ROOT / path).read_text(encoding="utf-8")
+                mac_section = text.split("## macOS", 1)[1].split("## ", 1)[0]
+                self.assertIn("sh run-macos.sh", mac_section)
+                self.assertNotIn("```powershell", mac_section.lower())
+                self.assertNotIn(r".\\run-all.ps1", mac_section)
+
 
 if __name__ == "__main__":
     unittest.main()

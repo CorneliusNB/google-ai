@@ -13,9 +13,10 @@ Instructions for coding agents working in this repository. Read this file, `READ
 
 ## Project purpose and boundaries
 
-**ePlus AI Toolkit** is a Windows/PowerShell + Python application for inspecting Google AI Pro offers on Android/MuMu. The Textual UI must remain an interface to the existing engine, not a second implementation of Android, Frida, account, offer, or Google Play Billing logic.
+**ePlus AI Toolkit** is a Windows and macOS Python toolkit for inspecting Google AI Pro offers on Android. Windows uses PowerShell (`run-all.ps1`) and its setup helper; macOS uses Terminal/zsh/bash (`run-macos.sh` and `macos_runner.py`) and must never be instructed to run the Windows `.ps1` or `.bat` setup tools. The Textual UI must remain an interface to the existing engine, not a second implementation of Android, Frida, account, offer, or Google Play Billing logic.
 
-- **`run-all.ps1`** — main entrypoint. No parameters launches the Textual dashboard; explicit `-Step N`, `-Cli`, or `-AllStages` use the CLI path. Read the real parameter and approval logic before changing an option.
+- **`run-macos.sh` / `macos_runner.py`** — macOS-only POSIX launcher and native stage adapter; no PowerShell or Windows `setup_env.py` on Macs.
+- **`run-all.ps1`** — Windows entrypoint. No parameters launches the Textual dashboard; explicit `-Step N`, `-Cli`, or `-AllStages` use the CLI path. Read the real parameter and approval logic before changing an option.
 - **`tui.py`** — Textual dashboard, user confirmations, subprocess orchestration, live output and safe Stop/Exit handling.
 - **`tui_core.py`** — stage mapping, command construction, setup requirements, fresh-report validation and outcome interpretation.
 - **`ultra0.py`** — upstream-derived Android/Frida/Google Play integration; treat changes here as high risk.
@@ -60,11 +61,21 @@ The UI is for everyday users, not just developers:
 1. Inspect the latest target branch, existing PRs/issues and relevant code. Do not base a new change on an unrelated unmerged PR or overwrite concurrent work.
 2. Prefer the smallest focused patch. Keep `tui.py` for interaction/layout and `tui_core.py` for pure parsing, stage and outcome rules. Never duplicate checkout/Frida routines inside TUI.
 3. Add regression tests for each bug. In tests, mock `subprocess.Popen` or the relevant application methods; **never** connect to a production emulator or initiate a Google Play transaction.
-4. Run, when available:
+4. Run, when available, using the shell native to the host:
 
+   **Windows PowerShell:**
+   
    ```powershell
    python -m unittest discover -s tests -v
    python -m py_compile tui.py tui_core.py
+   ```
+
+   **macOS Terminal (zsh/bash; no PowerShell required):**
+
+   ```sh
+   python3 -m unittest discover -s tests -v
+   python3 -m py_compile tui.py tui_core.py macos_runner.py
+   sh -n run-macos.sh
    ```
 
    Also run repository CI/static checks and any targeted test files affected by the patch. For layout changes, verify widget visibility, geometry, focus and scrollability at both compact and normal terminal sizes.

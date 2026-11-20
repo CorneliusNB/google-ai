@@ -6,7 +6,7 @@
 
 > **Referencia principal:** [README en inglés](README.md). Esta traducción explica el uso esencial y los riesgos; si hay diferencias, consulta el código actual y la documentación inglesa.
 
-**ePlus AI Toolkit** es una herramienta de terminal para **Windows y macOS** que usa **PowerShell, Python, ADB, Frida y un emulador Android (MuMuPlayer)** para consultar ofertas de Google AI Pro mediante Google One y Google Play. La interfaz Textual y el CLI usan el mismo motor.
+**ePlus AI Toolkit** es una herramienta de terminal para **Windows y macOS** que usa **PowerShell (solo en Windows) o Terminal (zsh/bash, en macOS)**, además de Python, ADB, Frida y un dispositivo/emulador Android compatible para consultar ofertas de Google AI Pro mediante Google One y Google Play. La interfaz Textual y el CLI usan el mismo motor.
 
 ![Interfaz de ePlus AI Toolkit](https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3)
 

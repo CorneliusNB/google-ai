@@ -5,7 +5,7 @@
 
 > **기준 문서:** [영어 README](README.md). 이 번역은 주요 사용법과 주의사항을 설명합니다. 내용이 다르면 최신 소스 코드와 영어 README를 확인하세요.
 
-**ePlus AI Toolkit**은 **Windows와 macOS**에서 사용하는 터미널 도구입니다. **PowerShell, Python, ADB, Frida, Android 에뮬레이터(MuMuPlayer)**를 통해 Google One / Google Play의 Google AI Pro 프로모션 정보를 확인합니다. Textual UI와 CLI는 같은 실행 엔진을 사용합니다.
+**ePlus AI Toolkit**은 **Windows와 macOS**에서 사용하는 터미널 도구입니다. **Windows에서는 PowerShell, macOS에서는 Terminal(zsh/bash)**을 사용하며 Python, ADB, Frida 및 호환 Android 기기/에뮬레이터를 통해 Google One / Google Play의 Google AI Pro 프로모션 정보를 확인합니다. Textual UI와 CLI는 같은 실행 엔진을 사용합니다.
 
 ![ePlus AI Toolkit 화면](https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3)
 

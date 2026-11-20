@@ -5,7 +5,7 @@
 
 > **Nguồn chuẩn:** [README tiếng Anh](README.md). Bản dịch này giúp sử dụng công cụ; nếu có khác biệt về tính năng, hãy đối chiếu mã nguồn và README tiếng Anh.
 
-Bộ công cụ dòng lệnh cho **Windows và macOS**, sử dụng **PowerShell, Python, ADB, Frida và máy ảo Android (MuMuPlayer)** để kiểm tra ưu đãi Google AI Pro thông qua Google One/Google Play. Giao diện Textual sử dụng chung bộ xử lý với chế độ CLI.
+Bộ công cụ dòng lệnh cho **Windows và macOS**, sử dụng **PowerShell (chỉ Windows)** hoặc **Terminal (zsh/bash, macOS)** cùng Python, ADB, Frida và thiết bị/máy ảo Android tương thích để kiểm tra ưu đãi Google AI Pro thông qua Google One/Google Play. Giao diện Textual sử dụng chung bộ xử lý với chế độ CLI.
 
 ![Giao diện ePlus AI Toolkit](https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3)
 
