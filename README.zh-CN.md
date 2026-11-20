@@ -5,9 +5,9 @@
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
 
-> **权威版本：**[英文 README](README.md)。本翻译说明主要操作和风险；若有差异，请以当前代码及英文 README 为准。
+> **原始文档：**[英文 README](README.md)。中文版采用更易理解的表述，同时保留原文中的命令、技术要求和安全警告。如文档与实际运行情况不一致，请以源代码及英文原文为准。
 
-这是一个支持 **Windows 和 macOS** 的终端工具，通过 **Windows PowerShell 或 macOS Terminal（zsh/bash）**，配合 Python、ADB、Frida 与兼容的 Android 设备/模拟器检查 Google One / Google Play 中的 Google AI Pro 优惠。Textual 界面与 CLI 使用同一底层引擎。
+**ePlus AI Toolkit** 用于查看 Android 设备上的 Google One 和 Google Play 提供的 Google AI Pro 优惠。它支持 **Windows 和 macOS**：Windows 用户通过 PowerShell 启动，Mac 用户则使用 Terminal（zsh/bash）。Textual 图形化终端界面与命令行模式共用 Python、ADB 和 Frida 执行引擎。
 
 ![ePlus AI Toolkit 界面](https://github.com/user-attachments/assets/f16cde7e-022f-43bc-97fe-310012b0a5d3)
 
@@ -21,30 +21,37 @@
 
 本项目与 **Google、Google One、Google Play、NetEase、MuMuPlayer 没有从属或官方合作关系**。软件按**现状**提供，不保证优惠可用、订阅结果或设备兼容性。仅在您拥有或获授权使用的设备、账户上运行，并遵守法律及平台条款。详情参见[完整免责声明（英文）](DISCLAIMER.md)和[安全说明](SECURITY.md)。
 
-## 1. 安装准备
+## 1. 使用前的准备工作
 
-**请根据操作系统选择说明。** Windows 使用 PowerShell；macOS 使用 Terminal（zsh/bash），**无需 PowerShell**。
+**请按照自己的操作系统进行设置。** Mac 用户无需安装 PowerShell。
 
-| 软件／配置 | Windows | macOS |
+| 项目 | Windows | macOS |
 | --- | --- | --- |
-| 终端 | **PowerShell 5.1+** | 系统自带 **Terminal**，zsh/bash |
-| Python | **3.10+**（`python`） | **3.10+**（`python3`），启动器创建本地 `.venv` |
-| Git | Git for Windows | Xcode Command Line Tools 或 Homebrew |
-| Android | 已 root 且开启 ADB；支持 Windows 上的 MuMuPlayer 流程 | 已 root 的 Android 或兼容模拟器；Mac 版 MuMuPlayer Pro 适用于 **Apple Silicon**，不适用于 Intel Mac |
-| 应用 | 以目标账户登录 Google Play Store 与 Google One | 所选 Android 设备上须具备同样的应用 |
-| ADB | 启动器可查找或下载 Platform-Tools | 单独安装，例如 `brew install android-platform-tools`；用 `adb devices` 验证 |
-| Frida | **16.5.9**，Windows 安装助手可准备 | 本地 `.venv` 内的 **16.5.9**；仍需核验 Android 兼容性 |
-| 启动 | `.\run-all.ps1` | `sh run-macos.sh` 或 `ePlus-AI-Toolkit.command` |
+| 终端 | **PowerShell 5.1 或更高版本** | 系统自带的 **Terminal**（zsh/bash） |
+| Python | **3.10 或更高版本**，使用 `python` 命令 | **3.10 或更高版本**，使用 `python3`；启动时创建本地 `.venv` 环境 |
+| Git | Git for Windows | 通过 Xcode Command Line Tools 或 Homebrew 安装 |
+| Android 环境 | 已开启 root 和 ADB 的设备或模拟器；项目提供 **Windows 版 MuMuPlayer** 的操作流程 | 已 root 的 Android 设备或兼容模拟器；**Mac 版 MuMuPlayer Pro** 适用于 Apple Silicon，不支持 Intel Mac |
+| Android 应用 | Google Play Store 和 Google One，并登录要检查的账户 | 所选 Android 设备上同样需要安装这两个应用 |
+| ADB | 工具可按需查找或下载 Android SDK Platform-Tools | 需单独安装，例如 `brew install android-platform-tools`；使用 `adb devices` 检查连接 |
+| Frida | **16.5.9**，可由 Windows 配置程序准备 | 在 `.venv` 中安装 **16.5.9**，仍需核实与 Android 的兼容性 |
+| 启动命令 | `.\run-all.ps1` | `sh run-macos.sh` 或 `ePlus-AI-Toolkit.command` |
 
-两个平台都需要已授权且配置正确的 Android 环境。macOS 代码支持 Steps 0–5，但**尚未在真实 Mac/MuMu 上验证付款功能**。参见 [Windows 指南](docs/INSTALLATION.md)与 [macOS 指南](docs/MACOS-PREVIEW.md)。
+无论使用哪种系统，都需要一个已经正确配置、且你有权访问的 Android 环境。虽然 macOS 版本已实现 Steps 0–5，**但尚未在真实 Mac/MuMu 环境中验证支付流程**。另请参考 [Windows 指南](docs/INSTALLATION.md)和 [macOS 指南](docs/MACOS-PREVIEW.md)。
 
+### Windows 环境要求
 
-- **Windows**、PowerShell **5.1+**、Python **3.10+**。
-- **自行安装 MuMuPlayer**，在 Android 模拟器中启用 root 和 ADB 调试。
-- 在模拟器中安装并登录 **Google Play Store** 与 **Google One**。
-- 工具可在缺少时寻找/下载 **Android SDK Platform-Tools（ADB）**并准备 **Frida 16.5.9**，但**不会自动下载或安装 MuMuPlayer**。Frida 与 Android 版本的兼容性需单独确认。
+- Windows，已安装 **PowerShell 5.1 或更高版本**及 **Python 3.10 或更高版本**。
+- 自行安装 MuMuPlayer，并为 Android 实例启用 root 和 ADB 调试。
+- 在 Android 中安装 Google Play Store 和 Google One，使用要检查优惠的 Google 账户登录。
+- 准备可连接的 ADB 和兼容的 **Frida 16.5.9**。本工具可协助配置，但**不会代为安装 MuMuPlayer**。
 
-**MuMuPlayer 官方下载：**[mumuplayer.com/download](https://www.mumuplayer.com/download/)（选择 Windows 版本）。请勿使用不明镜像站。更多说明见[项目安装 Wiki](https://github.com/hoangsvit/google-ai/wiki/Install)。
+### 第一步 — 安装 MuMuPlayer
+
+从 [MuMuPlayer 官方网站（NetEase）](https://www.mumuplayer.com/download/)下载 Windows 版本。请勿使用来源不明的下载站点。
+
+启动模拟器后，启用 root 权限和 ADB 调试。确保 Google Play Store 和 Google One 可用，并登录正确的 Google 账户。
+
+需要图文步骤时，可参阅 [GitHub Wiki 安装指南](https://github.com/hoangsvit/google-ai/wiki/Install)。
 
 ## 2. 获取并启动
 
@@ -73,7 +80,7 @@ adb devices
 
 设备应显示为 `device`，不能是 `offline` 或 `unauthorized`。有问题请参考[详细故障排查](docs/DETAILED-GUIDE.md)。
 
-### 备用方案：最新源码出错时使用已发布版本
+### 最新版本无法使用时，尝试已发布版本
 
 如果运行仓库最新代码遇到错误，可以尝试 [GitHub Releases](https://github.com/hoangsvit/google-ai/releases) 中**已发布的版本**。先阅读版本说明；若附带 Windows 安装包，可下载相应文件。若页面只有 GitHub 自动提供的 **Source code (zip)**，请下载 ZIP 并解压，在解压后的文件夹打开 PowerShell，然后运行：
 
@@ -98,14 +105,14 @@ sh run-macos.sh
 
 `sh run-macos.sh` 打开包含 **步骤 0–5** 的 Textual 界面。`--check` 检查环境（可能改变配置）；`--list` 仅查询优惠；`--step 2` 只预选该步骤，**不会自动付款**。步骤 2–5 可能产生真实费用，必须逐步确认。**真实 Mac/MuMu 上的支付尚未验证。** 参阅 [Mac 详细指南](docs/MACOS-PREVIEW.md)。
 
-## 连接诊断与 Offer Explorer（Windows + macOS）
+## 检查 Android 连接并查看优惠（Windows + macOS）
 
-控制台提供两项以**信息检查为先**的操作，参考了原项目的 Android 配置向导和优惠列表：
+控制台提供两项检查功能，分别参考了原项目的 Android 配置流程和优惠列表：
 
-- **Diagnose Android connection：**检查已有 ADB、列出已授权的 Android 连接、读取设备 ABI、检查 Google One、报告主机上的 Frida 版本。Windows 提供 PowerShell/MuMu/Platform-Tools 指引，macOS 提供 Terminal/zsh/bash/Homebrew 指引。此功能**不会安装软件、连接或重启模拟器、启动 Frida 或发起付款**；不过 `adb devices` 可能启动本地 ADB 服务。
-- **Check Device & Offers（Step 1）：**运行已有的 Android/Frida 查询，并在 Live Status 下显示 **Offer Explorer**。只显示产品 ID、优惠 ID、首个计费周期以及首期价格是否为零；**不会显示**优惠/购买 token、完整账户标识或银行卡信息。查询过程仍可能准备 Android 环境，因此**并非完全没有副作用**。
+- **Diagnose Android connection（连接诊断）：** 检查电脑是否安装 ADB、列出已授权的 Android 设备，并读取设备 ABI、Google One 安装状态及电脑端 Frida 的版本。Windows 用户会看到 PowerShell、MuMu、Platform-Tools 的操作建议；macOS 用户则会看到 Terminal 和 Homebrew 的说明。此功能**不会安装软件、连接或重启模拟器、启动 Frida，也不会进行支付**。不过，执行 `adb devices` 可能会启动本地 ADB 服务。
+- **Check Device & Offers (Step 1)（检查设备与优惠）：** 使用现有 Android/Frida 流程查询优惠，并在 Live Status 下方的 **Offer Explorer** 中展示结果。页面只显示产品 ID、优惠 ID、首个计费周期以及首期价格是否为零，**不会展示**优惠或购买 token、未经脱敏的账户标识和银行卡信息。与连接诊断不同，该步骤可能会准备 Android 环境，**因此并非完全没有副作用**。
 
-首期价格为零**不能证明**试用资格、订阅已生效、续订日期或未来价格。Step 1 仅以列表模式查询 `g1.2tb.ai.subs_variant`、`g1.play.2tb.ai` 和 `g1.2tb.ai`；Steps 2–5 仍使用各自的定向查询。Android 报告不包含全部后续周期的价格，因此 Offer Explorer 将未来费用标记为**未经验证**。请直接在 Google Play 核对收费与条款。
+**首期价格为零，不等于一定可以免费使用或成功延长订阅。** Step 1 只在列表查询模式下检查 `g1.2tb.ai.subs_variant`、`g1.play.2tb.ai` 和 `g1.2tb.ai`，而 Steps 2–5 继续使用各自的查询流程。由于 Android 报告未提供后续各期的完整费用信息，Offer Explorer 会把未来价格标记为**尚未验证**。实际收费与续费条款请在 Google Play 中确认。
 
 ## 3. Textual 界面
 
@@ -137,7 +144,7 @@ TUI 中**每个结账步骤均需单独批准**。当工具提示已尝试提交
 
 **停止与退出：**Step 0–1 的 Stop 会请求终止本地检查。Step 2–5 的 **Stop after this step** 只阻止后续步骤，**不会强制中断正在进行的支付**。**Q / Exit** 在结账期间会等当前步骤结束；**D** 切换技术日志，**R** 执行当前选择。
 
-## 4. PowerShell CLI（高级）
+## 4. PowerShell 命令行操作（高级）
 
 **查询/诊断：不发起结账**
 
@@ -177,7 +184,7 @@ CLI 确认选项为 **1 = Continue（继续）、2 = End run（结束）、0 = S
 
 仅使用 ADB 实际显示的序列号。请避免 `-Force`：它会绕过账号匹配检查，但**不能**绕过优惠资格或 Google 支付限制。
 
-## 5. 结果与排查
+## 5. 查看结果与排查问题
 
 - **检测不到 MuMu/ADB：**检查模拟器运行状态、root、ADB 授权及设备连接。
 - **Frida 错误：**查看技术日志，核对 **16.5.9** 及 Android 兼容性。
@@ -194,26 +201,28 @@ CLI 确认选项为 **1 = Continue（继续）、2 = End run（结束）、0 = S
 
 **无法参与 Google AI Pro 优惠？** 可另行了解 ePlus.DEV 的 [Muse Invite Hub](https://github.com/ePlus-DEV/muse-invite-hub)，在[网站上查找或分享 Muse 邀请码](https://muse.eplus.dev/)。**Muse 是独立服务**，Muse 邀请码**不能激活或替代** Google AI Pro 订阅，也不保证邀请码可用；资格可能受地区或账户限制。
 
-## 仓库结构
+## 项目文件结构
 
-为兼容现有用法，活动启动器及 Python 模块仍保留在仓库根目录。Windows 使用 `run-all.ps1`，macOS 使用 `run-macos.sh`。
+为保证现有使用说明仍然有效，启动脚本和主要 Python 模块保留在仓库根目录。Windows 使用 `run-all.ps1`，macOS 使用 `run-macos.sh`。
 
-| 路径 | 用途 |
+| 文件或目录 | 用途 |
 | --- | --- |
-| `run-all.ps1` | Windows 入口，Textual 控制台与引导式 CLI |
-| `run-macos.sh`、`ePlus-AI-Toolkit.command`、`macos_runner.py` | Mac 启动器及适配器（Steps 0–5；真实付款尚未验证） |
-| `tui.py`、`tui_core.py`、`ultra0.py`、`setup_env.py`、`device_selector.py`、`query_sku.py` | 运行中的 Python 引擎及辅助工具 |
-| [`tools/windows/`](tools/windows/README.md) | 可选的 Windows 手动配置 |
-| [`legacy/windows/`](legacy/windows/README.md) | 旧版批处理；其中部分使用 `--force` 绕过账户检查，可能产生**真实费用** |
-| `scripts/`、`assets/` | 运行辅助及 Android/Frida 资源 |
-| `tests/`、`.github/workflows/`、`docs/` | 离线测试、CI 与参考资料 |
+| `run-all.ps1` | 在 Windows 上打开 Textual 界面或命令行模式 |
+| `run-macos.sh`、`ePlus-AI-Toolkit.command`、`macos_runner.py` | 在 Mac 上启动、运行 Steps 0–5；尚未验证真实支付 |
+| `tui.py`、`tui_core.py`、`ultra0.py`、`setup_env.py`、`device_selector.py`、`query_sku.py` | 工具当前使用的 Python 组件 |
+| [`tools/windows/`](tools/windows/README.md) | 按需使用的 Windows 手动配置工具 |
+| [`legacy/windows/`](legacy/windows/README.md) | 旧版 .bat 脚本；部分脚本使用 `--force` 跳过账户检查，**可能产生实际费用** |
+| `scripts/`、`assets/` | 辅助脚本及 Android/Frida 资源 |
+| `tests/`、`.github/workflows/`、`docs/` | 自动测试、GitHub Actions 与文档 |
 
-## 资料与致谢
+## 文档与参与贡献
 
 [英文 README](README.md) · [安装 Wiki](https://github.com/hoangsvit/google-ai/wiki/Install) · [详细指南](docs/DETAILED-GUIDE.md) · [原始步骤说明](docs/ORIGINAL-STEPS.md) · [免责声明](DISCLAIMER.md) · [安全说明](SECURITY.md) · [贡献](CONTRIBUTING.md) · [第三方版权声明](THIRD_PARTY_NOTICES.md)
 
-另请参阅[项目结构](docs/PROJECT.md)、[控制台/CLI 用法](docs/USAGE.md)、[支付安全](docs/SAFETY.md)、[原作者备注](docs/AUTHOR-NOTES.md)及 [AI 代理规则](AGENTS.md)。GitHub Actions 仅测试 Python、PowerShell、Textual 及模拟的 Frida/Billing 行为，**不会执行真实 Google Play 交易**。CI 通过不能证明设备兼容或账户符合条件。
+另请参阅[项目结构](docs/PROJECT.md)、[控制台/CLI 用法](docs/USAGE.md)、[支付安全](docs/SAFETY.md)、[原作者备注](docs/AUTHOR-NOTES.md)及 [AI 代理规则](AGENTS.md)。GitHub Actions 仅测试 Python、PowerShell、Textual 及模拟的 Frida/Billing 行为，**不会执行真实 Google Play 交易**。CI 测试通过并不代表工具一定能在你的设备上运行，也不能证明账户符合优惠条件。
 
-## 致谢**原作者：**[@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra)。**维护者：**[David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev)。原始 MIT 版权声明保留在 `THIRD_PARTY_NOTICES.md`。
+## 致谢
+
+**原作者：**[@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra)。**维护者：**[David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev)。原始 MIT 版权声明保留在 `THIRD_PARTY_NOTICES.md`。
 
 [文档主页](docs/README.md) · [历史中文参考指南](docs/i18n/README.zh-CN.md) · [付款安全](docs/SAFETY.md)
