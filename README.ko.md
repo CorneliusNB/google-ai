@@ -116,7 +116,7 @@ sh run-macos.sh
 
 ## 3. 대시보드 사용법
 
-작업 실행 중 Check Device & Offers, Run, 모드/Step 선택은 잠겨 중복 실행을 방지합니다. Step 0은 로컬 설정을 변경할 수 있으며 Step 1은 결제하지 않지만 ADB/Frida 준비에 따른 변경이 있을 수 있습니다. Google Play에서 확인한 결과에만 다음 단계로 진행하세요. **Stop/Exit는 이미 제출된 결제를 취소하지 않습니다.**
+단계가 실행되는 동안에는 **Check Device & Offers**, **Run**, 실행 모드와 단계 선택을 잠가 다른 작업이 동시에 시작되지 않도록 합니다. Step 0은 컴퓨터의 설정을 변경할 수 있습니다. Step 1은 결제를 시작하지 않지만 사전 준비 과정에서 ADB/Frida 설정이 바뀔 수 있습니다. 다음 단계로 진행하기 전에 반드시 Google Play에서 결과를 확인하세요. **Stop이나 Exit를 눌러도 이미 제출한 결제는 취소되지 않습니다.**
 
 
 **Check Device & Offers**는 **Step 1 — Available offers**를 실행하여 프로모션을 조회합니다. **구독 결제를 시작하지 않습니다**. **Live Status**와 **Show technical details**에서 진행 상황을 확인하세요. 30초 동안 로그가 없다는 경고는 반드시 프로그램이 멈췄다는 뜻이 아닙니다.
@@ -126,8 +126,8 @@ sh run-macos.sh
 | 모드 | 기능 |
 | --- | --- |
 | **One step only** | 선택한 Step 0–5 하나만 실행 |
-| **From selected step** | 선택한 Step 2–5부터 안내형 시퀀스 시작 |
-| **All: Steps 2–5** | Step 2부터 시퀀스 시작. Step 5는 선택 사항 |
+| **From selected step** | 선택한 Step(2–5)부터 안내에 따라 여러 단계를 진행 |
+| **All: Steps 2–5** | Step 2부터 순서대로 진행하며, Step 5는 선택할 수 있음 |
 
 | Step | 기능 | 위험 |
 | --- | --- | --- |
@@ -145,6 +145,8 @@ TUI에서 **각 결제 단계는 별도 승인이 필요합니다**. 도구가 �
 **중지/종료:** Step 0–1에서는 Stop이 로컬 검사를 종료하도록 요청합니다. Step 2–5의 **Stop after this step**은 이후 단계를 막을 뿐 **진행 중인 결제를 강제 종료하지 않습니다**. 결제 중 **Q / Exit**는 현재 단계 종료 후 종료합니다. **D**는 기술 로그, **R**은 선택한 모드 실행입니다.
 
 ## 4. PowerShell 명령어 (고급)
+
+**Windows 전용 명령어입니다.** Mac에서는 PowerShell 대신 `run-macos.sh`와 [macOS 안내](docs/MACOS-PREVIEW.md)를 사용하세요. 실행할 때 매개변수를 지정하면 Textual 화면 대신 CLI 모드가 열립니다.
 
 **조회/진단(구독 결제 없음):**
 
@@ -166,7 +168,7 @@ TUI에서 **각 결제 단계는 별도 승인이 필요합니다**. 도구가 �
 
 TUI와 달리 단독 `-Step 2..5` 명령은 **PowerShell에서 별도의 승인 질문을 표시하지 않습니다**. 실제 결제를 의도하고 조건을 확인한 경우에만 실행하세요.
 
-확인 절차가 있는 CLI 시퀀스:
+단계마다 확인을 받는 CLI 실행 방법:
 
 ```powershell
 .\run-all.ps1 -AllStages
