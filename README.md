@@ -228,6 +228,7 @@ Active launchers and the Python modules they invoke stay at the repository root.
 ## Documentation and contributing
 
 - [Documentation hub](docs/README.md)
+- [Repository structure and maintenance](docs/PROJECT.md)
 - [Dashboard usage & PowerShell CLI](docs/USAGE.md)
 - [Billing safety](docs/SAFETY.md)
 
