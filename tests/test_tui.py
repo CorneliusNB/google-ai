@@ -8,7 +8,8 @@ from unittest.mock import patch
 
 from tui_core import (
     cli_issue_outcome, command_for_step, mask_email, needs_setup, outcome_for_stage,
-    readable_issue_line, read_fresh_report, report_summary, runtime_error_outcome, validate_step,
+    readable_issue_line, read_fresh_report, report_summary, runtime_error_outcome,
+    safe_launch_diagnostic, validate_step,
 )
 
 
@@ -92,6 +93,24 @@ class CoreTests(unittest.TestCase):
                 self.assertFalse(result.can_review)
                 self.assertNotIn("EPLUS_ISSUE:", result.instruction)
                 self.assertNotEqual(report_summary({"status": status}), status)
+
+    def test_startup_debug_does_not_leak_private_paths_or_account_data(self):
+        examples = (
+            (FileNotFoundError("setup_env.py is missing from C:/Users/private@example.com"),
+             "Required toolkit file missing: setup_env.py"),
+            (FileNotFoundError("C:/Users/private@example.com/private.json"),
+             "A required local file is missing"),
+            (PermissionError("Access denied: /Users/private@example.com"),
+             "Access denied"),
+            (RuntimeError("PowerShell was not found."),
+             "PowerShell could not be located"),
+            (RuntimeError("Token secret-private@example.com"), "An unexpected startup error"),
+        )
+        for error, expected in examples:
+            with self.subTest(error=type(error).__name__):
+                diagnosis = safe_launch_diagnostic(error)
+                self.assertIn(expected, diagnosis)
+                self.assertNotIn("private@example.com", diagnosis)
 
     def test_macos_runtime_failures_are_mapped_to_safe_guidance(self):
         examples = {
@@ -895,6 +914,23 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         await pilot.click("#cancel")
                         await pilot.pause()
                         self.assertIn("Step 2", str(app.query_one("#quickstart", Button).label))
+
+    async def test_local_launch_failure_shows_safe_cause_in_technical_details(self):
+        from tui import GoogleAITUI
+        from textual.widgets import RichLog
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)):
+                app._record_internal_diagnostic(
+                    safe_launch_diagnostic(FileNotFoundError(
+                        "setup_env.py is missing from C:/Users/private@example.com"))
+                )
+                self.assertIn("Required toolkit file missing: setup_env.py", app._last_output[-1])
+                self.assertNotIn("private@example.com", app._last_output[-1])
+                self.assertFalse(app._run_output)
+                app.action_toggle_debug()
+                self.assertGreater(len(app.query_one("#debug_log", RichLog).lines), 0)
 
     async def test_cli_marker_is_never_shown_raw_in_debug_or_status(self):
         from textual.widgets import Static
