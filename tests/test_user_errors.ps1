@@ -16,7 +16,16 @@ $cases = @(
     @{ Code = "device_missing"; Needle = "MuMu is not connected" },
     @{ Code = "launch_failed"; Needle = "Could not open Google Play checkout" },
     @{ Code = "billing_flow_error"; Needle = "Google Play could not open checkout" },
-    @{ Code = "activity_lookup_failed"; Needle = "Could not access the Google One screen" }
+    @{ Code = "activity_lookup_failed"; Needle = "Could not access the Google One screen" },
+    @{ Code = "add_account_failed"; Needle = "Could not add the Google account" },
+    @{ Code = "add_account_error"; Needle = "Google account setup was interrupted" },
+    @{ Code = "payment_method_not_confirmed"; Needle = "Could not verify the payment method" },
+    @{ Code = "play_account_switch_failed"; Needle = "Could not switch Google Play accounts" },
+    @{ Code = "account_unverified"; Needle = "Google Play account was not verified" },
+    @{ Code = "wrong_account"; Needle = "Google Play is using the wrong account" },
+    @{ Code = "frida_missing"; Needle = "Android instrumentation is not ready" },
+    @{ Code = "environment_failed"; Needle = "Android environment check did not finish" },
+    @{ Code = "confirmation_required"; Needle = "Approval is required to continue" }
 )
 foreach ($case in $cases) {
     $issue = Get-UserIssue -Code $case.Code
