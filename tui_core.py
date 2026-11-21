@@ -282,6 +282,23 @@ def runtime_error_outcome(message: str, step: int) -> Outcome:
     return Outcome(code, title, instruction, can_review=False)
 
 
+def safe_launch_diagnostic(error: Exception) -> str:
+    """Classify local launch exceptions without exposing file paths or secrets."""
+    message = str(error).lower()
+    if isinstance(error, FileNotFoundError):
+        for filename in ("setup_env.py", "run-all.ps1", "macos_runner.py"):
+            if filename in message:
+                return f"Required toolkit file missing: {filename}. Restore the repository files."
+        return "A required local file is missing. Check the toolkit installation."
+    if isinstance(error, PermissionError):
+        return "Access denied while starting a local tool. Check file permissions."
+    if "powershell was not found" in message:
+        return "PowerShell could not be located. Check the Windows PowerShell installation."
+    if isinstance(error, OSError):
+        return "The local process could not start. Check installed tools and permissions."
+    return "An unexpected startup error occurred. Check local tools and the Android connection."
+
+
 def validate_step(step: int) -> int:
     if type(step) is not int or not 0 <= step <= 5:
         raise ValueError("Step must be a number between 0 and 5")
