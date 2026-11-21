@@ -247,7 +247,12 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                             if viewport.y <= hint.y and hint.bottom <= viewport.bottom:
                                 break
                         run = app.query_one("#run").region
+                        step = app.query_one("#step").region
                         hint = app.query_one("#mode_hint").region
+                        # The primary action must match the step selector in
+                        # both compact and regular terminal layouts.
+                        self.assertEqual(run.x, step.x)
+                        self.assertEqual(run.width, step.width)
                         self.assertGreaterEqual(hint.y, run.bottom)
                         viewport = app.query_one("#results").region
                         for region in (run, hint):
