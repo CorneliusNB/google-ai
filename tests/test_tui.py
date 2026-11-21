@@ -205,12 +205,12 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                             viewport = app.query_one("#results").region
                             if all(viewport.y <= app.query_one(q).region.y and
                                    app.query_one(q).region.bottom <= viewport.bottom
-                                   for q in ("#step", "#more_modes", "#run")):
+                                   for q in ("#step", "#run")):
                                 break
                         self.assertFalse(app.query_one("#mode_field").display)
                         self.assertTrue(app.query_one("#step", Select).display)
                         viewport = app.query_one("#results").region
-                        for selector in ("#step", "#more_modes", "#run"):
+                        for selector in ("#step", "#run"):
                             region = app.query_one(selector).region
                             self.assertGreaterEqual(region.y, viewport.y)
                             self.assertLessEqual(region.bottom, viewport.bottom)
@@ -218,12 +218,16 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(app.query_one("#mode", Select).value, "single")
                         app.selected_pressed()
                         confirm.assert_called_with(1, False)
-                        app.toggle_more_modes()
+                        # The advanced modes are accessible at the end of
+                        # the step dropdown, without a separate third button.
+                        app.query_one("#step", Select).value = 99
                         await pilot.pause()
                         self.assertTrue(app.query_one("#mode_field").display)
+                        self.assertEqual(app.query_one("#step", Select).value, 1)
                         app.query_one("#mode", Select).value = "from"
-                        app.toggle_more_modes()
+                        app.query_one("#step", Select).value = 99
                         await pilot.pause()
+                        self.assertFalse(app.query_one("#mode_field").display)
                         self.assertEqual(app.query_one("#mode", Select).value, "single")
 
     async def test_run_hint_sits_below_the_run_button_not_beside_it(self):
