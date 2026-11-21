@@ -121,7 +121,7 @@ Les étapes 2–5 ne sont déverrouillées qu’après une nouvelle vérificatio
 
 Dans **Choose another step** :
 
-Par défaut, seule l’étape sélectionnée est exécutée. Ouvrez **More run options** pour suivre une séquence guidée.
+Par défaut, seule l’étape sélectionnée est exécutée. Dans **Choose another step**, sélectionnez **More run options…** à la fin du menu des étapes pour afficher les modes guidés.
 
 | Mode | Fonctionnement |
 | --- | --- |
