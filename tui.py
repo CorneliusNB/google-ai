@@ -196,8 +196,8 @@ class GoogleAITUI(App[None]):
         color: #8edff1; text-style: bold; height: 1; margin: 0 0 1 0;
     }
     #mode, #step { width: 100%; margin: 0; }
-    #run_row { layout: vertical; height: auto; margin-top: 1; }
-    #run { width: 25; min-width: 17; height: 3; margin: 0; }
+    #run_row { layout: vertical; width: 1fr; height: auto; margin: 1 0 0 1; }
+    #run { width: 100%; min-width: 0; height: 3; margin: 0; content-align: center middle; }
     #mode_hint {
         width: 1fr; height: auto; color: #a5c8df;
         padding: 1 0 0 0;
