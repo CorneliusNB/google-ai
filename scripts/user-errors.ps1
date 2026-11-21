@@ -266,8 +266,8 @@ function Get-FailureCode {
     if ($ErrorMessage -match '(?i)No online ADB devices|selected serial.*not online') { return "device_missing" }
     if ($ErrorMessage -match '(?i)Cannot select a single Android device|Invalid device number') { return "device_ambiguous" }
     if ($ErrorMessage -match '(?i)Android package missing|Android package.*unavailable') { return "app_missing" }
-    if ($ErrorMessage -match '(?i)Play account mismatch|Play Store account changed|Invalid Play Store account') { return "account_mismatch" }
-    if ($ErrorMessage -match '(?i)Cannot identify the active Google Play account|No valid email') { return "account_unavailable" }
+    if ($ErrorMessage -match '(?i)Play account mismatch|Play Store account changed') { return "account_mismatch" }
+    if ($ErrorMessage -match '(?i)Cannot identify the active Google Play account|No valid email|Invalid Play Store account') { return "account_unavailable" }
     if ($ErrorMessage -match '(?i)Offer query did not complete|Could not refresh the offer list') { return "offer_query_failed" }
     if ($ErrorMessage -match '(?i)No report produced') { return "report_missing" }
     if ($ErrorMessage -match '(?i)Runtime lookup failed|No machine-readable runtime result') { return "runtime_lookup_failed" }
