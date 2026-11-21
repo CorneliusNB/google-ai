@@ -22,6 +22,12 @@ function Get-UserIssue {
                 Action = "Review the terms in Google Play. -Force cannot make the offer eligible."
             }
         }
+        "purchase_unavailable" {
+            return [pscustomobject]@{
+                Title = "Google Play says this item is unavailable for purchase"
+                Action = "Check the Play account, country and Google One availability. Do not repeat checkout blindly."
+            }
+        }
         "today_price_unverified" {
             return [pscustomobject]@{
                 Title = "Could not confirm the amount due today"
@@ -91,7 +97,7 @@ function Get-UserIssue {
         "app_missing" {
             return [pscustomobject]@{
                 Title = "Google Play or Google One is missing"
-                Action = "Install or enable the required app on the selected MuMu device."
+                Action = "Enable the missing app in Android settings. Install Google One from the Play Store; if Play Store is missing, use a Google Play-enabled emulator image."
             }
         }
         "python_missing" {
@@ -161,6 +167,9 @@ function Show-UserIssue {
         [bool]$DebugMode = $false
     )
     $issue = Get-UserIssue -Code $Code
+    # Stable, non-sensitive code for the dashboard; never include raw errors,
+    # account details or purchase data in this machine-readable line.
+    if ($Code -match '^[a-z_]+$') { Write-Host ("EPLUS_ISSUE:{0}" -f $Code) }
     Write-Host ""
     Write-Host ("  ! {0}" -f $issue.Title) -ForegroundColor Yellow
     Write-Host ("    Next: {0}" -f $issue.Action) -ForegroundColor Gray
