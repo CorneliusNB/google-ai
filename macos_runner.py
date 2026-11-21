@@ -160,10 +160,15 @@ def list_offers(serial: str, env: dict[str, str], plan: str = "pro12") -> dict:
     command = stage_command(1, serial)
     if plan != "pro12":
         command[command.index("--plan") + 1] = plan
-    start_ns = time.time_ns()
+    directory = engine_report_dir(env)
+    linux = LINUX_WORKDIR in env
+    # A private, initially empty path proves freshness without relying on a
+    # filesystem timestamp that may lag the process clock.
+    if linux and (directory / "current.json").exists():
+        raise RuntimeError("The result belongs to an older invocation")
+    start_ns = 0 if linux else time.time_ns()
     if run_engine(command, env):
         raise RuntimeError("Google Play offer listing failed; checkout not started")
-    directory = engine_report_dir(env)
     report = fresh_report("current.json", start_ns, directory)
     if report["status"] != "listed" or not isinstance(report.get("offers"), list):
         raise RuntimeError("No successful offer listing; checkout not started")
@@ -248,10 +253,12 @@ def run_stage(step: int, serial: str, env: dict[str, str],
     print("Google Play account verified." if linux else f"Account {account}", flush=True)
     print(f"Step {step} offer inspected; first phase zero-priced.", flush=True)
     print("CAUTION: Checkout may incur charges. Verify all terms in Google Play.", flush=True)
-    started = time.time()
+    directory = engine_report_dir(env)
+    if linux and any(path.name != "current.json" for path in directory.glob("*.json")):
+        raise RuntimeError("An earlier checkout report is present. No checkout started.")
     code = run_engine(stage_command(step, serial, account), env)
     if linux and code == 0:
-        report = read_fresh_report(engine_report_dir(env), step, started, expected_account=account)
+        report = read_fresh_report(directory, step, 0, expected_account=account)
         if report is None:
             raise RuntimeError("No fresh result for the verified account. Review Google Play before retrying.")
         if result_file is not None:

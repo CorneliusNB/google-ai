@@ -192,11 +192,13 @@ class LinuxAdapterTests(unittest.TestCase):
             def engine(command, environment):
                 directory = root / "ultra0-report"
                 directory.mkdir()
-                (directory / "current.json").write_text(json.dumps({
+                listing = directory / "current.json"
+                listing.write_text(json.dumps({
                     "status": "listed", "detected_play_account": "verified@example.test",
                     "offers": [{"product": "mock-pro", "id": "mock-offer", "period": "P1M",
                                 "micros": 0, "offerToken": "never-print"}],
                 }))
+                os.utime(listing, (1, 1))
                 self.assertIn("--list", command)
                 return 0
 
