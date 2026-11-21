@@ -227,18 +227,8 @@ function Show-UserIssue {
         [bool]$DebugMode = $false
     )
     $issue = Get-UserIssue -Code $Code
-    # The structured marker is a private TUI protocol, not user-facing CLI output.
-    # The dashboard translates it into a friendly problem and next action.
-    if ($env:EPLUS_TUI -eq "1" -and $Code -match '^[a-z_]+
-    Write-Host ""
-    Write-Host ("  ! {0}" -f $issue.Title) -ForegroundColor Yellow
-    Write-Host ("    Next: {0}" -f $issue.Action) -ForegroundColor Gray
-    if ($DebugMode) {
-        Write-Host ("    Code: {0}" -f $Code) -ForegroundColor DarkGray
-        if ($Details) { Write-Host ("    Details: {0}" -f $Details) -ForegroundColor DarkGray }
-    }
-}
-) {
+    # Structured marker is for the TUI parser, never direct CLI users.
+    if ($env:EPLUS_TUI -eq "1" -and $Code -match '^[a-z_]+$') {
         Write-Host ("EPLUS_ISSUE:{0}" -f $Code)
     }
     Write-Host ""
