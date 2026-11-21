@@ -136,6 +136,38 @@ class LinuxAdapterTests(unittest.TestCase):
             choose.assert_not_called()
             engine.assert_not_called()
 
+    def test_android_16_and_newer_block_every_stage_before_engine(self):
+        for sdk in ("36", "37", ""):
+            with self.subTest(sdk=sdk), patch("macos_runner.sys.platform", "linux"), \
+                 patch("macos_runner.locate_adb", return_value="/example/adb"), \
+                 patch("macos_runner.metadata.version", return_value="16.5.9"), \
+                 patch("macos_runner.online_serials", return_value=["mock-device"]), \
+                 patch("device_diagnostics._run", return_value=subprocess.CompletedProcess(
+                     [], 0, sdk + "\n", "")) as adb, \
+                 patch("macos_runner.run_engine") as engine, \
+                 patch("sys.stderr", new_callable=StringIO) as errors:
+                for step in range(6):
+                    args = ["--step", str(step)]
+                    if step >= 2:
+                        args.append("--confirmed")
+                    if step >= 3:
+                        args.append("--active-confirmed")
+                    self.assertEqual(adapter.main(args), 1)
+                engine.assert_not_called()
+                adb.assert_called_with("/example/adb", [
+                    "-s", "mock-device", "shell", "getprop", "ro.build.version.sdk",
+                ])
+                self.assertIn("predates Android 16" if sdk else "Could not read", errors.getvalue())
+
+    def test_android_15_preflight_can_select_the_single_device(self):
+        with patch("macos_runner.sys.platform", "linux"), \
+             patch("macos_runner.locate_adb", return_value="/example/adb"), \
+             patch("macos_runner.metadata.version", return_value="16.5.9"), \
+             patch("macos_runner.online_serials", return_value=["mock-device"]), \
+             patch("device_diagnostics._run", return_value=subprocess.CompletedProcess(
+                 [], 0, "35\n", "")):
+            self.assertEqual(adapter.preflight(), ("/example/adb", "mock-device"))
+
     def test_paid_guards_and_result_matching_for_each_linux_stage(self):
         account = "verified@example.test"
         for step, (plan, offer_id, stack) in adapter.STAGES.items():

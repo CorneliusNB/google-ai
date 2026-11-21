@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: 40ee76183b70d4f8d1fa398897b79c9e16b4cbf6 -->
+<!-- Source README.md git-blob: 0b64b84e3db82bb04d1d9bdc4034bd79d4ac595f -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -123,6 +123,8 @@ Dùng phiên bản có tệp `run-linux.sh`. Tập lệnh mở giao diện và c
 - `sh run-linux.sh --check` chạy Bước 0 và có thể thay đổi cài đặt Android, Frida hoặc mạng.
 - `sh run-linux.sh --list` chạy Bước 1 để xem ưu đãi mà không yêu cầu thanh toán. Lệnh vẫn có thể thiết lập môi trường Android.
 - `sh run-linux.sh --step 3` mở phần nâng cao với Bước 3 đã chọn. `sh run-linux.sh --sequence` mở chế độ hướng dẫn từ Bước 2. Cả hai lệnh chỉ mở giao diện.
+
+**Android 16 trở lên:** Tập lệnh Linux dừng trước khi thiết lập thiết bị vì Frida 16.5.9 chưa hỗ trợ Android 16. Bạn vẫn có thể kiểm tra USB bằng **Diagnose Android connection**.
 
 **Các bước 2–5 có thể phát sinh khoản thanh toán thật trên Google Play.** Mỗi bước cần xác nhận riêng, tài khoản Play đang dùng đã được xác minh, và kết quả mới chứa đúng ưu đãi có kỳ đầu giá 0. Trước khi tiếp tục chuỗi, hãy xác minh gói thuê bao và ngày gia hạn trong Google Play. Luồng thanh toán trên Linux được kiểm thử bằng mô phỏng. Kiểm tra trọn quy trình trên thiết bị thật vẫn chưa hoàn tất. [Cài đặt Linux, xử lý lỗi USB và kiểm tra](docs/LINUX.md).
 

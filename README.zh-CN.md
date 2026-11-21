@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: 40ee76183b70d4f8d1fa398897b79c9e16b4cbf6 -->
+<!-- Source README.md git-blob: 0b64b84e3db82bb04d1d9bdc4034bd79d4ac595f -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -121,6 +121,8 @@ sh run-linux.sh
 - `sh run-linux.sh --check` 运行第 0 步，可能更改 Android、Frida 或网络设置。
 - `sh run-linux.sh --list` 运行第 1 步以查看优惠，不会发起结账，但仍可能配置 Android 环境。
 - `sh run-linux.sh --step 3` 打开高级设置并预选第 3 步。 `sh run-linux.sh --sequence` 打开从第 2 步开始的引导设置。两个命令都只打开界面，不会执行步骤。
+
+**Android 16 及更高版本：** 固定使用的 Frida 16.5.9 尚不支持 Android 16，因此 Linux 启动脚本会在配置设备前停止。仍可通过 **Diagnose Android connection** 检查 USB 连接。
 
 **第 2–5 步可能产生真实的 Google Play 费用。** 每一步都须单独确认、核实当前 Play 账号，并通过本次查询确认优惠完全匹配且首期价格为零。继续引导流程前，请在 Google Play 中核实订阅和续订日期。Linux 结账仅通过模拟测试，真机端到端验证尚未完成。 [Linux 安装、USB 故障排查和验证](docs/LINUX.md).
 

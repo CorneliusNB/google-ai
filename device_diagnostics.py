@@ -17,6 +17,7 @@ import sys
 
 
 FRIDA_REQUIRED = "16.5.9"
+ANDROID_16_SDK = 36
 GOOGLE_ONE = "com.google.android.apps.subscriptions.red"
 SAFE_TEXT = re.compile(r"^[a-zA-Z0-9._:/-]{1,90}$")
 
@@ -68,6 +69,20 @@ def _run(adb: str, args: list[str]):
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
+
+
+def linux_frida_compatibility_issue(adb: str, serial: str) -> str:
+    """Check the Android version before the legacy Frida server can start."""
+    response = _run(adb, ["-s", serial, "shell", "getprop", "ro.build.version.sdk"])
+    sdk = response.stdout.strip() if response is not None and response.returncode == 0 else ""
+    if not re.fullmatch(r"[1-9][0-9]{0,2}", sdk):
+        return "Could not read the Android SDK version. Check the USB connection and retry."
+    if int(sdk) >= ANDROID_16_SDK:
+        return (
+            f"Device setup blocked on Android SDK {sdk}. "
+            f"The pinned Frida {FRIDA_REQUIRED} predates Android 16 support."
+        )
+    return ""
 
 
 def inspect_connection(platform_name: str | None = None) -> ConnectionDiagnosis:
@@ -143,6 +158,10 @@ def inspect_connection(platform_name: str | None = None) -> ConnectionDiagnosis:
         details.append(
             "ADB shell: root" if "uid=0(" in root.stdout
             else "ADB shell: non-root (root may be available through su)"
+        )
+    if linux and (issue := linux_frida_compatibility_issue(adb, serial)):
+        return ConnectionDiagnosis(
+            "frida_compatibility_blocked", "Android connected; setup blocked", tuple(details), issue,
         )
     if not installed:
         return ConnectionDiagnosis(

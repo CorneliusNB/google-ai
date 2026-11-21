@@ -4,6 +4,8 @@
 
 The Linux launcher targets Ubuntu x86_64 and exposes Steps 0–5 through the shared Textual dashboard. Use a rooted Android test device you control. If you only need to check the USB connection, use **Diagnose Android connection** in the dashboard.
 
+**Android 16 and later.** The Linux launcher blocks all stages before device setup when the Android SDK is 36 or higher, or if it cannot read the SDK version. The toolkit pins Frida 16.5.9. Frida first announced Android 16 support in 17.1.4. The USB connection diagnostic remains available. [Frida 17.1.4 release notes](https://frida.re/news/2025/06/10/frida-17-1-4-released/).
+
 The engine used by Steps 0 and 1 can request an ADB daemon restart for root, deploy or restart the Android Frida server, copy a billing module, clear the Android global HTTP proxy, and force-stop supported VPN apps.
 
 ## Setup

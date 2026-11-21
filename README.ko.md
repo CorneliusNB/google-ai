@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 한국어
 
-<!-- Source README.md git-blob: 40ee76183b70d4f8d1fa398897b79c9e16b4cbf6 -->
+<!-- Source README.md git-blob: 0b64b84e3db82bb04d1d9bdc4034bd79d4ac595f -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -121,6 +121,8 @@ sh run-linux.sh
 - `sh run-linux.sh --check`는 Step 0을 실행하며 Android, Frida 또는 네트워크 설정을 변경할 수 있습니다.
 - `sh run-linux.sh --list`는 Step 1을 실행해 결제 요청 없이 혜택을 조회합니다. 이 과정에서 Android 환경 설정이 이루어질 수 있습니다.
 - `sh run-linux.sh --step 3`은 Step 3이 선택된 고급 설정을 엽니다. `sh run-linux.sh --sequence`는 Step 2부터 시작하는 안내 설정을 엽니다. 두 명령 모두 단계를 자동으로 실행하지 않습니다.
+
+**Android 16 이상:** 고정 버전인 Frida 16.5.9는 Android 16을 지원하지 않으므로 Linux 실행 스크립트는 기기를 설정하기 전에 중단됩니다. **Diagnose Android connection**으로 USB 연결은 확인할 수 있습니다.
 
 **Steps 2–5에서는 Google Play에 실제 요금이 발생할 수 있습니다.** 각 단계마다 개별 승인, 현재 Play 계정 확인, 그리고 최신 조회 결과에서 정확히 일치하며 첫 기간 요금이 0인 혜택이 필요합니다. 다음 단계로 넘어가기 전에 Google Play에서 구독과 갱신일을 확인하세요. Linux 결제는 모의 테스트로 검증하며, 실기기 전체 검증은 아직 완료되지 않았습니다. [Linux 설치, USB 문제 해결 및 검증](docs/LINUX.md).
 

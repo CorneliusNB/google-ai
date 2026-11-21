@@ -21,7 +21,7 @@ import sys
 from tempfile import TemporaryDirectory
 import time
 
-from device_diagnostics import inspect_connection, locate_adb
+from device_diagnostics import inspect_connection, linux_frida_compatibility_issue, locate_adb
 from device_selector import auto_select_device, online_serials
 from tui_core import MESSAGES, offer_explorer_lines, read_fresh_report
 
@@ -95,6 +95,8 @@ def preflight() -> tuple[str, str]:
         serial = auto_select_device(adb, serials=devices)
     if not serial:
         raise RuntimeError("Multiple different Android devices detected. Disconnect extras.")
+    if linux and (issue := linux_frida_compatibility_issue(adb, serial)):
+        raise RuntimeError(issue)
     return adb, serial
 
 
