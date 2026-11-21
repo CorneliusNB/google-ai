@@ -135,7 +135,7 @@ The sidebar lists the six stages. Android Device / Google Account cards update f
 
 ### Additional run options
 
-By default, only the selected step runs. Open **More run options** to choose a guided sequence.
+By default, only the selected step runs. In **Choose another step**, select **More run options…** at the bottom of the step dropdown to show guided-sequence modes.
 
 | Mode | Behavior |
 | --- | --- |
