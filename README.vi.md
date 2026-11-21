@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: d26e41006eb1db005d8607ce34ebe62461dc80fb -->
+<!-- Source README.md git-blob: 9b023bc3fcf01b314dc5190c4a8e78c2e947018d -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -9,7 +9,7 @@
 
 **ePlus AI Toolkit** giúp bạn kiểm tra các ưu đãi Google AI Pro được hiển thị qua Google One và Google Play trên thiết bị Android. Công cụ chạy trên **Windows và macOS**: Windows sử dụng PowerShell, còn macOS sử dụng Terminal (zsh/bash). Cả giao diện Textual lẫn chế độ dòng lệnh đều dùng chung bộ xử lý Python, ADB và Frida.
 
-![Giao diện ePlus AI Toolkit](https://github.com/user-attachments/assets/fc27278f-7833-4484-9770-33e46bf10005)
+![Giao diện ePlus AI Toolkit](images/terminal-ui-step-picker.png)
 
 > [!CAUTION]
 > **Đây không phải công cụ chính thức của Google và có thể phát sinh chi phí.** Ở các bước **2–5**, công cụ có thể mở trang thanh toán Google Play và tự nhấn **Subscribe**. Ưu đãi xuất hiện trong danh sách, mức giá đầu tiên bằng 0 hoặc thông báo đã gửi yêu cầu thanh toán **không có nghĩa là** bạn đủ điều kiện, được dùng miễn phí hay đã gia hạn thành công. Trước khi thực hiện, hãy kiểm tra đúng tài khoản, khoản tiền phải trả ngay, mức phí những kỳ sau và ngày gia hạn trong **Google Play**. Dừng công cụ không hủy được giao dịch đã gửi.
