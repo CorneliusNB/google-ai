@@ -151,6 +151,40 @@ class CoreTests(unittest.TestCase):
 
 
 class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_connection_monitor_warns_once_and_recovers_without_unlocking_checkout(self):
+        from tui import GoogleAITUI, ConnectionNotice
+        from device_diagnostics import ConnectionStatus
+        from textual.widgets import Static
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._offer_check_ready = True
+                app._connection_polled(ConnectionStatus("disconnected"))
+                await pilot.pause()
+                self.assertIsInstance(app.screen, ConnectionNotice)
+                self.assertFalse(app._offer_check_ready)
+                app._connection_polled(ConnectionStatus("disconnected"))
+                await pilot.pause()
+                self.assertIsInstance(app.screen, ConnectionNotice)
+                app._connection_polled(ConnectionStatus("connected", ("emulator-5554",)))
+                await pilot.pause()
+                self.assertNotIsInstance(app.screen, ConnectionNotice)
+                self.assertFalse(app._offer_check_ready)
+                self.assertIn("connected", str(app.query_one("#device", Static).render()).lower())
+
+    async def test_connection_results_are_ignored_during_checkout(self):
+        from tui import GoogleAITUI
+        from device_diagnostics import ConnectionStatus
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app.busy = True
+                app.current_step = 2
+                app._offer_check_ready = True
+                app._connection_polled(ConnectionStatus("disconnected"))
+                self.assertTrue(app._offer_check_ready)
+                self.assertIsNone(app._connection_state)
+
     async def test_application_branding(self):
         from tui import GoogleAITUI
         self.assertEqual(GoogleAITUI.TITLE, "ePlus AI Toolkit")

@@ -13,6 +13,22 @@ def result(stdout="", returncode=0):
 
 
 class ConnectionGuideTests(unittest.TestCase):
+    def test_poll_only_reads_adb_transports(self):
+        with patch.object(diag, "locate_adb", return_value="adb"), \
+             patch.object(diag, "_run", return_value=result(
+                 "List of devices attached\nemulator-5554 device\nemulator-5556 offline\n")) as run:
+            found = diag.poll_connection()
+        self.assertEqual(found.state, "connected")
+        self.assertEqual(found.devices, ("emulator-5554",))
+        run.assert_called_once_with("adb", ["devices"])
+
+    def test_poll_missing_and_unauthorized_are_not_connected(self):
+        with patch.object(diag, "locate_adb", return_value=None):
+            self.assertEqual(diag.poll_connection().state, "missing_adb")
+        with patch.object(diag, "locate_adb", return_value="adb"), \
+             patch.object(diag, "_run", return_value=result("List of devices attached\nemulator-5554 unauthorized\n")):
+            self.assertEqual(diag.poll_connection().state, "disconnected")
+
     def test_adb_path_configuration_is_used(self):
         with tempfile.TemporaryDirectory() as folder:
             adb = Path(folder) / "adb.exe"

@@ -6,6 +6,8 @@
 
 ### Start with Check Device & Offers
 
+While idle, the dashboard checks existing ADB connections roughly every five seconds. If Android is not connected, it shows a dismissible notice and checks again; connecting does not by itself unlock paid steps. Monitoring pauses during stages and other dialogs. It only reads `adb devices` (which can start the local ADB server); it does not scan ports, connect devices, or install ADB in the background.
+
 1. Click **Check Device & Offers** on the welcome screen. It invokes **Step 1 — Available offers**, intended to *list* offers rather than initiate checkout.
 2. Watch **Live Status** for the stage, elapsed time, current activity and result. **Show technical details** reveals execution output. A warning after 30 seconds without new output indicates inactivity, **not proof of a hang**.
 3. Check the account and offer information on the Android screen. A listed offer is **not** a guarantee of eligibility or a successful subscription.
@@ -15,6 +17,8 @@
 Steps 2–5 stay locked until a fresh offer check returns offers and verifies the Play account. A new check or failed paid stage locks them again. The engine rechecks the device, account and chosen offer before a paid action; the earlier check does not guarantee eligibility or connectivity.
 
 **Important distinction:** Step 1 does not initiate a purchase, but underlying environment preflight can still install or repair ADB/Frida and change emulator/network settings. **Step 0 — Environment** is a setup/diagnostics stage, not a purchase-free guarantee of zero local side effects.
+
+On Windows, running the check locates ADB or attempts to download official Android SDK Platform-Tools when missing. Installation can fail because of connectivity, permissions or security software. On macOS, install Platform-Tools through the platform's setup instructions; the Windows installer is not used.
 
 The sidebar lists the six stages. Android Device / Google Account cards update from observed output; account identifiers are masked. Original-author and maintainer credits link to their GitHub profiles in supported terminals.
 

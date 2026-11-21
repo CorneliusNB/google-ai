@@ -30,6 +30,30 @@ class ConnectionDiagnosis:
     guidance: str
 
 
+@dataclass(frozen=True)
+class ConnectionStatus:
+    state: str
+    devices: tuple[str, ...] = ()
+
+
+def poll_connection() -> ConnectionStatus:
+    """Inspect existing ADB transports; do not install or connect devices."""
+    adb = locate_adb()
+    if not adb:
+        return ConnectionStatus("missing_adb")
+    response = _run(adb, ["devices"])
+    if response is None or response.returncode:
+        return ConnectionStatus("adb_error")
+    online = []
+    for line in response.stdout.splitlines()[1:]:
+        fields = line.split()
+        if len(fields) >= 2 and SAFE_TEXT.fullmatch(fields[0]) and fields[1] == "device":
+            online.append(fields[0])
+    if not online:
+        return ConnectionStatus("disconnected")
+    return ConnectionStatus("connected", tuple(sorted(set(online))))
+
+
 def _clean(value: str, fallback: str = "unknown") -> str:
     text = value.strip()
     return text if SAFE_TEXT.fullmatch(text) else fallback

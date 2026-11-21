@@ -26,7 +26,7 @@ from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Stati
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
     report_summary, validate_step
-from device_diagnostics import ConnectionDiagnosis, inspect_connection
+from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_connection, poll_connection
 
 
 class Approval(ModalScreen[bool]):
@@ -111,6 +111,10 @@ class SetupNotice(ModalScreen[None]):
     @on(Button.Pressed, "#notice_close")
     def close_notice(self) -> None:
         self.dismiss(None)
+
+
+class ConnectionNotice(SetupNotice):
+    """Dismissible warning for a missing Android connection."""
 
 
 def is_macos_platform() -> bool:
@@ -265,6 +269,8 @@ class GoogleAITUI(App[None]):
         self._verified_account: str | None = None
         self._offer_check_ready = False
         self._initial_offer_ready = False
+        self._connection_state: ConnectionStatus | None = None
+        self._connection_polling = False
         self._started_at: float | None = None
         self._last_activity_at: float | None = None
         self.advanced_visible = False
@@ -420,6 +426,7 @@ class GoogleAITUI(App[None]):
 
     def on_mount(self) -> None:
         self.set_interval(1, self._refresh_elapsed)
+        self.set_interval(5, self._poll_connection)
         if self.macos_mode:
             self.query_one("#device", Static).update("ANDROID DEVICE\nADB • Auto-detect")
             self.query_one("#quick_hint", Static).update(
@@ -433,6 +440,67 @@ class GoogleAITUI(App[None]):
         if self.start_sequence:
             self.query_one("#mode", Select).value = "from"
         self._update_run_mode()
+
+    def _poll_connection(self) -> None:
+        if (self.busy or self._diagnosing or self._connection_polling or
+                (isinstance(self.screen, ModalScreen) and not isinstance(self.screen, ConnectionNotice))):
+            return
+        self._connection_polling = True
+        self._inspect_connection_periodically()
+
+    @work(thread=True, exclusive=True, group="connection-monitor")
+    def _inspect_connection_periodically(self) -> None:
+        try:
+            result = poll_connection()
+        except Exception:
+            result = ConnectionStatus("adb_error")
+        try:
+            self.call_from_thread(self._connection_polled, result)
+        except RuntimeError:
+            pass  # The app was closed while the ADB command was in flight.
+
+    def _connection_polled(self, result: ConnectionStatus) -> None:
+        self._connection_polling = False
+        if (self.busy or self._diagnosing or
+                (isinstance(self.screen, ModalScreen) and not isinstance(self.screen, ConnectionNotice))):
+            return
+        previous = self._connection_state
+        self._connection_state = result
+        changed = previous != result
+        if result.state == "connected":
+            label = "Android connected (ADB)" if len(result.devices) == 1 else "Multiple ADB devices"
+            self.query_one("#device", Static).update("ANDROID DEVICE\n" + label)
+            if changed and previous and previous.state != "connected":
+                self.notify("Android connected. Run Check Device & Offers.")
+            if isinstance(self.screen, ConnectionNotice):
+                self.screen.dismiss(None)
+        else:
+            self.query_one("#device", Static).update("ANDROID DEVICE\nNot connected")
+        # A changed device set invalidates the earlier account/offer check. An
+        # ADB poll alone is never enough to enable a purchase.
+        if result.state != "connected" or (previous and previous.state == "connected" and changed):
+            self._offer_check_ready = False
+            self._initial_offer_ready = False
+            self.sequence = False
+            self.query_one("#next", Button).display = False
+            self.query_one("#next", Button).disabled = True
+            self.query_one("#quickstart", Button).display = True
+            self.query_one("#quickstart", Button).label = "Check Device & Offers"
+            self._update_run_mode()
+        if result.state in ("missing_adb", "disconnected", "adb_error") and changed:
+            if isinstance(self.screen, ConnectionNotice):
+                return
+            if result.state == "missing_adb":
+                guidance = ("Run Check Device & Offers to prepare ADB on Windows. On macOS, "
+                            "install Android SDK Platform-Tools and reconnect Android.")
+                title = "ADB not found"
+            elif result.state == "adb_error":
+                title = "ADB is not responding"
+                guidance = "Check the ADB installation, then run Check Device & Offers."
+            else:
+                title = "Android is not connected"
+                guidance = "Start MuMu, enable ADB debugging and approve any Android authorization prompt. The connection will be checked again automatically."
+            self.push_screen(ConnectionNotice(title, guidance))
 
     @on(Button.Pressed, "#advanced_toggle")
     def advanced_pressed(self) -> None:
