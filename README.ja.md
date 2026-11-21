@@ -120,7 +120,7 @@ Windows で **Check Device & Offers** を実行すると ADB を探し、必要�
 
 **Choose another step** のモード：
 
-初期設定では選択したステップだけを実行します。続きも案内に沿って進めるには **More run options** を開いてください。
+初期設定では選択したステップだけを実行します。ガイド付きの連続実行モードは **Choose another step** 内のステップ一覧の最後にある **More run options…** を選ぶと表示されます。
 
 | モード | 動作 |
 | --- | --- |
