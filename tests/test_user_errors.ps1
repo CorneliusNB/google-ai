@@ -13,7 +13,10 @@ $cases = @(
     @{ Code = "offer_not_available"; Needle = "not available" },
     @{ Code = "offer_query_failed"; Needle = "Could not load" },
     @{ Code = "account_unavailable"; Needle = "Google Play account" },
-    @{ Code = "device_missing"; Needle = "MuMu is not connected" }
+    @{ Code = "device_missing"; Needle = "MuMu is not connected" },
+    @{ Code = "launch_failed"; Needle = "Could not open Google Play checkout" },
+    @{ Code = "billing_flow_error"; Needle = "Google Play could not open checkout" },
+    @{ Code = "activity_lookup_failed"; Needle = "Could not access the Google One screen" }
 )
 foreach ($case in $cases) {
     $issue = Get-UserIssue -Code $case.Code
@@ -44,5 +47,22 @@ $compact = (Show-UserIssue -Code "trial_duration_unverified" 6>&1 | Out-String)
 $source = Get-Content -LiteralPath (Join-Path $PSScriptRoot "../scripts/user-errors.ps1") -Raw
 if (-not $source.Contains('if ($DebugMode)')) {
     throw "Raw error diagnostics must be conditional on debug mode."
+}
+# Interactive PowerShell must not print the private TUI marker.
+$previousTuiMode = $env:EPLUS_TUI
+try {
+    Remove-Item Env:EPLUS_TUI -ErrorAction SilentlyContinue
+    $plain = (Show-UserIssue -Code "launch_failed" 6>&1 | Out-String)
+    if ($plain.Contains("EPLUS_ISSUE:launch_failed")) { throw "Raw protocol marker leaked to CLI" }
+    if (-not $plain.Contains("Could not open Google Play checkout")) { throw "Missing friendly CLI error" }
+    $env:EPLUS_TUI = "1"
+    $machine = (Show-UserIssue -Code "launch_failed" 6>&1 | Out-String)
+    if (-not $machine.Contains("EPLUS_ISSUE:launch_failed")) { throw "TUI protocol marker missing" }
+} finally {
+    if ($null -eq $previousTuiMode) {
+        Remove-Item Env:EPLUS_TUI -ErrorAction SilentlyContinue
+    } else {
+        $env:EPLUS_TUI = $previousTuiMode
+    }
 }
 Write-Host "Friendly error messages: PASS" -ForegroundColor Green
