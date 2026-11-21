@@ -282,8 +282,11 @@ class GoogleAITUI(App[None]):
         self._verified_account: str | None = None
         self._offer_check_ready = False
         self._initial_offer_ready = False
+        self._checked_device: str | None = None
+        self._offer_ready_device: str | None = None
         self._connection_state: ConnectionStatus | None = None
         self._connection_polling = False
+        self._connection_generation = 0
         self._started_at: float | None = None
         self._last_activity_at: float | None = None
         self.advanced_visible = False
@@ -398,8 +401,10 @@ class GoogleAITUI(App[None]):
     def diagnose_pressed(self) -> None:
         if self.busy or self._diagnosing:
             return
+        self._invalidate_connection_polls()
         self._offer_check_ready = False
         self._initial_offer_ready = False
+        self._offer_ready_device = None
         self.query_one("#quickstart", Button).label = "Check Device & Offers"
         self._diagnosing = True
         self.query_one("#diagnose", Button).disabled = True
@@ -461,25 +466,32 @@ class GoogleAITUI(App[None]):
             self.query_one("#more_modes", Button).label = "Hide run options  −"
         self._update_run_mode()
 
+    def _invalidate_connection_polls(self) -> None:
+        """A pre-operation poll must never overwrite a newer stage or diagnosis."""
+        self._connection_generation += 1
+        self._connection_polling = False
+
     def _poll_connection(self) -> None:
         if (self.busy or self._diagnosing or self._connection_polling or
                 (isinstance(self.screen, ModalScreen) and not isinstance(self.screen, ConnectionNotice))):
             return
         self._connection_polling = True
-        self._inspect_connection_periodically()
+        self._inspect_connection_periodically(self._connection_generation)
 
     @work(thread=True, exclusive=True, group="connection-monitor")
-    def _inspect_connection_periodically(self) -> None:
+    def _inspect_connection_periodically(self, generation: int) -> None:
         try:
             result = poll_connection()
         except Exception:
             result = ConnectionStatus("adb_error")
         try:
-            self.call_from_thread(self._connection_polled, result)
+            self.call_from_thread(self._connection_polled, result, generation)
         except RuntimeError:
             pass  # The app was closed while the ADB command was in flight.
 
-    def _connection_polled(self, result: ConnectionStatus) -> None:
+    def _connection_polled(self, result: ConnectionStatus, generation: int | None = None) -> None:
+        if generation is not None and generation != self._connection_generation:
+            return
         self._connection_polling = False
         if (self.busy or self._diagnosing or
                 (isinstance(self.screen, ModalScreen) and not isinstance(self.screen, ConnectionNotice))):
@@ -496,11 +508,16 @@ class GoogleAITUI(App[None]):
                 self.screen.dismiss(None)
         else:
             self.query_one("#device", Static).update("Device  •  Not connected")
-        # A changed device set invalidates the earlier account/offer check. An
-        # ADB poll alone is never enough to enable a purchase.
-        if result.state != "connected" or (previous and previous.state == "connected" and changed):
+        # Compare against the device Step 1 actually checked, not the older
+        # idle observation. ADB polling alone never enables paid steps.
+        checked_device_missing = self._offer_check_ready and (
+            not self._offer_ready_device or self._offer_ready_device not in result.devices
+        )
+        if (result.state != "connected" or checked_device_missing or
+                (not self._offer_check_ready and previous and previous.state == "connected" and changed)):
             self._offer_check_ready = False
             self._initial_offer_ready = False
+            self._offer_ready_device = None
             self.sequence = False
             self.query_one("#next", Button).display = False
             self.query_one("#next", Button).disabled = True
@@ -800,9 +817,12 @@ class GoogleAITUI(App[None]):
             self._set_status("Check Device & Offers first")
             self._set_message("Connect Android and complete the offer check before starting a paid step.")
             return
+        self._invalidate_connection_polls()
+        self._checked_device = None
         if step <= 1:
             self._offer_check_ready = False
             self._initial_offer_ready = False
+            self._offer_ready_device = None
         else:
             self._initial_offer_ready = False
         self.query_one("#quickstart", Button).label = "Check Device & Offers"
@@ -949,8 +969,12 @@ class GoogleAITUI(App[None]):
             btn.display = True
             btn.disabled = False
             self._set_message("Complete the requested action on Android, then click Completed.")
-        if re.search(r"\bDevice\s+(emulator-\d+|[0-9.]+:\d+)\s*$", line):
-            self.query_one("#device", Static).update("Device  •  " + escape(line.split()[-1]))
+        selected_device = re.search(
+            r"\b(?:Connected ADB device:|Device)\s+([A-Za-z0-9._:/-]{1,90})\s*$", line
+        )
+        if selected_device:
+            self._checked_device = selected_device.group(1)
+            self.query_one("#device", Static).update("Device  •  " + escape(self._checked_device))
         # Trust only the structured PowerShell "Account <email>" status line,
         # not arbitrary log messages containing an email address.
         account = re.match(
@@ -983,7 +1007,13 @@ class GoogleAITUI(App[None]):
             self._offer_check_ready = bool(
                 outcome.code == "listed" and isinstance(offers, list) and offers
                 and verified and (not detected or detected == verified)
+                and self._checked_device
             )
+            self._offer_ready_device = self._checked_device if self._offer_check_ready else None
+            if self._offer_ready_device:
+                # The Stage 1 transport is authoritative; the previous idle
+                # poll may describe a different device from before the check.
+                self._connection_state = ConnectionStatus("connected", (self._offer_ready_device,))
             self._initial_offer_ready = bool(self._offer_check_ready and any(
                 isinstance(offer, dict) and offer.get("id") == "12months-eft"
                 and str(offer.get("micros")) == "0" for offer in offers
@@ -991,6 +1021,7 @@ class GoogleAITUI(App[None]):
         elif step == 0 or outcome.code != "checkout_requested":
             self._offer_check_ready = False
             self._initial_offer_ready = False
+            self._offer_ready_device = None
         self._last_outcome = outcome
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True

@@ -76,6 +76,7 @@ class ConnectionAndOfferUITests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory))
             with patch.object(GoogleAITUI, "run_stage") as paid:
                 async with app.run_test(size=(110, 35)):
+                    app._offer_check_ready = True
                     app._diagnosing = True
                     app._start(2, False)
                     self.assertFalse(app.busy)

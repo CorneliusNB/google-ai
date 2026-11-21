@@ -151,6 +151,13 @@ class CoreTests(unittest.TestCase):
 
 
 class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        # Smoke tests must not depend on host ADB state or a five-second timer.
+        from tui import GoogleAITUI
+        patcher = patch.object(GoogleAITUI, "_poll_connection")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     async def test_start_screen_shows_status_and_primary_action(self):
         from tui import GoogleAITUI
         for size in ((90, 20), (110, 35)):
@@ -279,6 +286,75 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 app._connection_polled(ConnectionStatus("disconnected"))
                 self.assertTrue(app._offer_check_ready)
                 self.assertIsNone(app._connection_state)
+
+    async def test_stale_poll_from_before_stage_cannot_erase_fresh_readiness(self):
+        from tui import GoogleAITUI, CheckComplete, ConnectionNotice
+        from device_diagnostics import ConnectionStatus
+        from tui_core import Outcome
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                old_generation = app._connection_generation
+                app._connection_polling = True
+                with patch.object(GoogleAITUI, "run_stage"):
+                    app._start(1, False)
+                    app._received("Device emulator-5554")
+                    app._verified_account = "test@example.com"
+                    app._finished(1, Outcome("listed", "Offers loaded", "Review"), {
+                        "offers": [{"id": "12months-eft", "micros": "0"}],
+                        "detected_play_account": "test@example.com",
+                    })
+                await pilot.pause()
+                self.assertIsInstance(app.screen, CheckComplete)
+                await pilot.click("#check_later")
+                await pilot.pause()
+                app._connection_polled(ConnectionStatus("disconnected"), old_generation)
+                self.assertTrue(app._offer_check_ready)
+                self.assertNotIsInstance(app.screen, ConnectionNotice)
+                self.assertEqual(app._connection_state.devices, ("emulator-5554",))
+
+    async def test_stale_poll_from_before_diagnosis_is_ignored(self):
+        from tui import GoogleAITUI, ConnectionNotice
+        from device_diagnostics import ConnectionStatus
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                old_generation = app._connection_generation
+                app._connection_polling = True
+                with patch.object(GoogleAITUI, "inspect_android_connection"):
+                    app.diagnose_pressed()
+                app._diagnosing = False
+                app._connection_polled(ConnectionStatus("disconnected"), old_generation)
+                self.assertIsNone(app._connection_state)
+                self.assertNotIsInstance(app.screen, ConnectionNotice)
+
+    async def test_step_one_ready_device_survives_first_postcheck_poll(self):
+        from tui import GoogleAITUI, CheckComplete
+        from device_diagnostics import ConnectionStatus
+        from tui_core import Outcome
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._connection_state = ConnectionStatus("connected", ("emulator-5554",))
+                app._received("Device emulator-5556")
+                app._verified_account = "test@example.com"
+                app._finished(1, Outcome("listed", "Offers loaded", "Review"), {
+                    "offers": [{"id": "12months-eft", "micros": "0"}],
+                    "detected_play_account": "test@example.com",
+                })
+                await pilot.pause()
+                self.assertIsInstance(app.screen, CheckComplete)
+                await pilot.click("#check_later")
+                await pilot.pause()
+                self.assertEqual(app._offer_ready_device, "emulator-5556")
+                app._connection_polled(ConnectionStatus("connected", ("emulator-5556",)))
+                self.assertTrue(app._offer_check_ready)
+                app._connection_polled(ConnectionStatus("connected", ("emulator-5558",)))
+                self.assertFalse(app._offer_check_ready)
+                self.assertIsNone(app._offer_ready_device)
 
     async def test_application_branding(self):
         from tui import GoogleAITUI
@@ -661,6 +737,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     run.assert_not_called()
                     app.query_one("#mode", Select).value = "single"
 
+                    app._received("Device emulator-5554")
                     app._verified_account = "test@example.com"
                     report = {"status": "listed", "offers": [{"id": "test"}],
                               "detected_play_account": "test@example.com"}
@@ -695,6 +772,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 app = GoogleAITUI(repo=Path(directory))
                 with patch.object(GoogleAITUI, "run_stage") as run:
                     async with app.run_test(size=size) as pilot:
+                        app._received("Device emulator-5554")
                         app._verified_account = "test@example.com"
                         app._finished(1, Outcome("listed", "Offers loaded", "Review"), {
                             "offers": [{"id": "12months-eft", "micros": "0"}],

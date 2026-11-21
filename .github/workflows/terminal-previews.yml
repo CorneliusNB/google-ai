@@ -140,9 +140,15 @@ jobs:
               url = f'https://raw.githubusercontent.com/{repo}/{commit}/images/{name}'
               lines.extend([f'### {label}', f'![{label}]({url})', ''])
           body = '\n'.join(lines)
-          comments = api(f'{root}/issues/{number}/comments?per_page=100')
-          existing = next((c for c in comments if marker in c.get('body', '') and
-                           c.get('user', {}).get('login') == 'github-actions[bot]'), None)
+          existing = None
+          page = 1
+          while True:
+              comments = api(f'{root}/issues/{number}/comments?per_page=100&page={page}')
+              existing = next((c for c in comments if marker in c.get('body', '') and
+                               c.get('user', {}).get('login') == 'github-actions[bot]'), None)
+              if existing or len(comments) < 100:
+                  break
+              page += 1
           if existing:
               api(f"{root}/issues/comments/{existing['id']}", 'PATCH', {'body': body})
           else:
