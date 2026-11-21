@@ -303,8 +303,8 @@ class GoogleAITUI(App[None]):
                 yield Link("@hoangsvit", url="https://github.com/hoangsvit",
                            tooltip="Maintainer on GitHub", id="maintainer")
             with Horizontal(id="details"):
-                yield Static("ANDROID DEVICE\nMuMu • Auto-detect", id="device")
-                yield Static("GOOGLE ACCOUNT\nNot checked", id="account")
+                yield Static("Device  •  Auto-detect", id="device")
+                yield Static("Account  •  Not checked", id="account")
             with Horizontal(id="content"):
                 with Vertical(id="controls"):
                     yield Static("STEPS", classes="section")
@@ -443,7 +443,7 @@ class GoogleAITUI(App[None]):
         self.set_interval(1, self._refresh_elapsed)
         self.set_interval(5, self._poll_connection)
         if self.macos_mode:
-            self.query_one("#device", Static).update("ANDROID DEVICE\nADB • Auto-detect")
+            self.query_one("#device", Static).update("Device  •  Auto-detect")
             self.query_one("#quick_hint", Static).update(
                 "Check Android and Google AI offers before any subscription step."
             )
@@ -487,13 +487,13 @@ class GoogleAITUI(App[None]):
         changed = previous != result
         if result.state == "connected":
             label = "Android connected (ADB)" if len(result.devices) == 1 else "Multiple ADB devices"
-            self.query_one("#device", Static).update("ANDROID DEVICE\n" + label)
+            self.query_one("#device", Static).update("Device  •  " + label)
             if changed and previous and previous.state != "connected":
                 self.notify("Android connected. Run Check Device & Offers.")
             if isinstance(self.screen, ConnectionNotice):
                 self.screen.dismiss(None)
         else:
-            self.query_one("#device", Static).update("ANDROID DEVICE\nNot connected")
+            self.query_one("#device", Static).update("Device  •  Not connected")
         # A changed device set invalidates the earlier account/offer check. An
         # ADB poll alone is never enough to enable a purchase.
         if result.state != "connected" or (previous and previous.state == "connected" and changed):
@@ -818,11 +818,8 @@ class GoogleAITUI(App[None]):
         self.query_one("#offer_view", RichLog).clear()
         self.query_one("#offer_view", RichLog).display = False
         self.query_one("#offers_title", Static).display = False
-        self.query_one("#device", Static).update(
-            "ANDROID DEVICE\nADB • Auto-detect" if self.macos_mode
-            else "ANDROID DEVICE\nMuMu • Auto-detect"
-        )
-        self.query_one("#account", Static).update("GOOGLE ACCOUNT\nNot checked")
+        self.query_one("#device", Static).update("Device  •  Auto-detect")
+        self.query_one("#account", Static).update("Account  •  Not checked")
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True
         self._started_at = time.monotonic()
