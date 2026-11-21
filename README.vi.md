@@ -121,7 +121,7 @@ Step 2–5 chỉ được mở khóa khi lần kiểm tra Step 1 mới nhất tr
 
 Mục **Choose another step** gồm:
 
-Mặc định, công cụ chỉ chạy bước đã chọn. Mở **More run options** nếu muốn tiếp tục theo chuỗi có hướng dẫn.
+Mặc định, công cụ chỉ chạy bước đã chọn. Trong **Choose another step**, chọn **More run options…** ở cuối danh sách bước để mở chế độ chạy tuần tự.
 
 | Chế độ | Chức năng |
 | --- | --- |
