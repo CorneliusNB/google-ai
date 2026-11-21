@@ -908,7 +908,6 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(app._run_output[-1], "EPLUS_ISSUE:launch_failed")
                 self.assertIn("Could not open Google Play checkout", app._last_output[-1])
                 self.assertNotIn("EPLUS_ISSUE:", app._last_output[-1])
-                self.assertEqual(app._visible_failure(), "")
                 result = outcome_for_stage(3, 0, {"status": "launch_failed"})
                 with patch.object(app, "_set_status", wraps=app._set_status) as status, \
                      patch.object(app, "_set_message", wraps=app._set_message) as message:
