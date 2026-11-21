@@ -25,7 +25,7 @@ from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Stati
 
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
-    readable_issue_line, report_summary, validate_step
+    readable_issue_line, report_summary, safe_launch_diagnostic, validate_step
 from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_connection, poll_connection
 
 
@@ -941,14 +941,22 @@ class GoogleAITUI(App[None]):
                 result = cli_issue_outcome(list(self._run_output), step) or result
             self.call_from_thread(self._finished, step, result, report)
         except Exception as error:
-            # The status screen should never expose raw stack traces or paths.
-            # Do not assume a failed local start proves any payment outcome.
+            # Keep a safe, concrete failure category in Technical details,
+            # even when a subprocess could not start and produced no output.
+            diagnostic = safe_launch_diagnostic(error)
+            self.call_from_thread(self._record_internal_diagnostic, diagnostic)
             result = Outcome("exception", "Could not start the selected step",
                              "Check Python, ADB and the Android connection. Open technical "
                              "details if needed; verify Google Play before retrying payments.")
             self.call_from_thread(self._finished, step, result, None)
         finally:
             self._child = None
+
+    def _record_internal_diagnostic(self, diagnostic: str) -> None:
+        # Do not add to _run_output: protocol parsing only accepts child output.
+        self._last_output.append(diagnostic)
+        if self.debug_visible:
+            self.query_one("#debug_log", RichLog).write(diagnostic)
 
     def _received(self, line: str) -> None:
         if not line:
