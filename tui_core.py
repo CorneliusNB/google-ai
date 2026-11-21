@@ -150,6 +150,34 @@ MESSAGES = {
         "Could not verify the checkout price",
         "Review the amount due today and renewal pricing in Google Play before proceeding.",
     ),
+    "add_account_failed": (
+        "Could not add the Google account",
+        "Open Android Settings and Google Play to check sign-in. Verify the intended account before continuing.",
+    ),
+    "add_account_error": (
+        "Google account setup was interrupted",
+        "Check Android account settings and your sign-in prompts. Do not continue until the account is verified.",
+    ),
+    "payment_method_not_confirmed": (
+        "Could not verify the payment method",
+        "Check Google Play payment methods manually. No successful payment or subscription change was verified.",
+    ),
+    "play_account_switch_failed": (
+        "Could not switch Google Play accounts",
+        "Select the intended account in Play Store manually, then perform the offer check again.",
+    ),
+    "frida_missing": (
+        "Android instrumentation is not ready",
+        "On macOS, relaunch using run-macos.sh to prepare Frida. Check the Android connection before retrying.",
+    ),
+    "environment_failed": (
+        "Android environment check did not finish",
+        "Check ADB, Google One and Frida before retrying. If checkout was previously attempted, verify Google Play first.",
+    ),
+    "confirmation_required": (
+        "Approval is required to continue",
+        "Use the on-screen confirmation for the selected paid step. No automatic checkout will be started.",
+    ),
     "exception": (
         "An unexpected error occurred",
         "Open Debug for details. Do not retry a payment until the outcome is known.",
@@ -186,7 +214,10 @@ def cli_issue_outcome(lines: list[str], step: int) -> Outcome | None:
             return None
         entry = CLI_ISSUES.get(code) or MESSAGES.get(code)
         if not entry:
-            return None
+            entry = (
+                "Could not complete this step",
+                "Check the Android screen and technical details. Do not retry paid steps before verifying Google Play.",
+            )
         title, instruction = entry
         if step >= 2:
             instruction += " Check Google Play subscriptions and payment history before another paid attempt."
@@ -198,6 +229,10 @@ def readable_issue_line(line: str) -> str:
     """Replace the private CLI protocol marker with safe, actionable text."""
     match = re.fullmatch(r"\s*EPLUS_ISSUE:([a-z_]+)\s*", line)
     if not match:
+        # Never display an internal marker, even if a child process appends
+        # unexpected characters to a status line.
+        if "EPLUS_ISSUE:" in line:
+            return "The step could not be completed. Review the status and open technical details."
         return line
     code = match.group(1)
     if code in ("listed", "checkout_requested"):
@@ -207,6 +242,40 @@ def readable_issue_line(line: str) -> str:
         return "The step could not be completed. Review the status and open technical details."
     title, guidance = entry
     return f"{title}. Next: {guidance}"
+
+
+def runtime_error_outcome(message: str, step: int) -> Outcome:
+    """Classify macOS adapter failures without rendering raw exceptions."""
+    validate_step(step)
+    detail = message.lower()
+    cases = (
+        ("adb is missing", "adb_missing"),
+        ("no online android device", "device_missing"),
+        ("multiple different android devices", "device_ambiguous"),
+        ("frida ", "frida_missing"),
+        ("google play account changed", "account_mismatch"),
+        ("account changed during checks", "account_mismatch"),
+        ("google play account lookup", "account_unavailable"),
+        ("could not verify google play account", "account_unavailable"),
+        ("invalid google play account", "account_unavailable"),
+        ("verified google play email", "account_unavailable"),
+        ("offer listing", "offer_query_failed"),
+        ("zero-priced first phase", "offer_not_available"),
+        ("new matching report", "report_missing"),
+        ("result report", "report_missing"),
+        ("result belongs to an older", "report_missing"),
+        ("android environment checks failed", "environment_failed"),
+        ("confirmations required", "confirmation_required"),
+    )
+    code = next((name for fragment, name in cases if fragment in detail), "unknown")
+    entry = CLI_ISSUES.get(code) or MESSAGES.get(code) or (
+        "Could not complete this step",
+        "Check the Android screen and technical details. Verify Google Play payments before retrying.",
+    )
+    title, instruction = entry
+    if step >= 2:
+        instruction += " Confirm the actual subscription and payment history in Google Play."
+    return Outcome(code, title, instruction, can_review=False)
 
 
 def validate_step(step: int) -> int:
