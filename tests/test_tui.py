@@ -221,12 +221,18 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         # The advanced modes are accessible at the end of
                         # the step dropdown, without a separate third button.
                         app.query_one("#step", Select).value = 99
-                        await pilot.pause()
+                        for _ in range(20):
+                            await pilot.pause(0.05)
+                            if app.query_one("#mode_field").display:
+                                break
                         self.assertTrue(app.query_one("#mode_field").display)
                         self.assertEqual(app.query_one("#step", Select).value, 1)
                         app.query_one("#mode", Select).value = "from"
                         app.query_one("#step", Select).value = 99
-                        await pilot.pause()
+                        for _ in range(20):
+                            await pilot.pause(0.05)
+                            if not app.query_one("#mode_field").display:
+                                break
                         self.assertFalse(app.query_one("#mode_field").display)
                         self.assertEqual(app.query_one("#mode", Select).value, "single")
 
