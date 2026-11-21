@@ -921,7 +921,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             app = GoogleAITUI(repo=Path(directory))
-            async with app.run_test(size=(90, 20)):
+            async with app.run_test(size=(90, 20)) as pilot:
                 app._record_internal_diagnostic(
                     safe_launch_diagnostic(FileNotFoundError(
                         "setup_env.py is missing from C:/Users/private@example.com"))
@@ -930,6 +930,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn("private@example.com", app._last_output[-1])
                 self.assertFalse(app._run_output)
                 app.action_toggle_debug()
+                await pilot.pause()
                 self.assertGreater(len(app.query_one("#debug_log", RichLog).lines), 0)
 
     async def test_cli_marker_is_never_shown_raw_in_debug_or_status(self):
