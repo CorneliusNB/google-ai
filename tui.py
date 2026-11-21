@@ -245,7 +245,7 @@ class GoogleAITUI(App[None]):
     Screen.compact #quickstart, Screen.compact #advanced_toggle { height: 3; }
     Screen.narrow #form_row { layout: vertical; }
     Screen.narrow #step_field { margin: 1 0 0 0; }
-    Screen.narrow #run_row { layout: vertical; }
+    Screen.narrow #run_row { layout: vertical; margin-left: 2; }
     Screen.narrow #run { width: 100%; }
     Screen.narrow #mode_hint { padding: 1 0 0 0; }
     Screen.narrow #controls { width: 21; min-width: 21; }
