@@ -124,6 +124,66 @@ function Get-UserIssue {
                 Action = "Check the local debug log. Verify Google Play before retrying any payment step."
             }
         }
+        "launch_failed" {
+            return [pscustomobject]@{
+                Title = "Could not open Google Play checkout"
+                Action = "The app did not confirm checkout opened. Check Google One and Google Play, then verify subscriptions and payment history before retrying."
+            }
+        }
+        "billing_flow_error" {
+            return [pscustomobject]@{
+                Title = "Google Play could not open checkout"
+                Action = "Review the Android screen and payment history before trying this step again."
+            }
+        }
+        "billing_launch_error" {
+            return [pscustomobject]@{
+                Title = "Could not start Google Play checkout"
+                Action = "Check Google One and Android diagnostics. Verify payments before another attempt."
+            }
+        }
+        "activity_lookup_failed" {
+            return [pscustomobject]@{
+                Title = "Could not access the Google One screen"
+                Action = "Bring Google One to the foreground and check ADB/Frida in technical details."
+            }
+        }
+        "no_activity" {
+            return [pscustomobject]@{
+                Title = "Google One is not ready"
+                Action = "Open Google One on Android and rerun the device and offer check."
+            }
+        }
+        "app_not_started" {
+            return [pscustomobject]@{
+                Title = "Google One could not be opened"
+                Action = "Start Google One manually and check the Android connection before retrying."
+            }
+        }
+        "subscription_update_unavailable" {
+            return [pscustomobject]@{
+                Title = "Could not prepare the subscription change"
+                Action = "Review the existing Google Play subscription before another paid attempt."
+            }
+        }
+        "subscribe_button_not_found" {
+            return [pscustomobject]@{
+                Title = "Could not find the checkout confirmation button"
+                Action = "Check Google Play pricing and payment history; no update was verified."
+            }
+        }
+        "checkout_not_visible" {
+            return [pscustomobject]@{
+                Title = "Could not see the Google Play checkout screen"
+                Action = "Inspect the Android screen and payment history before retrying."
+            }
+        }
+        "price_unverified" {
+            return [pscustomobject]@{
+                Title = "Could not verify the checkout price"
+                Action = "Check today's amount and the renewal price in Google Play."
+            }
+        }
         "checkout_not_confirmed" {
             return [pscustomobject]@{
                 Title = "The purchase was not confirmed"
@@ -167,9 +227,20 @@ function Show-UserIssue {
         [bool]$DebugMode = $false
     )
     $issue = Get-UserIssue -Code $Code
-    # Stable, non-sensitive code for the dashboard; never include raw errors,
-    # account details or purchase data in this machine-readable line.
-    if ($Code -match '^[a-z_]+$') { Write-Host ("EPLUS_ISSUE:{0}" -f $Code) }
+    # The structured marker is a private TUI protocol, not user-facing CLI output.
+    # The dashboard translates it into a friendly problem and next action.
+    if ($env:EPLUS_TUI -eq "1" -and $Code -match '^[a-z_]+
+    Write-Host ""
+    Write-Host ("  ! {0}" -f $issue.Title) -ForegroundColor Yellow
+    Write-Host ("    Next: {0}" -f $issue.Action) -ForegroundColor Gray
+    if ($DebugMode) {
+        Write-Host ("    Code: {0}" -f $Code) -ForegroundColor DarkGray
+        if ($Details) { Write-Host ("    Details: {0}" -f $Details) -ForegroundColor DarkGray }
+    }
+}
+) {
+        Write-Host ("EPLUS_ISSUE:{0}" -f $Code)
+    }
     Write-Host ""
     Write-Host ("  ! {0}" -f $issue.Title) -ForegroundColor Yellow
     Write-Host ("    Next: {0}" -f $issue.Action) -ForegroundColor Gray
