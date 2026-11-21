@@ -120,7 +120,7 @@ Windows에서 **Check Device & Offers**를 실행하면 ADB를 찾고, 필요한
 
 **Choose another step** 모드:
 
-기본적으로 선택한 단계만 실행합니다. 안내에 따라 다음 단계도 진행하려면 **More run options**를 여세요.
+기본적으로 선택한 단계만 실행합니다. 연속 실행 모드는 **Choose another step**의 단계 선택 메뉴 맨 아래에서 **More run options…**를 선택해 표시할 수 있습니다.
 
 | 모드 | 기능 |
 | --- | --- |
