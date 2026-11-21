@@ -1083,11 +1083,9 @@ class GoogleAITUI(App[None]):
         if step == 1 and outcome.code == "listed" and not self._initial_offer_ready:
             self.push_screen(SetupNotice("Review the offer check", instruction))
             return
-        if step <= 1 and outcome.code in {
-            "device_missing", "device_ambiguous", "app_missing", "adb_missing",
-            "python_missing", "runtime_lookup_failed", "account_unavailable",
-            "account_mismatch", "offer_query_failed", "offers_unavailable",
-        }:
+        if step <= 1 and outcome.code not in ("listed", "environment_ok", "cancelled"):
+            # Step 0/1 errors are always actionable for non-technical users,
+            # including unknown setup failures and newly added engine codes.
             self.push_screen(SetupNotice(outcome.title, outcome.instruction))
             return
         if outcome.code == "checkout_requested":
