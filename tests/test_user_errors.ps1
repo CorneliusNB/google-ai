@@ -41,7 +41,8 @@ $errors = @(
     @{ Message = "Play account mismatch or unverified"; Expected = "account_mismatch" },
     @{ Message = "Offer query did not complete: offer_query_failed"; Expected = "offer_query_failed" },
     @{ Message = "No report produced at ..." ; Expected = "report_missing" },
-    @{ Message = "Python not found"; Expected = "python_missing" }
+    @{ Message = "Python not found"; Expected = "python_missing" },
+    @{ Message = "Invalid Play Store account returned by Step 1"; Expected = "account_unavailable" }
 )
 foreach ($case in $errors) {
     $actual = Get-FailureCode -ErrorMessage $case.Message
