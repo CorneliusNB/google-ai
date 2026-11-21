@@ -124,6 +124,60 @@ function Get-UserIssue {
                 Action = "Check the local debug log. Verify Google Play before retrying any payment step."
             }
         }
+        "add_account_failed" {
+            return [pscustomobject]@{
+                Title = "Could not add the Google account"
+                Action = "Check Android sign-in and the Play Store profile before continuing."
+            }
+        }
+        "add_account_error" {
+            return [pscustomobject]@{
+                Title = "Google account setup was interrupted"
+                Action = "Check Android sign-in prompts and verify the intended Google Play account."
+            }
+        }
+        "payment_method_not_confirmed" {
+            return [pscustomobject]@{
+                Title = "Could not verify the payment method"
+                Action = "Review Google Play payment methods manually. No successful payment was verified."
+            }
+        }
+        "play_account_switch_failed" {
+            return [pscustomobject]@{
+                Title = "Could not switch Google Play accounts"
+                Action = "Select your intended Play Store account and run the offer check again."
+            }
+        }
+        "account_unverified" {
+            return [pscustomobject]@{
+                Title = "Google Play account was not verified"
+                Action = "Open the Play Store profile and verify the account before checkout."
+            }
+        }
+        "wrong_account" {
+            return [pscustomobject]@{
+                Title = "Google Play is using the wrong account"
+                Action = "Switch to the intended account and run Step 1 again."
+            }
+        }
+        "frida_missing" {
+            return [pscustomobject]@{
+                Title = "Android instrumentation is not ready"
+                Action = "Prepare the compatible Frida version and verify the Android connection."
+            }
+        }
+        "environment_failed" {
+            return [pscustomobject]@{
+                Title = "Android environment check did not finish"
+                Action = "Check ADB, Google One and Frida. Verify Google Play payments before retrying a paid step."
+            }
+        }
+        "confirmation_required" {
+            return [pscustomobject]@{
+                Title = "Approval is required to continue"
+                Action = "Use the on-screen confirmation for each paid step."
+            }
+        }
         "launch_failed" {
             return [pscustomobject]@{
                 Title = "Could not open Google Play checkout"
