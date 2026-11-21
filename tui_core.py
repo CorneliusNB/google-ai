@@ -104,6 +104,52 @@ MESSAGES = {
         "Offer not available",
         "Use Step 1 to review current offers. Do not assume eligibility.",
     ),
+    "launch_failed": (
+        "Could not open Google Play checkout",
+        "The app did not confirm that the checkout screen opened. Check Google One and "
+        "Google Play on Android, then review your subscription and payment history before retrying.",
+    ),
+    "billing_flow_error": (
+        "Google Play could not open checkout",
+        "Google Play returned a checkout error. Check the Android screen and payment history "
+        "before trying this step again.",
+    ),
+    "billing_launch_error": (
+        "Could not start Google Play checkout",
+        "The tool encountered a problem while opening checkout. Review Google One, the "
+        "Android screen and technical details. Check Google Play payments before retrying.",
+    ),
+    "activity_lookup_failed": (
+        "Could not access the Google One screen",
+        "Reopen Google One on Android and check the ADB/Frida connection in technical details. "
+        "Check Google Play subscriptions before another payment attempt.",
+    ),
+    "no_activity": (
+        "Google One is not ready",
+        "Bring Google One to the foreground and try the device check again. If you already "
+        "attempted checkout, first verify its outcome in Google Play.",
+    ),
+    "app_not_started": (
+        "Google One could not be opened",
+        "Start Google One manually and confirm the device is connected. Then run the offer check.",
+    ),
+    "subscription_update_unavailable": (
+        "Could not prepare the subscription change",
+        "The app could not find the required existing-subscription information. Check the "
+        "current subscription in Google Play; do not repeat a paid step blindly.",
+    ),
+    "subscribe_button_not_found": (
+        "Could not find the checkout confirmation button",
+        "Check the current Google Play screen and pricing. No subscription change was verified.",
+    ),
+    "checkout_not_visible": (
+        "Could not see the Google Play checkout screen",
+        "Open Google Play on Android and review subscriptions and charges before retrying.",
+    ),
+    "price_unverified": (
+        "Could not verify the checkout price",
+        "Review the amount due today and renewal pricing in Google Play before proceeding.",
+    ),
     "exception": (
         "An unexpected error occurred",
         "Open Debug for details. Do not retry a payment until the outcome is known.",
@@ -124,6 +170,8 @@ CLI_ISSUES = {
     "offer_query_failed": MESSAGES["offer_query_failed"],
     "offers_unavailable": MESSAGES["offer_query_failed"],
     "report_missing": ("The tool did not return a result", "Open Debug for details."),
+    "account_unverified": ("Google Play account was not verified", "Open the Play Store profile and confirm the intended account before continuing."),
+    "wrong_account": ("Google Play is using the wrong account", "Switch to the intended Google Play account and run Step 1 again."),
 }
 
 
@@ -144,6 +192,21 @@ def cli_issue_outcome(lines: list[str], step: int) -> Outcome | None:
             instruction += " Check Google Play subscriptions and payment history before another paid attempt."
         return Outcome(code, title, instruction, can_review=False)
     return None
+
+
+def readable_issue_line(line: str) -> str:
+    """Replace the private CLI protocol marker with safe, actionable text."""
+    match = re.fullmatch(r"\s*EPLUS_ISSUE:([a-z_]+)\s*", line)
+    if not match:
+        return line
+    code = match.group(1)
+    if code in ("listed", "checkout_requested"):
+        return "Step result received. Review Google Play to verify the outcome."
+    entry = CLI_ISSUES.get(code) or MESSAGES.get(code)
+    if not entry:
+        return "The step could not be completed. Review the status and open technical details."
+    title, guidance = entry
+    return f"{title}. Next: {guidance}"
 
 
 def validate_step(step: int) -> int:
@@ -218,7 +281,17 @@ def outcome_for_stage(step: int, exit_code: int, report: dict | None) -> Outcome
     if exit_code != 0 and step == 1 and report and report.get("status") == "exception":
         return Outcome("exception", "Could not connect to Android tools",
                        "The read-only check failed. Open Debug; check Frida, ADB and Google One, then retry.")
+    # A failed process can still produce a fresh, safely classified report.
+    # Preserve its actionable explanation without treating a checkout as successful.
     if exit_code != 0:
+        status = str(report.get("status", "")) if isinstance(report, dict) else ""
+        sheet = report.get("sheet") if isinstance(report, dict) else None
+        reason = str(sheet.get("reason", "")) if isinstance(sheet, dict) else ""
+        code = reason if reason in MESSAGES else status
+        issue = CLI_ISSUES.get(code) or MESSAGES.get(code)
+        if issue and code not in ("listed", "checkout_requested"):
+            title, instruction = issue
+            return Outcome(code, title, instruction, can_review=False)
         return Outcome("tool_error", "The step could not finish",
                        "Check Debug and the Android screen before retrying.")
     if step == 0:
@@ -231,9 +304,9 @@ def outcome_for_stage(step: int, exit_code: int, report: dict | None) -> Outcome
     sheet = report.get("sheet")
     reason = str(sheet.get("reason", "")) if isinstance(sheet, dict) else ""
     code = reason if status != "checkout_requested" and reason in MESSAGES else status
-    title, instruction = MESSAGES.get(
+    title, instruction = (CLI_ISSUES.get(code) or MESSAGES.get(
         code, ("Could not verify this step",
-               "Check the Android screen and Debug before retrying."))
+               "Check the Android screen and Debug before retrying.")))
     return Outcome(code, title, instruction,
                    can_review=(step >= 2 and status == "checkout_requested"))
 
@@ -252,7 +325,9 @@ def report_summary(report: dict | None) -> str:
     offers = report.get("offers")
     if isinstance(offers, list):
         return f"{len(offers)} offers returned (eligibility not verified)"
-    return str(report.get("status", "Unknown result"))
+    status = str(report.get("status", ""))
+    entry = CLI_ISSUES.get(status) or MESSAGES.get(status)
+    return entry[0] if entry else "Review the result in Live Status"
 
 
 # Only display the non-secret metadata that the existing Step 1 report supplies.
