@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from tui_core import (
     cli_issue_outcome, command_for_step, mask_email, needs_setup, outcome_for_stage,
-    read_fresh_report, validate_step,
+    readable_issue_line, read_fresh_report, report_summary, validate_step,
 )
 
 
@@ -28,6 +28,47 @@ class CoreTests(unittest.TestCase):
     def test_cli_error_rejects_untrusted_text(self):
         self.assertIsNone(cli_issue_outcome(["EPLUS_ISSUE:app_missing private@example.com"], 1))
         self.assertIsNone(cli_issue_outcome(["EPLUS_ISSUE:unknown"], 1))
+
+    def test_launch_error_has_friendly_title_and_next_action(self):
+        for code, phrase in (
+            ("launch_failed", "Google Play checkout"),
+            ("billing_flow_error", "Google Play"),
+            ("activity_lookup_failed", "Google One"),
+            ("no_activity", "Google One"),
+        ):
+            with self.subTest(code=code):
+                result = cli_issue_outcome([f"EPLUS_ISSUE:{code}"], 3)
+                self.assertIsNotNone(result)
+                self.assertIn(phrase, result.title)
+                self.assertIn("Google Play", result.instruction)
+                self.assertFalse(result.can_review)
+
+    def test_fresh_billing_error_report_is_explained_even_on_nonzero_exit(self):
+        report = {"status": "launch_failed"}
+        for code in (0, 1):
+            with self.subTest(exit_code=code):
+                result = outcome_for_stage(3, code, report)
+                self.assertEqual(result.code, "launch_failed")
+                self.assertIn("Could not open Google Play checkout", result.title)
+                self.assertFalse(result.can_review)
+        self.assertEqual(report_summary(report), "Could not open Google Play checkout")
+
+    def test_cli_protocol_markers_are_humanized_for_screen_and_debug(self):
+        readable = readable_issue_line("EPLUS_ISSUE:launch_failed")
+        self.assertIn("Could not open Google Play checkout", readable)
+        self.assertIn("Next:", readable)
+        self.assertNotIn("EPLUS_ISSUE:", readable)
+        self.assertNotIn("launch_failed", readable)
+        self.assertEqual(
+            readable_issue_line("EPLUS_ISSUE:unknown"),
+            "The step could not be completed. Review the status and open technical details.",
+        )
+        self.assertEqual(readable_issue_line("Normal progress line"), "Normal progress line")
+        # Do not accept untrusted or malformed markers containing account data.
+        self.assertEqual(
+            readable_issue_line("EPLUS_ISSUE:launch_failed person@example.com"),
+            "EPLUS_ISSUE:launch_failed person@example.com",
+        )
     def test_setup_only_when_pinned_frida_is_missing(self):
         with patch("tui_core.importlib.metadata.version", return_value="16.5.9"):
             self.assertFalse(needs_setup())
@@ -802,6 +843,31 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         await pilot.click("#cancel")
                         await pilot.pause()
                         self.assertIn("Step 2", str(app.query_one("#quickstart", Button).label))
+
+    async def test_cli_marker_is_never_shown_raw_in_debug_or_status(self):
+        from textual.widgets import Static
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)) as pilot:
+                app.action_toggle_debug()
+                app._received("EPLUS_ISSUE:launch_failed")
+                self.assertEqual(app._run_output[-1], "EPLUS_ISSUE:launch_failed")
+                self.assertIn("Could not open Google Play checkout", app._last_output[-1])
+                self.assertNotIn("EPLUS_ISSUE:", app._last_output[-1])
+                self.assertEqual(app._visible_failure(), "")
+                result = outcome_for_stage(3, 0, {"status": "launch_failed"})
+                app._finished(3, result, {"status": "launch_failed"})
+                await pilot.pause()
+                self.assertIn(
+                    "Could not open Google Play checkout",
+                    str(app.query_one("#state", Static).renderable),
+                )
+                self.assertNotIn(
+                    "EPLUS_ISSUE:",
+                    str(app.query_one("#message", Static).renderable),
+                )
 
     async def test_setup_error_shows_actionable_notice(self):
         from tui import GoogleAITUI, SetupNotice
