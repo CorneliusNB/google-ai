@@ -140,6 +140,21 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(fallback.code, "unknown")
         self.assertNotIn("error@example.com", fallback.instruction)
 
+    def test_macos_tui_marker_round_trip_keeps_device_recovery_guidance(self):
+        for message, code in (
+            ("No online Android device. Check adb devices.", "device_missing"),
+            ("Multiple different Android devices detected. Disconnect extras.", "device_ambiguous"),
+        ):
+            with self.subTest(code=code):
+                native = runtime_error_outcome(message, 1)
+                shown = cli_issue_outcome([f"EPLUS_ISSUE:{native.code}"], 1)
+                self.assertEqual(shown.code, native.code)
+                self.assertEqual(shown.instruction, native.instruction)
+                self.assertIn("Android", shown.instruction)
+                self.assertNotIn("MuMu", shown.instruction)
+                self.assertNotIn("select a serial in the CLI", shown.instruction)
+                self.assertFalse(shown.can_review)
+
     def test_setup_only_when_pinned_frida_is_missing(self):
         with patch("tui_core.importlib.metadata.version", return_value="16.5.9"):
             self.assertFalse(needs_setup())
