@@ -32,6 +32,9 @@ class PreviewApp(GoogleAITUI):
         if scenario == "disconnected":
             self._connection_polled(ConnectionStatus("disconnected"))
         elif scenario == "offer_found":
+            # The synthetic successful check needs the same device identity
+            # that the real Step 1 status output supplies.
+            self._received("Device emulator-5554")
             self._verified_account = "preview@example.invalid"
             self._finished(1, Outcome("listed", "Offers loaded", "Review offers"), {
                 "status": "listed", "detected_play_account": "preview@example.invalid",
