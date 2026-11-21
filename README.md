@@ -4,7 +4,7 @@
 
 A terminal toolkit for **Windows and macOS** to inspect Google AI Pro offers through Android, ADB, Frida and Google Play. The shared Textual dashboard uses a PowerShell/Python launcher on Windows and a native Python adapter on macOS.
 
-![ePlus AI Toolkit — step picker (90×20)](images/terminal-ui-step-picker.png)
+![ePlus AI Toolkit — full dashboard (110×35, Steps 0–5)](images/terminal-ui-overview.png)
 
 > [!CAUTION]
 > **Unofficial project. Potential billing charges.** Steps **2–5** can open a real Google Play checkout and may automatically tap **Subscribe**. An offer appearing in a list, a displayed first-phase price of zero, or a message indicating that the Subscribe action was attempted does **not** establish eligibility, an active subscription, a free subscription, or a changed renewal date. Verify the exact account, today's charge, future pricing and renewal date directly in Google Play before any checkout.
