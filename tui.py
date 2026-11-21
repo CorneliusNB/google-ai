@@ -588,6 +588,10 @@ class GoogleAITUI(App[None]):
     def _update_run_mode(self) -> None:
         if self.busy:
             return
+        # Textual can deliver a queued Select.Changed while its screen is
+        # being unmounted (especially on Windows). Ignore stale UI events.
+        if not len(self.query("#mode")) or not len(self.query("#step")):
+            return
         mode = self.query_one("#mode", Select).value
         step = self.query_one("#step", Select).value
         if mode == "all":
