@@ -996,17 +996,6 @@ class GoogleAITUI(App[None]):
                 "Account  •  " + escape(mask_email(self._verified_account))
             )
 
-    def _visible_failure(self) -> str:
-        """Show a concise CLI error without exposing account emails."""
-        for raw in reversed(self._run_output):
-            line = re.sub(r"\x1b\[[0-9;]*m", "", raw).strip()
-            if not line or re.fullmatch(r"EPLUS_ISSUE:[a-z_]+", line):
-                continue
-            if re.search(r"error|failed|missing|not found|cannot|unable|offline|unauthorized|issue|stopped|device", line, re.I):
-                line = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[account hidden]", line)
-                return line[:220]
-        return ""
-
     def _finished(self, step: int, outcome: Outcome, report: dict | None) -> None:
         self.busy = False
         if step == 1:
