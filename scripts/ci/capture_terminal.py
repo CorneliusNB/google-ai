@@ -24,7 +24,7 @@ CASES = [
     ("01-startup", "startup", 110, 35, ("Check Device & Offers", "Ready — no check started", "Auto-detect", "Not checked", "not guaranteed")),
     ("02-disconnected", "disconnected", 110, 35, ("Android is not connected", "Got it")),
     ("03-offer-found", "offer_found", 110, 35, ("Continue to Step 2", "Later")),
-    ("04-step-picker-compact", "step_picker", 90, 20, ("Run this step", "More run options")),
+    ("04-step-picker-compact", "step_picker", 90, 20, ("Run this step", "Only this step will run")),
     ("05-approval-compact", "approval", 90, 20, ("Start initial 12-month checkout", "not guaranteed", "Cancel", "Continue")),
     ("06-play-review", "review", 110, 35, ("Verified in Google Play",)),
 ]
