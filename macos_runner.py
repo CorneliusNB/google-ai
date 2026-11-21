@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Native macOS stage adapter; reuse ultra0.py without Windows setup.
+"""Native macOS and Linux stage adapter; reuse ultra0.py without Windows setup.
 
 Steps 2–5 can request real Google Play charges. The adapter checks the
 selected device, current Play account, offer ID and today's introductory
@@ -18,13 +18,17 @@ import re
 import shutil
 import subprocess
 import sys
+from tempfile import TemporaryDirectory
 import time
 
+from device_diagnostics import inspect_connection, locate_adb
 from device_selector import auto_select_device, online_serials
+from tui_core import MESSAGES, offer_explorer_lines, read_fresh_report
 
 ROOT = Path(__file__).resolve().parent
 FRIDA_REQUIRED = "16.5.9"
 REPORT_DIR = ROOT / "ultra0-report"
+LINUX_WORKDIR = "EPLUS_LINUX_STAGE_WORKDIR"
 EMAIL = re.compile(r"^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$")
 STAGES = {
     2: ("pro12", "12months-eft", False),
@@ -57,20 +61,29 @@ def stage_command(step: int, serial: str, account: str = "",
 
 
 def preflight() -> tuple[str, str]:
-    adb = os.environ.get("ADB_PATH") or shutil.which("adb")
+    linux = sys.platform == "linux"
+    adb = locate_adb("linux") if linux else os.environ.get("ADB_PATH") or shutil.which("adb")
     if not adb:
-        raise RuntimeError("ADB is missing. Install Android SDK Platform-Tools.")
+        raise RuntimeError(
+            "ADB is missing. Install Android SDK Platform-Tools and add adb to PATH or set ADB_PATH."
+        )
+    if linux:
+        # The engine runs from a private directory for each Linux invocation.
+        adb = os.path.abspath(adb)
     try:
         installed = metadata.version("frida")
     except metadata.PackageNotFoundError:
         installed = None
     if installed != FRIDA_REQUIRED:
+        launcher = "run-linux.sh" if linux else "run-macos.sh"
         raise RuntimeError(
             f"Frida {FRIDA_REQUIRED} required (found {installed or 'none'}). "
-            "Use run-macos.sh to prepare the local virtual environment."
+            f"Use {launcher} to prepare the local virtual environment."
         )
     devices = online_serials(adb)
     if not devices:
+        if linux:
+            raise RuntimeError(inspect_connection("linux").guidance)
         raise RuntimeError("No online Android device. Check adb devices.")
     serial = auto_select_device(adb, serials=devices)
     if not serial:
@@ -79,7 +92,36 @@ def preflight() -> tuple[str, str]:
 
 
 def run_engine(command: list[str], env: dict[str, str]) -> int:
-    return subprocess.call(command, cwd=ROOT, env=env)
+    workdir = env.get(LINUX_WORKDIR)
+    if workdir is None:
+        return subprocess.call(command, cwd=ROOT, env=env)
+    # Engine messages can contain tokens and device/account identifiers. Emit
+    # only fixed progress and error messages, while letting stdin reach it.
+    notices = (
+        ("connected adb device:", "Android device connected."),
+        ("root is unavailable", "Root is unavailable. Check root authorization on Android."),
+        ("environment preflight passed", "Android environment preflight passed."),
+        ("downloading official matching frida", "Downloading the matching Android Frida server."),
+        ("frida-server 16.5.9 started", "Android Frida server started."),
+        ("could not start", "An Android service could not start. Check device root and compatibility."),
+        ("calledprocesserror", "An Android command failed. Check USB connection and device permissions."),
+        ("action required:", "Action required: Complete the prompt on Android, then confirm here."),
+        ("google play store process is running", "Google Play Store is running."),
+        ("offer_query_failed", "Google Play offer query failed. Open Google One and Google Play, then retry."),
+    )
+    with subprocess.Popen(command, cwd=workdir, env=env, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, encoding="utf-8", errors="replace") as child:
+        assert child.stdout is not None
+        for line in child.stdout:
+            for marker, message in notices:
+                if marker in line.lower():
+                    print(message, flush=True)
+                    break
+        code = child.wait()
+    if code:
+        print("Android stage failed. Check the USB connection, root access and Android Frida compatibility.",
+              flush=True)
+    return code
 
 
 def read_play_account(serial: str, env: dict[str, str]) -> str:
@@ -101,8 +143,8 @@ def read_play_account(serial: str, env: dict[str, str]) -> str:
     return account if EMAIL.fullmatch(account) else ""
 
 
-def fresh_report(filename: str, since_ns: int) -> dict:
-    path = REPORT_DIR / filename
+def fresh_report(filename: str, since_ns: int, directory: Path | None = None) -> dict:
+    path = (REPORT_DIR if directory is None else directory) / filename
     try:
         if path.stat().st_mtime_ns < since_ns:
             raise RuntimeError("The result belongs to an older invocation")
@@ -121,21 +163,23 @@ def list_offers(serial: str, env: dict[str, str], plan: str = "pro12") -> dict:
     start_ns = time.time_ns()
     if run_engine(command, env):
         raise RuntimeError("Google Play offer listing failed; checkout not started")
-    report = fresh_report("current.json", start_ns)
+    directory = engine_report_dir(env)
+    report = fresh_report("current.json", start_ns, directory)
     if report["status"] != "listed" or not isinstance(report.get("offers"), list):
         raise RuntimeError("No successful offer listing; checkout not started")
     return report
 
 
-def verified_account(serial: str, env: dict[str, str], report: dict) -> str:
-    before = read_play_account(serial, env)
+def verified_account(serial: str, env: dict[str, str], report: dict,
+                     *, require_lookup: bool = False) -> str:
+    current = read_play_account(serial, env)
     listed = str(report.get("detected_play_account") or "").strip().lower()
     if listed and not EMAIL.fullmatch(listed):
         raise RuntimeError("Invalid Google Play account reported during offer listing")
-    if before and listed and before != listed:
+    if current and listed and current != listed:
         raise RuntimeError("Google Play account changed during checks; stop before checkout")
-    account = listed or before
-    if not account or not EMAIL.fullmatch(account):
+    account = current if require_lookup else listed or current
+    if not account or not EMAIL.fullmatch(account) or (require_lookup and not listed):
         raise RuntimeError("Could not verify Google Play account; no checkout started")
     return account
 
@@ -151,15 +195,43 @@ def check_offer(report: dict, step: int) -> None:
         )
 
 
+def engine_report_dir(env: dict[str, str]) -> Path:
+    workdir = env.get(LINUX_WORKDIR)
+    return Path(workdir) / "ultra0-report" if workdir else REPORT_DIR
+
+
+def publish_result(path: Path, report: dict) -> None:
+    """Send only dashboard fields from a verified invocation."""
+    status = report["status"]
+    result = {"status": status if status in MESSAGES else "unverified"}
+    if status == "listed":
+        result["offers"] = [
+            {field: offer.get(field) for field in ("product", "id", "period", "micros")}
+            for offer in report["offers"] if isinstance(offer, dict)
+        ]
+    sheet = report.get("sheet")
+    if isinstance(sheet, dict) and isinstance(reason := sheet.get("reason"), str) and reason in MESSAGES:
+        result["sheet"] = {"reason": reason}
+    with path.open("x", encoding="utf-8") as output:
+        json.dump(result, output)
+
+
 def run_stage(step: int, serial: str, env: dict[str, str],
-              confirmed: bool = False, active_confirmed: bool = False) -> int:
+              confirmed: bool = False, active_confirmed: bool = False,
+              result_file: Path | None = None) -> int:
+    linux = LINUX_WORKDIR in env
     if step == 0:
         return run_engine(stage_command(0, serial), env)
     if step == 1:
         report = list_offers(serial, env)
         account = verified_account(serial, env, report)
-        print(f"Account {account}", flush=True)
+        print("Google Play account verified." if linux else f"Account {account}", flush=True)
         print(f"Offers {len(report['offers'])} (eligibility not guaranteed)", flush=True)
+        if result_file is not None:
+            publish_result(result_file, report)
+        elif linux:
+            for line in offer_explorer_lines(report):
+                print(line, flush=True)
         return 0
     if not confirmed or (step >= 3 and not active_confirmed):
         raise RuntimeError("Explicit checkout and existing-plan confirmations required")
@@ -168,25 +240,39 @@ def run_stage(step: int, serial: str, env: dict[str, str],
         raise RuntimeError("Android environment checks failed; no checkout started")
     plan, _offer, _stack = STAGES[step]
     report = list_offers(serial, env, plan)
-    account = verified_account(serial, env, report)
+    account = verified_account(serial, env, report, require_lookup=linux)
     check_offer(report, step)
     # Verify the account once again immediately before entering checkout.
     if read_play_account(serial, env) != account:
         raise RuntimeError("Google Play account changed; no checkout started")
-    print(f"Account {account}", flush=True)
+    print("Google Play account verified." if linux else f"Account {account}", flush=True)
     print(f"Step {step} offer inspected; first phase zero-priced.", flush=True)
     print("CAUTION: Checkout may incur charges. Verify all terms in Google Play.", flush=True)
-    return run_engine(stage_command(step, serial, account), env)
+    started = time.time()
+    code = run_engine(stage_command(step, serial, account), env)
+    if linux and code == 0:
+        report = read_fresh_report(engine_report_dir(env), step, started, expected_account=account)
+        if report is None:
+            raise RuntimeError("No fresh result for the verified account. Review Google Play before retrying.")
+        if result_file is not None:
+            publish_result(result_file, report)
+        else:
+            print(MESSAGES.get(report["status"], ("Review Google Play for the result.", ""))[0], flush=True)
+    return code
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="ePlus AI Toolkit macOS native stage adapter")
+    linux = sys.platform == "linux"
+    parser = argparse.ArgumentParser(description="ePlus AI Toolkit native stage adapter")
     parser.add_argument("--step", type=int, required=True, choices=range(6))
     parser.add_argument("--confirmed", action="store_true",
                         help="Explicitly authorize the selected checkout stage")
     parser.add_argument("--active-confirmed", action="store_true",
                         help="Confirm existing active plan for Steps 3–5")
+    parser.add_argument("--result-file", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    if args.result_file is not None and not linux:
+        parser.error("--result-file is reserved for the Linux dashboard")
     if args.step >= 2 and not args.confirmed:
         parser.error("Steps 2–5 require explicit --confirmed; may initiate real charges")
     if args.step >= 3 and not args.active_confirmed:
@@ -197,10 +283,21 @@ def main(argv: list[str] | None = None) -> int:
         env["ADB_PATH"] = adb
         env["PYTHONIOENCODING"] = "utf-8:backslashreplace"
         env["PYTHONUTF8"] = "1"
+        env.pop(LINUX_WORKDIR, None)
+        if linux:
+            parent = args.result_file.parent if args.result_file else None
+            with TemporaryDirectory(prefix="eplus-android-", dir=parent) as workdir:
+                env[LINUX_WORKDIR] = workdir
+                return run_stage(args.step, serial, env, args.confirmed, args.active_confirmed,
+                                 args.result_file)
         print(f"Device {serial}", flush=True)
         return run_stage(args.step, serial, env, args.confirmed, args.active_confirmed)
     except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
-        print(f"Stage stopped: {type(error).__name__}: {error}", file=sys.stderr, flush=True)
+        if linux and type(error) is not RuntimeError:
+            print("Stage stopped: A local command or report failed. Check ADB and review Google Play if checkout began.",
+                  file=sys.stderr, flush=True)
+        else:
+            print(f"Stage stopped: {type(error).__name__}: {error}", file=sys.stderr, flush=True)
         return 1
 
 

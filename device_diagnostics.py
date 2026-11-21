@@ -1,4 +1,4 @@
-"""Non-purchasing connection diagnostics for Windows and macOS.
+"""Non-purchasing connection diagnostics for Windows, macOS and Linux.
 
 This module does not install tools, change emulator settings, start Frida,
 load Google One, or launch Google Play Billing. Calling 'adb devices' can
@@ -37,6 +37,8 @@ def _clean(value: str, fallback: str = "unknown") -> str:
 def locate_adb(platform_name: str | None = None) -> str | None:
     """Find an already-installed ADB binary; never download anything."""
     platform_name = platform_name or sys.platform
+    if platform_name == "linux":
+        return shutil.which(os.environ.get("ADB_PATH") or "adb")
     found = shutil.which("adb")
     if found:
         return found
@@ -72,7 +74,9 @@ def inspect_connection(platform_name: str | None = None) -> ConnectionDiagnosis:
     """Inspect host/Android prerequisites without touching billing or account data."""
     platform_name = platform_name or sys.platform
     mac = platform_name == "darwin"
-    details = [f"Host: {'macOS Terminal' if mac else 'Windows / PowerShell' if platform_name == 'win32' else 'POSIX shell'}"]
+    linux = platform_name == "linux"
+    shell = {"darwin": "macOS Terminal", "win32": "Windows / PowerShell", "linux": "Linux terminal"}
+    details = [f"Host: {shell.get(platform_name, 'POSIX shell')}"]
     try:
         frida = metadata.version("frida")
     except metadata.PackageNotFoundError:
@@ -83,13 +87,15 @@ def inspect_connection(platform_name: str | None = None) -> ConnectionDiagnosis:
     )
     install = ("Install ADB with: brew install android-platform-tools"
                if mac else "Install Android SDK Platform-Tools or enable MuMu ADB")
+    if linux:
+        install = "Install Android SDK Platform-Tools and add adb to PATH or set ADB_PATH"
     adb = locate_adb(platform_name)
     if not adb:
         return ConnectionDiagnosis(
             "missing_adb", "ADB not found", tuple(details),
             f"{install}. Then open the rooted Android emulator/device and retry.",
         )
-    details.append(f"ADB: {_clean(adb, 'installed (path hidden)')}")
+    details.append("ADB: installed" if linux else f"ADB: {_clean(adb, 'installed (path hidden)')}")
     response = _run(adb, ["devices"])
     if response is None or response.returncode != 0:
         return ConnectionDiagnosis(
@@ -103,12 +109,16 @@ def inspect_connection(platform_name: str | None = None) -> ConnectionDiagnosis:
             devices.append((fields[0], fields[1]))
     online = [serial for serial, state in devices if state == "device"]
     if not online:
-        states = ", ".join(sorted({state for _, state in devices})) or "none"
-        details.append(f"Android devices: {len(devices)} (states: {_clean(states, 'see adb devices')})")
+        states = {state for _, state in devices}
+        details.append(f"Android devices detected: {len(devices)}")
         if any(state == "unauthorized" for _, state in devices):
             fix = "Unlock Android and approve its USB debugging authorization prompt."
         elif any(state == "offline" for _, state in devices):
             fix = "Restart the Android instance and verify that ADB reports 'device', not 'offline'."
+        elif linux and "no" in states:
+            fix = "Check Ubuntu's Android USB device rules and your user permissions, then reconnect."
+        elif linux:
+            fix = "Connect the rooted phone by USB, enable USB debugging, then run adb devices."
         else:
             fix = "Start MuMu or connect a rooted Android phone, enable USB debugging, then run adb devices."
         return ConnectionDiagnosis("no_online_device", "No authorized Android device", tuple(details), fix)
@@ -116,10 +126,12 @@ def inspect_connection(platform_name: str | None = None) -> ConnectionDiagnosis:
         details.append(f"Online Android transports: {len(online)}")
         return ConnectionDiagnosis(
             "ambiguous", "Multiple Android transports", tuple(details),
+            "Disconnect extra devices and retry." if linux else
             "Choose one explicit ADB serial in the toolkit. This diagnostic never guesses which account/device to use.",
         )
     serial = online[0]
-    details.append(f"Android serial: {_clean(serial)}")
+    if not linux:
+        details.append(f"Android serial: {_clean(serial)}")
     abi = _run(adb, ["-s", serial, "shell", "getprop", "ro.product.cpu.abi"])
     if abi is not None and abi.returncode == 0:
         details.append(f"Android ABI: {_clean(abi.stdout)}")
