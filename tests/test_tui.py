@@ -285,6 +285,17 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
+    async def test_mode_refresh_ignores_unmounted_widgets(self):
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)):
+                # A delayed Select.Changed event can arrive during shutdown
+                # after Textual has removed its widgets.
+                with patch.object(app, "query", return_value=[]):
+                    app._update_run_mode()
+
     async def test_start_screen_shows_status_and_primary_action(self):
         from tui import GoogleAITUI
         for size in ((90, 20), (110, 35)):
