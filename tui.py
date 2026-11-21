@@ -197,11 +197,11 @@ class GoogleAITUI(App[None]):
         color: #8edff1; text-style: bold; height: 1; margin: 0 0 1 0;
     }
     #mode, #step { width: 100%; margin: 0; }
-    #run_row { height: auto; margin-top: 1; }
+    #run_row { layout: vertical; height: auto; margin-top: 1; }
     #run { width: 25; min-width: 17; height: 3; margin: 0; }
     #mode_hint {
         width: 1fr; height: auto; color: #a5c8df;
-        padding: 0 1;
+        padding: 1 0 0 0;
     }
     #next, #stop { display: none; width: 100%; height: 3; margin-top: 1; }
     #status_panel {
@@ -243,6 +243,7 @@ class GoogleAITUI(App[None]):
     Screen.compact #mode_label, Screen.compact #advanced_label { margin-bottom: 0; }
     Screen.compact #more_modes { height: 1; min-height: 1; margin-top: 0; padding: 0; border: none; }
     Screen.compact #run_row { margin-top: 0; }
+    Screen.compact #mode_hint { padding: 0; }
     Screen.compact #quickstart, Screen.compact #advanced_toggle { height: 3; }
     Screen.narrow #form_row { layout: vertical; }
     Screen.narrow #step_field { margin: 1 0 0 0; }
@@ -530,7 +531,7 @@ class GoogleAITUI(App[None]):
             "Hide step selection  −" if self.advanced_visible
             else "Choose another step  +"
         )
-        target = "#run" if self.advanced_visible else "#advanced_toggle"
+        target = "#mode_hint" if self.advanced_visible else "#advanced_toggle"
         self.call_after_refresh(
             lambda: self._reveal_step_control(target)
         )
@@ -554,7 +555,7 @@ class GoogleAITUI(App[None]):
             self.query_one("#mode", Select).value = "single"
         self._update_run_mode()
         self.call_after_refresh(
-            lambda: self._reveal_step_control("#run")
+            lambda: self._reveal_step_control("#mode_hint")
         )
 
     @on(Select.Changed, "#mode")
