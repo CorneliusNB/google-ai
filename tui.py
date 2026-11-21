@@ -190,7 +190,6 @@ class GoogleAITUI(App[None]):
     #workflow_actions { height: auto; }
     #form_row { height: auto; }
     #mode_field { display: none; }
-    #more_modes { width: 100%; height: 3; margin-top: 1; }
     .field { width: 1fr; min-width: 12; height: auto; }
     #step_field { margin-left: 1; }
     #mode_label, #advanced_label {
@@ -241,7 +240,6 @@ class GoogleAITUI(App[None]):
     Screen.compact #status_panel .section, Screen.compact #state { margin: 0; }
     Screen.compact #workflow_actions { margin-top: 0; padding-top: 0; border-top: none; }
     Screen.compact #mode_label, Screen.compact #advanced_label { margin-bottom: 0; }
-    Screen.compact #more_modes { height: 1; min-height: 1; margin-top: 0; padding: 0; border: none; }
     Screen.compact #run_row { margin-top: 0; }
     Screen.compact #mode_hint { padding: 0; }
     Screen.compact #quickstart, Screen.compact #advanced_toggle { height: 3; }
@@ -291,6 +289,7 @@ class GoogleAITUI(App[None]):
         self._last_activity_at: float | None = None
         self.advanced_visible = False
         self.more_modes_visible = False
+        self._last_selected_step = self.initial_step
         self._last_mode = "single"
 
     def compose(self) -> ComposeResult:
@@ -334,7 +333,7 @@ class GoogleAITUI(App[None]):
                                     yield Static("Choose a step", id="advanced_label")
                                     yield Select(
                                         [(f"{stage.number}. {stage.label}", stage.number)
-                                         for stage in STAGES],
+                                         for stage in STAGES] + [("More run options…", 99)],
                                         value=self.initial_step, id="step", allow_blank=False)
                                 with Vertical(classes="field", id="mode_field"):
                                     yield Static("After this step", id="mode_label")
@@ -343,7 +342,6 @@ class GoogleAITUI(App[None]):
                                         ("Offer the next step", "from"),
                                         ("Start at Step 2", "all"),
                                     ], value="single", id="mode", allow_blank=False)
-                            yield Button("More run options  +", id="more_modes")
                             with Horizontal(id="run_row"):
                                 yield Button("Run this step", id="run", variant="primary")
                                 yield Static("Runs one step; no next step is automatic.", id="mode_hint")
@@ -409,7 +407,6 @@ class GoogleAITUI(App[None]):
         self._diagnosing = True
         self.query_one("#diagnose", Button).disabled = True
         self.query_one("#quickstart", Button).disabled = True
-        self.query_one("#more_modes", Button).disabled = True
         self.query_one("#quickstart", Button).display = True
         self.query_one("#next", Button).display = False
         self.query_one("#next", Button).disabled = True
@@ -437,7 +434,6 @@ class GoogleAITUI(App[None]):
         self._diagnosing = False
         self.query_one("#diagnose", Button).disabled = False
         self.query_one("#quickstart", Button).disabled = False
-        self.query_one("#more_modes", Button).disabled = False
         self.query_one("#run", Button).disabled = False
         self._set_status(diagnosis.headline)
         self._set_message(diagnosis.guidance)
@@ -462,8 +458,10 @@ class GoogleAITUI(App[None]):
         if self.start_sequence:
             self.query_one("#mode", Select).value = "from"
             self.more_modes_visible = True
+            self.advanced_visible = True
+            self.query_one("#workflow_actions", Vertical).display = True
+            self.query_one("#advanced_toggle", Button).label = "Hide step selection  −"
             self.query_one("#mode_field", Vertical).display = True
-            self.query_one("#more_modes", Button).label = "Hide run options  −"
         self._update_run_mode()
 
     def _invalidate_connection_polls(self) -> None:
@@ -559,15 +557,11 @@ class GoogleAITUI(App[None]):
             # Keep the bottom border inside the viewport on compact terminals.
             self.query_one("#results").scroll_relative(y=1, animate=False, immediate=True)
 
-    @on(Button.Pressed, "#more_modes")
     def toggle_more_modes(self) -> None:
         if self.busy or self._diagnosing:
             return
         self.more_modes_visible = not self.more_modes_visible
         self.query_one("#mode_field", Vertical).display = self.more_modes_visible
-        self.query_one("#more_modes", Button).label = (
-            "Hide run options  −" if self.more_modes_visible else "More run options  +"
-        )
         if not self.more_modes_visible:
             self.query_one("#mode", Select).value = "single"
         self._update_run_mode()
@@ -581,6 +575,14 @@ class GoogleAITUI(App[None]):
 
     @on(Select.Changed, "#step")
     def step_changed(self, event: Select.Changed) -> None:
+        if event.value == 99:
+            # Access advanced modes through the existing dropdown: never
+            # attempt to run this synthetic menu item as a stage.
+            self.query_one("#step", Select).value = self._last_selected_step
+            self.toggle_more_modes()
+            return
+        if isinstance(event.value, int) and event.value in range(6):
+            self._last_selected_step = event.value
         self._update_run_mode()
 
     def _update_run_mode(self) -> None:
@@ -857,7 +859,6 @@ class GoogleAITUI(App[None]):
         self.query_one("#run", Button).disabled = True
         self.query_one("#sequence", Button).disabled = True
         self.query_one("#mode", Select).disabled = True
-        self.query_one("#more_modes", Button).disabled = True
         self.query_one("#step", Select).disabled = True
         self.query_one("#next", Button).disabled = True
         self.query_one("#stop", Button).disabled = False
@@ -1033,7 +1034,6 @@ class GoogleAITUI(App[None]):
         self.query_one("#run", Button).disabled = False
         self.query_one("#sequence", Button).disabled = False
         self.query_one("#mode", Select).disabled = False
-        self.query_one("#more_modes", Button).disabled = False
         self.query_one("#step", Select).disabled = False
         self._update_run_mode()
         self.query_one("#stop", Button).disabled = True
