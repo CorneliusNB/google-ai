@@ -151,6 +151,20 @@ class CoreTests(unittest.TestCase):
 
 
 class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_start_screen_shows_status_and_primary_action(self):
+        from tui import GoogleAITUI
+        for size in ((90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    await pilot.pause()
+                    status = app.query_one("#status_panel").region
+                    state = app.query_one("#state").region
+                    action = app.query_one("#quickstart").region
+                    self.assertGreaterEqual(state.y, status.y)
+                    self.assertLessEqual(state.bottom, status.bottom - 1)
+                    self.assertGreaterEqual(action.y, 0)
+                    self.assertLessEqual(action.bottom, size[1])
     async def test_checkout_dialog_fits_compact_terminal(self):
         from tui import GoogleAITUI, Approval
         for size in ((90, 20), (60, 20), (110, 35)):

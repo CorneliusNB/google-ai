@@ -21,12 +21,12 @@ ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = Path(os.environ.get("PREVIEW_OUTPUT", "terminal-previews"))
 XTERM = Path(os.environ["XTERM_DIST"])
 CASES = [
-    ("01-startup", "startup", 110, 35, "Check Device & Offers"),
-    ("02-disconnected", "disconnected", 110, 35, "Android is not connected"),
-    ("03-offer-found", "offer_found", 110, 35, "Continue to Step 2"),
-    ("04-step-picker-compact", "step_picker", 90, 20, "Run this step"),
-    ("05-approval-compact", "approval", 90, 20, "Start initial 12-month checkout"),
-    ("06-play-review", "review", 110, 35, "Verified in Google Play"),
+    ("01-startup", "startup", 110, 35, ("Check Device & Offers", "Ready — no check started")),
+    ("02-disconnected", "disconnected", 110, 35, ("Android is not connected", "Got it")),
+    ("03-offer-found", "offer_found", 110, 35, ("Continue to Step 2", "Later")),
+    ("04-step-picker-compact", "step_picker", 90, 20, ("Run this step", "More run options")),
+    ("05-approval-compact", "approval", 90, 20, ("Start initial 12-month checkout", "not guaranteed", "Cancel", "Continue")),
+    ("06-play-review", "review", 110, 35, ("Verified in Google Play",)),
 ]
 
 
@@ -79,9 +79,9 @@ def main():
                             break
                         visible = page.evaluate('''() => Array.from({length:term.rows}, (_,i) =>
                             term.buffer.active.getLine(i)?.translateToString(true) || '').join('\\n')''')
-                        if expected in visible and found_at is None:
+                        if all(label in visible for label in expected) and found_at is None:
                             found_at = time.monotonic()
-                        if found_at is not None and time.monotonic() - found_at >= 0.5:
+                        if found_at is not None and time.monotonic() - found_at >= 0.5 and all(label in visible for label in expected):
                             found = True
                             break
                     if not found:

@@ -175,8 +175,8 @@ class GoogleAITUI(App[None]):
     #status_panel { min-height: 8; overflow-y: auto; scrollbar-size: 1 1; }
 
     #welcome_panel {
-        height: auto; border: round #2b97bc;
-        background: #112b49; padding: 1 2; margin-bottom: 1;
+        height: 1fr; min-height: 8; overflow-y: auto; scrollbar-size: 1 1;
+        border: round #2b97bc; background: #112b49; padding: 1 2; margin-bottom: 1;
     }
     #welcome { color: #91e3ff; text-style: bold; height: 1; }
     #quick_hint { color: #afcce3; height: auto; margin: 0 0 1 0; }
@@ -204,7 +204,7 @@ class GoogleAITUI(App[None]):
     }
     #next, #stop { display: none; width: 100%; height: 3; margin-top: 1; }
     #status_panel {
-        height: 1fr; min-height: 0; border: round #285a80;
+        height: 8; min-height: 8; border: round #285a80;
         background: #101f35; padding: 0 1;
     }
     #state { color: #f2f9ff; text-style: bold; margin: 1 0 0 0; }
@@ -235,6 +235,13 @@ class GoogleAITUI(App[None]):
         color: #ffe0a0; background: #283047;
     }
     Screen.compact #welcome_panel { padding: 0 1; }
+    Screen.compact #welcome_panel { min-height: 7; }
+    Screen.compact #status_panel { height: 5; min-height: 5; }
+    Screen.compact #status_panel .section, Screen.compact #state { margin: 0; }
+    Screen.compact #workflow_actions { margin-top: 0; padding-top: 0; border-top: none; }
+    Screen.compact #mode_label, Screen.compact #advanced_label { margin-bottom: 0; }
+    Screen.compact #more_modes { height: 1; min-height: 1; margin-top: 0; padding: 0; border: none; }
+    Screen.compact #run_row { margin-top: 0; }
     Screen.compact #quickstart, Screen.compact #advanced_toggle { height: 3; }
     Screen.narrow #form_row { layout: vertical; }
     Screen.narrow #step_field { margin: 1 0 0 0; }
@@ -354,7 +361,7 @@ class GoogleAITUI(App[None]):
                     with Vertical(id="status_panel"):
                         yield Static("LIVE STATUS", classes="section")
                         yield Static("Ready — no check started", id="state")
-                        yield Static("Press Check Device & Offers to begin. Advanced modes are optional.", id="message")
+                        yield Static("Check the device and offers to begin.", id="message")
                         yield Static("", id="step_result")
                         yield Static("AVAILABLE OFFERS · FIRST PHASE ONLY", id="offers_title")
                         yield RichLog(id="offer_view", wrap=True, highlight=False, markup=False)
