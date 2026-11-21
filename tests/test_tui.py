@@ -918,6 +918,22 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("Google Play", shown_message)
                 self.assertNotIn("EPLUS_ISSUE:", shown_message)
 
+    async def test_all_step_one_failures_show_actionable_notice(self):
+        from tui import GoogleAITUI, SetupNotice
+        from tui_core import Outcome
+
+        for code in ("app_not_started", "activity_lookup_failed",
+                     "missing_report", "tool_error", "exception", "unknown"):
+            with self.subTest(code=code), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=(90, 20)) as pilot:
+                    app._finished(1, Outcome(code, "Cannot complete check",
+                                            "Check Android setup and try the read-only check again."), None)
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, SetupNotice)
+                    self.assertIn("Android", app.screen.instruction)
+                    await pilot.click("#notice_close")
+
     async def test_setup_error_shows_actionable_notice(self):
         from tui import GoogleAITUI, SetupNotice
         from tui_core import cli_issue_outcome
