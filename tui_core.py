@@ -273,6 +273,10 @@ def runtime_error_outcome(message: str, step: int) -> Outcome:
         "Check the Android screen and technical details. Verify Google Play payments before retrying.",
     )
     title, instruction = entry
+    if code == "device_missing":
+        instruction = "Start your Android device or compatible emulator and enable ADB debugging, then retry."
+    elif code == "device_ambiguous":
+        instruction = "Disconnect extra Android devices so only the intended device remains connected."
     if step >= 2:
         instruction += " Confirm the actual subscription and payment history in Google Play."
     return Outcome(code, title, instruction, can_review=False)
