@@ -117,6 +117,7 @@ class SetupNotice(ModalScreen[None]):
 
 class ConnectionNotice(SetupNotice):
     """Dismissible warning for a missing Android connection."""
+    CSS = SetupNotice.CSS + "\nConnectionNotice { align: center middle; background: #081424 75%; }"
 
 
 def is_macos_platform() -> bool:
@@ -169,19 +170,19 @@ class GoogleAITUI(App[None]):
         width: 100%; height: 3; margin: 0;
     }
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
-    #quickstart { display: block; width: 100%; height: 3; margin: 0 0 1 0; }
+    #quickstart { display: block; width: 100%; height: 3; margin: 0; }
     #advanced_toggle { width: 100%; height: 3; margin: 0; }
     #workflow_actions { display: none; height: auto; margin-top: 1; border-top: solid #285d83; padding-top: 1; }
     #status_panel { min-height: 8; overflow-y: auto; scrollbar-size: 1 1; }
 
     #welcome_panel {
         height: 1fr; min-height: 8; overflow-y: auto; scrollbar-size: 1 1;
-        border: round #2b97bc; background: #112b49; padding: 1 2; margin-bottom: 1;
+        border: round #2b97bc; background: #112b49; padding: 0 2; margin-bottom: 1;
     }
     #welcome { color: #91e3ff; text-style: bold; height: 1; }
-    #quick_hint { color: #afcce3; height: auto; margin: 0 0 1 0; }
+    #quick_hint { color: #afcce3; height: auto; margin: 0; }
     #payment_notice {
-        height: auto; margin: 1 0 0 0; padding: 0 1;
+        height: auto; margin: 0; padding: 0 1;
         color: #e2ecf4; background: #233248; border-left: solid #d6a34f;
     }
     #payment_notice_compact { display: none; }

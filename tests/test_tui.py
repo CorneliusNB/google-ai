@@ -230,6 +230,9 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 app._connection_polled(ConnectionStatus("disconnected"))
                 await pilot.pause()
                 self.assertIsInstance(app.screen, ConnectionNotice)
+                card = app.screen.query_one("#notice_card").region
+                self.assertGreater(card.x, 0)
+                self.assertGreater(card.y, 0)
                 self.assertFalse(app._offer_check_ready)
                 app._connection_polled(ConnectionStatus("disconnected"))
                 await pilot.pause()
