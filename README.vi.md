@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: fd33739d3dfce6447a54761f8ad3f682634de172 -->
+<!-- Source README.md git-blob: 9b023bc3fcf01b314dc5190c4a8e78c2e947018d -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -9,7 +9,7 @@
 
 **ePlus AI Toolkit** giúp bạn kiểm tra các ưu đãi Google AI Pro được hiển thị qua Google One và Google Play trên thiết bị Android. Công cụ chạy trên **Windows và macOS**: Windows sử dụng PowerShell, còn macOS sử dụng Terminal (zsh/bash). Cả giao diện Textual lẫn chế độ dòng lệnh đều dùng chung bộ xử lý Python, ADB và Frida.
 
-![Giao diện ePlus AI Toolkit](https://github.com/user-attachments/assets/fc27278f-7833-4484-9770-33e46bf10005)
+![Giao diện ePlus AI Toolkit](images/terminal-ui-step-picker.png)
 
 > [!CAUTION]
 > **Đây không phải công cụ chính thức của Google và có thể phát sinh chi phí.** Ở các bước **2–5**, công cụ có thể mở trang thanh toán Google Play và tự nhấn **Subscribe**. Ưu đãi xuất hiện trong danh sách, mức giá đầu tiên bằng 0 hoặc thông báo đã gửi yêu cầu thanh toán **không có nghĩa là** bạn đủ điều kiện, được dùng miễn phí hay đã gia hạn thành công. Trước khi thực hiện, hãy kiểm tra đúng tài khoản, khoản tiền phải trả ngay, mức phí những kỳ sau và ngày gia hạn trong **Google Play**. Dừng công cụ không hủy được giao dịch đã gửi.
@@ -113,13 +113,21 @@ Nhấn **Check Device & Offers** để chạy **Step 1 — Available offers** v�
 
 Step 1 không mua hàng, nhưng quá trình chuẩn bị vẫn có thể tải hoặc sửa ADB/Frida và thay đổi cấu hình máy ảo hoặc mạng. **Step 0 — Environment cũng có thể thay đổi môi trường trên máy**, nên không được xem là thao tác hoàn toàn chỉ đọc. Thanh bên hiển thị sáu bước; thông tin trong Android Device và Google Account được lấy từ kết quả thực tế, đồng thời che bớt dữ liệu nhận dạng tài khoản. Những terminal có hỗ trợ liên kết sẽ cho phép mở trang của tác giả gốc và người duy trì.
 
-Mục **Advanced: Run by step** gồm:
+Khi giao diện đang rảnh, công cụ kiểm tra các kết nối ADB hiện có khoảng 5 giây/lần. Nếu không tìm thấy ADB hoặc thiết bị Android, popup sẽ hướng dẫn cách xử lý. Công cụ tiếp tục kiểm tra và cập nhật trạng thái thiết bị; kết nối lại không tự mở khóa bước thanh toán. Việc theo dõi tạm dừng khi một bước đang chạy hoặc có hộp thoại khác. Công cụ không cài hay tự kết nối thiết bị ở chế độ nền, dù lệnh `adb devices` có thể khởi động máy chủ ADB trên máy tính.
+
+Trên Windows, khi chạy **Check Device & Offers**, công cụ tìm ADB và thử tải Android SDK Platform-Tools chính thức nếu cần. Quá trình tải hoặc cài có thể thất bại; hãy xem **Show technical details** khi gặp lỗi. Trên macOS, cài Platform-Tools theo hướng dẫn dành cho Mac. Người dùng cần tự cài và mở MuMu, bật root và ADB debugging, rồi đăng nhập Google Play và Google One.
+
+Step 2–5 chỉ được mở khóa khi lần kiểm tra Step 1 mới nhất trả về ưu đãi và xác nhận được tài khoản Play. Nếu có ưu đãi 12 tháng `12months-eft` với kỳ đầu giá 0, popup hoàn tất và màn hình chính sẽ hiển thị **Continue to Step 2**; nếu không, hãy xem danh sách ưu đãi. Nút này mở hộp xác nhận riêng, chưa chứng minh tài khoản đủ điều kiện hay chi phí cuối cùng. Sau khi gửi yêu cầu thanh toán, hãy kiểm tra gói, ngày gia hạn và khoản phí thực tế trong Google Play trước khi chọn **Verified in Google Play → Next**. Mỗi bước tiếp theo đều cần xác nhận riêng. Kiểm tra lại, bước thanh toán thất bại hoặc thay đổi thiết bị có thể khóa lại các bước thanh toán.
+
+Mục **Choose another step** gồm:
+
+Mặc định, công cụ chỉ chạy bước đã chọn. Trong **Choose another step**, chọn **More run options…** ở cuối danh sách bước để mở chế độ chạy tuần tự.
 
 | Chế độ | Chức năng |
 | --- | --- |
-| **One step only** | Chỉ chạy một bước được chọn từ 0 đến 5 |
-| **From selected step** | Bắt đầu chuỗi có hướng dẫn từ Step 2–5 |
-| **All: Steps 2–5** | Bắt đầu chuỗi từ Step 2; Step 5 là tùy chọn |
+| **Stop after this step** | Chỉ chạy một bước được chọn từ 0 đến 5 |
+| **Offer the next step** | Bắt đầu chuỗi có hướng dẫn từ Step 2–5 |
+| **Start at Step 2** | Bắt đầu chuỗi từ Step 2; Step 5 là tùy chọn |
 
 | Bước | Vai trò | Rủi ro |
 | --- | --- | --- |

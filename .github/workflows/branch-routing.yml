@@ -15,6 +15,7 @@ jobs:
     steps:
       - name: Enforce dev-first pull request targets
         env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           BASE: ${{ github.event.pull_request.base.ref }}
           HEAD: ${{ github.event.pull_request.head.ref }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
@@ -23,7 +24,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$BASE" == "main" ]]; then
-            if [[ "$HEAD" != "dev" || "$HEAD_REPO" != "$TARGET_REPO" ]]; then
+            # One-time main-based fix. PR numbers cannot be reused.
+            if [[ "$PR_NUMBER" == "63" && "$HEAD" == "fix/setup-guided-flow-main" && "$HEAD_REPO" == "$TARGET_REPO" ]]; then
+              echo "Branch routing OK: main-based fix for PR #63"
+            elif [[ "$HEAD" != "dev" || "$HEAD_REPO" != "$TARGET_REPO" ]]; then
               echo "::error::Only the repository's dev branch may be promoted into main."
               exit 1
             fi

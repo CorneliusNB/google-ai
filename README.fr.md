@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Français
 
-<!-- Source README.md git-blob: fd33739d3dfce6447a54761f8ad3f682634de172 -->
+<!-- Source README.md git-blob: 9b023bc3fcf01b314dc5190c4a8e78c2e947018d -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
@@ -10,7 +10,7 @@
 
 **ePlus AI Toolkit** permet de consulter les offres Google AI Pro accessibles via Google One et Google Play sur un appareil Android. L'outil fonctionne sous **Windows et macOS** : vous le lancez depuis PowerShell sur Windows, ou Terminal (zsh/bash) sur Mac. L'interface Textual et les commandes utilisent le même moteur Python, ADB et Frida.
 
-![Interface ePlus AI Toolkit](https://github.com/user-attachments/assets/fc27278f-7833-4484-9770-33e46bf10005)
+![Interface ePlus AI Toolkit](images/terminal-ui-step-picker.png)
 
 > [!CAUTION]
 > **Outil non officiel ; des frais réels peuvent être facturés.** Les **étapes 2 à 5** peuvent ouvrir un véritable paiement Google Play et appuyer automatiquement sur **Subscribe (S'abonner)**. L'affichage d'une offre, d'un prix initial nul ou d'un message indiquant qu'un paiement a été demandé **ne prouve pas** l'éligibilité, la gratuité, l'activation ni la prolongation de l'abonnement. Avant toute opération, vérifiez dans Google Play le compte, le montant dû aujourd'hui, le prix de renouvellement et la date de facturation. Arrêter l'outil n'annule pas une transaction déjà envoyée.
@@ -113,13 +113,21 @@ Lorsqu'une étape est en cours, les commandes **Check Device & Offers**, **Run**
 
 **Check Device & Offers** exécute **Step 1 — Available offers**, pour consulter les offres **sans déclencher de paiement**. Surveillez **Live Status** et **Show technical details** ; l'absence de nouveaux journaux pendant 30 secondes ne signifie pas forcément que l'outil est bloqué.
 
-Dans **Advanced: Run by step** :
+Lorsque l’interface est inactive, l’outil vérifie les connexions ADB existantes environ toutes les cinq secondes. Si ADB ou l’appareil Android est introuvable, une fenêtre indique les vérifications à effectuer. La recherche continue automatiquement et l’état de l’appareil est mis à jour ; une reconnexion ne déverrouille pas à elle seule les étapes de paiement. La surveillance est suspendue pendant une étape ou l’affichage d’une autre boîte de dialogue. Elle n’installe ni ne connecte d’appareil en arrière-plan, même si `adb devices` peut démarrer le serveur ADB local.
+
+Sous Windows, **Check Device & Offers** recherche ADB et tente, si nécessaire, de télécharger les Android SDK Platform-Tools officiels. Le téléchargement ou l’installation peut échouer : consultez **Show technical details** en cas d’erreur. Sous macOS, installez Platform-Tools selon les instructions pour Mac. Installez et démarrez MuMu séparément, activez root et le débogage ADB, puis connectez-vous à Google Play et à Google One.
+
+Les étapes 2–5 ne sont déverrouillées qu’après une nouvelle vérification de l’étape 1 ayant retourné des offres et confirmé le compte Play. Si l’offre de 12 mois `12months-eft` comporte une première période à 0, la fenêtre de résultat et l’écran principal affichent **Continue to Step 2** ; sinon, consultez la liste des offres. Ce bouton ouvre une confirmation distincte et ne garantit ni l’éligibilité ni le coût final. Après la demande de paiement, vérifiez l’abonnement, la date de renouvellement et les frais réels dans Google Play avant de choisir **Verified in Google Play → Next**. Chaque étape suivante exige une confirmation distincte. Une nouvelle vérification, l’échec d’une étape de paiement ou un changement d’appareil peut verrouiller à nouveau les étapes de paiement.
+
+Dans **Choose another step** :
+
+Par défaut, seule l’étape sélectionnée est exécutée. Dans **Choose another step**, sélectionnez **More run options…** à la fin du menu des étapes pour afficher les modes guidés.
 
 | Mode | Fonctionnement |
 | --- | --- |
-| **One step only** | Exécute uniquement l'étape 0 à 5 sélectionnée |
-| **From selected step** | Lance une séquence guidée depuis l'étape 2 à 5 sélectionnée |
-| **All: Steps 2–5** | Lance une séquence guidée à partir de l'étape 2 ; l'étape 5 est facultative |
+| **Stop after this step** | Exécute uniquement l'étape 0 à 5 sélectionnée |
+| **Offer the next step** | Lance une séquence guidée depuis l'étape 2 à 5 sélectionnée |
+| **Start at Step 2** | Lance une séquence guidée à partir de l'étape 2 ; l'étape 5 est facultative |
 
 | Étape | Fonction | Risque |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: fd33739d3dfce6447a54761f8ad3f682634de172 -->
+<!-- Source README.md git-blob: 9b023bc3fcf01b314dc5190c4a8e78c2e947018d -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -10,7 +10,7 @@
 
 **ePlus AI Toolkit** permite consultar las ofertas de Google AI Pro disponibles a través de Google One y Google Play en un dispositivo Android. Funciona en **Windows y macOS**: en Windows se inicia desde PowerShell y en Mac desde Terminal (zsh/bash). Tanto la interfaz Textual como los comandos de terminal utilizan el mismo motor basado en Python, ADB y Frida.
 
-![Interfaz de ePlus AI Toolkit](https://github.com/user-attachments/assets/fc27278f-7833-4484-9770-33e46bf10005)
+![Interfaz de ePlus AI Toolkit](images/terminal-ui-step-picker.png)
 
 > [!CAUTION]
 > **Proyecto no oficial; pueden producirse cargos reales.** Los **pasos 2–5** pueden abrir un proceso de pago real de Google Play y pulsar **Subscribe** automáticamente. Encontrar una oferta, ver un precio inicial de cero o recibir un mensaje de envío del pago **no demuestra** que la cuenta cumpla los requisitos, que la suscripción sea gratuita, que esté activa ni que se haya ampliado. Antes de cada pago, comprueba en Google Play la cuenta, el importe de hoy, el precio de renovación y la siguiente fecha de cobro. Detener el programa no deshace una transacción enviada.
@@ -113,13 +113,21 @@ Mientras se ejecuta un paso, se desactivan **Check Device & Offers**, **Run** y 
 
 **Check Device & Offers** ejecuta **Step 1 — Available offers**: consulta ofertas y **no inicia el pago**. Supervisa **Live Status** y **Show technical details**; 30 segundos sin nuevos mensajes no implican necesariamente un bloqueo.
 
-En **Advanced: Run by step**:
+Mientras la interfaz está inactiva, la herramienta comprueba las conexiones ADB existentes aproximadamente cada cinco segundos. Si no encuentra ADB o el dispositivo Android, muestra una ventana con indicaciones. Sigue comprobando y actualiza el estado del dispositivo; reconectarlo no desbloquea por sí solo los pasos de pago. La supervisión se pausa durante un paso o mientras hay otros diálogos abiertos. No instala ni conecta dispositivos en segundo plano, aunque `adb devices` puede iniciar el servidor ADB local.
+
+En Windows, al ejecutar **Check Device & Offers**, la herramienta busca ADB y, si hace falta, intenta descargar Android SDK Platform-Tools oficial. La descarga o instalación puede fallar; consulta **Show technical details** si ocurre. En macOS, instala Platform-Tools siguiendo las instrucciones para Mac. Instala e inicia MuMu por separado, activa root y la depuración ADB e inicia sesión en Google Play y Google One.
+
+Los pasos 2–5 solo se desbloquean cuando una nueva comprobación del paso 1 devuelve ofertas y verifica la cuenta de Play. Si la oferta de 12 meses `12months-eft` tiene una primera fase de precio 0, la ventana de resultado y la pantalla principal muestran **Continue to Step 2**; de lo contrario, revisa la lista. Este botón abre una confirmación independiente y no garantiza la elegibilidad ni el coste final. Tras solicitar el pago, comprueba la suscripción, la fecha de renovación y los cargos reales en Google Play antes de elegir **Verified in Google Play → Next**. Cada paso posterior requiere una confirmación propia. Una nueva comprobación, un fallo en un paso de pago o un cambio de dispositivo pueden bloquear de nuevo los pasos de pago.
+
+En **Choose another step**:
+
+De forma predeterminada solo se ejecuta el paso elegido. En **Choose another step**, selecciona **More run options…** al final del menú de pasos para mostrar los modos guiados.
 
 | Modo | Acción |
 | --- | --- |
-| **One step only** | Ejecuta un único paso seleccionado, del 0 al 5 |
-| **From selected step** | Inicia una secuencia guiada desde el paso que elijas (entre el 2 y el 5) |
-| **All: Steps 2–5** | Inicia la secuencia desde el paso 2; el 5 es opcional |
+| **Stop after this step** | Ejecuta un único paso seleccionado, del 0 al 5 |
+| **Offer the next step** | Inicia una secuencia guiada desde el paso que elijas (entre el 2 y el 5) |
+| **Start at Step 2** | Inicia la secuencia desde el paso 2; el 5 es opcional |
 
 | Paso | Función | Riesgo |
 | --- | --- | --- |

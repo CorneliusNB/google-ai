@@ -80,6 +80,10 @@ MESSAGES = {
         "This account is not eligible",
         "Review Google Play's offer terms. Force mode cannot change eligibility.",
     ),
+    "purchase_unavailable": (
+        "Google Play says this item is unavailable",
+        "Check the account, Play country and Google One availability. No purchase was confirmed.",
+    ),
     "backup_payment_methods_prompt": (
         "Google Play asked about backup payments",
         "Review that optional setting in Google Play; it does not confirm a subscription.",
@@ -105,6 +109,41 @@ MESSAGES = {
         "Open Debug for details. Do not retry a payment until the outcome is known.",
     ),
 }
+
+# These are fixed strings, rather than arbitrary child output, so the normal
+# status panel cannot expose account details or a payment token.
+CLI_ISSUES = {
+    "device_missing": ("Android device is not connected", "Start MuMu and enable ADB debugging, then run the device check."),
+    "device_ambiguous": ("More than one Android device is connected", "Disconnect extra devices or select a serial in the CLI."),
+    "app_missing": ("An Android app is missing or disabled", "Enable Google Play and Google One; install Google One from Play Store, or use a Google Play-enabled emulator image."),
+    "adb_missing": ("ADB is unavailable", "Run setup_env.py on Windows or install Android SDK platform-tools."),
+    "python_missing": ("Python is unavailable", "Install Python 3.10 or newer and restart the toolkit."),
+    "runtime_lookup_failed": ("Android device inspection failed", "Check ADB, the selected emulator and the local Debug log."),
+    "account_unavailable": ("Google Play account could not be identified", "Open the Play Store profile and verify the intended account."),
+    "account_mismatch": ("Google Play account changed", "Select the intended account in Play Store and check it before continuing."),
+    "offer_query_failed": MESSAGES["offer_query_failed"],
+    "offers_unavailable": MESSAGES["offer_query_failed"],
+    "report_missing": ("The tool did not return a result", "Open Debug for details."),
+}
+
+
+def cli_issue_outcome(lines: list[str], step: int) -> Outcome | None:
+    """Use only known explicit wrapper codes; never infer success or authorize checkout."""
+    for line in reversed(lines):
+        match = re.fullmatch(r"\s*EPLUS_ISSUE:([a-z_]+)\s*", line)
+        if not match:
+            continue
+        code = match.group(1)
+        if code in ("listed", "checkout_requested"):
+            return None
+        entry = CLI_ISSUES.get(code) or MESSAGES.get(code)
+        if not entry:
+            return None
+        title, instruction = entry
+        if step >= 2:
+            instruction += " Check Google Play subscriptions and payment history before another paid attempt."
+        return Outcome(code, title, instruction, can_review=False)
+    return None
 
 
 def validate_step(step: int) -> int:
@@ -176,6 +215,9 @@ def read_fresh_report(directory: Path, step: int, started_at: float,
 
 def outcome_for_stage(step: int, exit_code: int, report: dict | None) -> Outcome:
     validate_step(step)
+    if exit_code != 0 and step == 1 and report and report.get("status") == "exception":
+        return Outcome("exception", "Could not connect to Android tools",
+                       "The read-only check failed. Open Debug; check Frida, ADB and Google One, then retry.")
     if exit_code != 0:
         return Outcome("tool_error", "The step could not finish",
                        "Check Debug and the Android screen before retrying.")
@@ -211,3 +253,44 @@ def report_summary(report: dict | None) -> str:
     if isinstance(offers, list):
         return f"{len(offers)} offers returned (eligibility not verified)"
     return str(report.get("status", "Unknown result"))
+
+
+# Only display the non-secret metadata that the existing Step 1 report supplies.
+# Tokens, account identifiers, raw titles and purchase objects must not be rendered.
+_SAFE_OFFER_FIELD = re.compile(r"^[A-Za-z0-9._:-]{1,72}$")
+
+
+def _offer_field(value: object) -> str:
+    text = str(value) if value is not None else ""
+    return text if _SAFE_OFFER_FIELD.fullmatch(text) else "(unavailable)"
+
+
+def offer_explorer_lines(report: dict | None, limit: int = 20) -> list[str]:
+    """Format observed introductory phases; never infer eligibility or renewal.
+
+    The source report contains only the *first* pricing phase for each offer.
+    Never call a non-zero first phase 'free', never guess the currency, and do
+    not render raw Frida payloads (which may include offer tokens).
+    """
+    if not isinstance(report, dict) or not isinstance(report.get("offers"), list):
+        return ["No fresh offer details available."]
+    items = [o for o in report["offers"] if isinstance(o, dict)]
+    if not items:
+        return ["No offers returned. Eligibility remains unknown."]
+    rows = ["PRODUCT / OFFER  |  FIRST PHASE  |  INTRO PRICE"]
+    for offer in items[:max(0, limit)]:
+        product = _offer_field(offer.get("product"))
+        offer_id = _offer_field(offer.get("id"))
+        period = _offer_field(offer.get("period"))
+        micros = offer.get("micros")
+        if isinstance(micros, (int, str)) and str(micros) == "0":
+            price = "zero (not eligibility)"
+        elif isinstance(micros, (int, str)) and str(micros).isdigit():
+            price = "nonzero (currency unknown)"
+        else:
+            price = "unknown"
+        rows.append(f"{product} / {offer_id}  |  {period}  |  {price}")
+    if len(items) > max(0, limit):
+        rows.append(f"... {len(items) - max(0, limit)} more offer(s) not shown.")
+    rows.append("Future renewal price, account eligibility and active subscription NOT verified.")
+    return rows

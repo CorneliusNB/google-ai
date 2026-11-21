@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: fd33739d3dfce6447a54761f8ad3f682634de172 -->
+<!-- Source README.md git-blob: 9b023bc3fcf01b314dc5190c4a8e78c2e947018d -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -9,7 +9,7 @@
 
 **ePlus AI Toolkit** 用于查看 Android 设备上的 Google One 和 Google Play 提供的 Google AI Pro 优惠。它支持 **Windows 和 macOS**：Windows 用户通过 PowerShell 启动，Mac 用户则使用 Terminal（zsh/bash）。Textual 图形化终端界面与命令行模式共用 Python、ADB 和 Frida 执行引擎。
 
-![ePlus AI Toolkit 界面](https://github.com/user-attachments/assets/fc27278f-7833-4484-9770-33e46bf10005)
+![ePlus AI Toolkit 界面](images/terminal-ui-step-picker.png)
 
 > [!CAUTION]
 > **非官方工具，可能产生真实费用。** **Step 2–5** 可能打开 Google Play 的真实结账页面，并自动点击 **Subscribe（订阅）**。发现优惠、看到首期价格为 0，或收到“已提交结账”的消息，**均不代表**账户有资格、订阅免费、已激活或续期成功。每次操作前，请在 Google Play 上核实账户、本次收费、后续价格和续订日期。停止工具不能撤销已经提交的交易。
@@ -112,13 +112,21 @@ sh run-macos.sh
 
 点击 **Check Device & Offers** 执行 **Step 1 — Available offers**：查询优惠，**不会发起订阅结账**。可通过 **Live Status** 和 **Show technical details** 查看进度。如果 30 秒内没有新日志，程序会给出提醒，但这**不一定表示程序卡住了**。
 
-在 **Advanced: Run by step** 中，可选择：
+界面空闲时，工具约每 5 秒检查一次现有 ADB 连接。找不到 ADB 或 Android 设备时，会弹窗说明处理方法；工具会继续检查并更新设备状态。重新连接本身不会解锁付款步骤。执行步骤或显示其他对话框时，监测会暂停。工具不会在后台安装或连接设备，但 `adb devices` 可能启动电脑上的本地 ADB 服务。
+
+在 Windows 上，运行 **Check Device & Offers** 时，工具会查找 ADB，必要时尝试下载官方 Android SDK Platform-Tools。下载或安装可能失败，请通过 **Show technical details** 查看详情。macOS 请按 Mac 指南安装 Platform-Tools。MuMu 需要自行安装和启动，并启用 root、ADB 调试，登录 Google Play 与 Google One。
+
+只有新的 Step 1 检查返回优惠并确认 Play 账号后，Step 2–5 才会解锁。如果 12 个月优惠 `12months-eft` 的首期价格为 0，完成弹窗和主界面会显示 **Continue to Step 2**；否则请查看优惠列表。该按钮只会打开单独的确认窗口，并不保证账号符合条件或最终费用为零。提交付款请求后，请先在 Google Play 核对订阅、续费日期和实际费用，再选择 **Verified in Google Play → Next**。后续每一步都需要单独确认。重新检查、付款步骤失败或设备变化可能使付款步骤重新锁定。
+
+在 **Choose another step** 中，可选择：
+
+默认只执行所选步骤。在 **Choose another step** 的步骤下拉列表底部选择 **More run options…**，即可显示引导式运行模式。
 
 | 模式 | 行为 |
 | --- | --- |
-| **One step only** | 只执行所选的 Step 0–5 |
-| **From selected step** | 从所选 Step 2–5 启动引导式流程 |
-| **All: Steps 2–5** | 从 Step 2 启动引导式流程；Step 5 可选 |
+| **Stop after this step** | 只执行所选的 Step 0–5 |
+| **Offer the next step** | 从所选 Step 2–5 启动引导式流程 |
+| **Start at Step 2** | 从 Step 2 启动引导式流程；Step 5 可选 |
 
 | 步骤 | 用途 | 风险 |
 | --- | --- | --- |

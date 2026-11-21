@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 한국어
 
-<!-- Source README.md git-blob: fd33739d3dfce6447a54761f8ad3f682634de172 -->
+<!-- Source README.md git-blob: 9b023bc3fcf01b314dc5190c4a8e78c2e947018d -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -9,7 +9,7 @@
 
 **ePlus AI Toolkit**은 Android 기기의 Google One과 Google Play에 표시되는 Google AI Pro 혜택을 확인하는 도구입니다. **Windows**에서는 PowerShell로, **macOS**에서는 Terminal(zsh/bash)로 실행합니다. Textual 화면과 명령줄 방식은 모두 Python·ADB·Frida 기반의 동일한 실행 엔진을 사용합니다.
 
-![ePlus AI Toolkit 화면](https://github.com/user-attachments/assets/fc27278f-7833-4484-9770-33e46bf10005)
+![ePlus AI Toolkit 화면](images/terminal-ui-step-picker.png)
 
 > [!CAUTION]
 > **비공식 도구이며 실제 요금이 청구될 수 있습니다.** **Step 2–5**는 실제 Google Play 결제 화면을 열고 상황에 따라 **Subscribe(구독)**를 자동으로 누를 수 있습니다. 프로모션이 표시되거나 첫 결제 금액이 0이거나 결제 요청 메시지가 나타나더라도 **프로모션 적용, 무료 구독, 구독 활성화, 기간 연장이 확인된 것은 아닙니다**. 실행 전에 Google Play에서 계정, 오늘의 결제 금액, 이후 요금과 갱신일을 확인해야 합니다. 도구를 중지해도 이미 제출한 거래는 취소되지 않습니다.
@@ -112,13 +112,21 @@ sh run-macos.sh
 
 **Check Device & Offers**는 **Step 1 — Available offers**를 실행하여 프로모션을 조회합니다. **구독 결제를 시작하지 않습니다**. **Live Status**와 **Show technical details**에서 진행 상황을 확인하세요. 30초 동안 로그가 없다는 경고는 반드시 프로그램이 멈췄다는 뜻이 아닙니다.
 
-**Advanced: Run by step** 모드:
+화면이 대기 중일 때 도구는 기존 ADB 연결을 약 5초마다 확인합니다. ADB나 Android 기기를 찾지 못하면 팝업으로 조치 방법을 알려 줍니다. 이후에도 자동으로 확인하고 기기 상태를 갱신하지만, 다시 연결된 것만으로 결제 단계가 열리지는 않습니다. 단계가 실행 중이거나 다른 대화상자가 열려 있으면 모니터링을 잠시 멈춥니다. 백그라운드에서 기기를 설치하거나 연결하지 않으며, `adb devices` 실행 시 PC의 로컬 ADB 서버가 시작될 수 있습니다.
+
+Windows에서 **Check Device & Offers**를 실행하면 ADB를 찾고, 필요한 경우 공식 Android SDK Platform-Tools 다운로드를 시도합니다. 다운로드나 설치가 실패할 수 있으므로 오류가 나면 **Show technical details**를 확인하세요. macOS에서는 Mac 안내에 따라 Platform-Tools를 설치합니다. MuMu는 별도로 설치하고 실행한 뒤 root와 ADB 디버깅을 켜고 Google Play와 Google One에 로그인해야 합니다.
+
+새 Step 1 검사에서 프로모션 목록을 가져오고 Play 계정이 확인되어야 Step 2–5가 열립니다. 12개월 프로모션 `12months-eft`의 첫 기간 가격이 0이면 완료 팝업과 메인 화면에 **Continue to Step 2**가 표시됩니다. 그렇지 않으면 프로모션 목록을 확인하세요. 이 버튼은 별도의 확인 창을 열 뿐, 자격이나 최종 비용을 보장하지 않습니다. 결제 요청 후에는 Google Play에서 실제 구독, 갱신일과 요금을 확인한 다음 **Verified in Google Play → Next**를 선택하세요. 이후 단계마다 별도 확인이 필요합니다. 다시 검사하거나 결제 단계가 실패하거나 기기가 바뀌면 결제 단계가 다시 잠길 수 있습니다.
+
+**Choose another step** 모드:
+
+기본적으로 선택한 단계만 실행합니다. 연속 실행 모드는 **Choose another step**의 단계 선택 메뉴 맨 아래에서 **More run options…**를 선택해 표시할 수 있습니다.
 
 | 모드 | 기능 |
 | --- | --- |
-| **One step only** | 선택한 Step 0–5 하나만 실행 |
-| **From selected step** | 선택한 Step(2–5)부터 안내에 따라 여러 단계를 진행 |
-| **All: Steps 2–5** | Step 2부터 순서대로 진행하며, Step 5는 선택할 수 있음 |
+| **Stop after this step** | 선택한 Step 0–5 하나만 실행 |
+| **Offer the next step** | 선택한 Step(2–5)부터 안내에 따라 여러 단계를 진행 |
+| **Start at Step 2** | Step 2부터 순서대로 진행하며, Step 5는 선택할 수 있음 |
 
 | Step | 기능 | 위험 |
 | --- | --- | --- |

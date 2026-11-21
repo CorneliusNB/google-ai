@@ -7,12 +7,27 @@ import unittest
 from unittest.mock import patch
 
 from tui_core import (
-    command_for_step, mask_email, needs_setup, outcome_for_stage,
+    cli_issue_outcome, command_for_step, mask_email, needs_setup, outcome_for_stage,
     read_fresh_report, validate_step,
 )
 
 
 class CoreTests(unittest.TestCase):
+    def test_structured_cli_error_shows_actionable_failure(self):
+        result = cli_issue_outcome(["Device emulator-5554", "EPLUS_ISSUE:app_missing"], 1)
+        self.assertEqual(result.code, "app_missing")
+        self.assertIn("Google One", result.instruction)
+        self.assertFalse(result.can_review)
+
+    def test_paid_cli_errors_never_authorize_next_and_warn_about_payments(self):
+        result = cli_issue_outcome(["EPLUS_ISSUE:offer_query_failed"], 2)
+        self.assertFalse(result.can_review)
+        self.assertIn("payment history", result.instruction)
+        self.assertIsNone(cli_issue_outcome(["EPLUS_ISSUE:checkout_requested"], 2))
+
+    def test_cli_error_rejects_untrusted_text(self):
+        self.assertIsNone(cli_issue_outcome(["EPLUS_ISSUE:app_missing private@example.com"], 1))
+        self.assertIsNone(cli_issue_outcome(["EPLUS_ISSUE:unknown"], 1))
     def test_setup_only_when_pinned_frida_is_missing(self):
         with patch("tui_core.importlib.metadata.version", return_value="16.5.9"):
             self.assertFalse(needs_setup())
@@ -136,6 +151,226 @@ class CoreTests(unittest.TestCase):
 
 
 class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        # Smoke tests must not depend on host ADB state or a five-second timer.
+        from tui import GoogleAITUI
+        patcher = patch.object(GoogleAITUI, "_poll_connection")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    async def test_start_screen_shows_status_and_primary_action(self):
+        from tui import GoogleAITUI
+        for size in ((90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    await pilot.pause()
+                    status = app.query_one("#status_panel").region
+                    state = app.query_one("#state").region
+                    action = app.query_one("#quickstart").region
+                    self.assertGreaterEqual(state.y, status.y)
+                    self.assertLessEqual(state.bottom, status.bottom - 1)
+                    self.assertGreaterEqual(action.y, 0)
+                    self.assertLessEqual(action.bottom, size[1])
+    async def test_checkout_dialog_fits_compact_terminal(self):
+        from tui import GoogleAITUI, Approval
+        for size in ((90, 20), (60, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    app._offer_check_ready = True
+                    app._confirm_stage(2, False)
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, Approval)
+                    card = app.screen.query_one("#approval_card").region
+                    self.assertGreaterEqual(card.y, 0)
+                    self.assertLessEqual(card.bottom, size[1])
+                    for selector in ("#cancel", "#approve", "#approval_scroll"):
+                        region = app.screen.query_one(selector).region
+                        self.assertGreaterEqual(region.y, card.y)
+                        self.assertLessEqual(region.bottom, card.bottom)
+    async def test_step_picker_defaults_to_one_step_and_hides_extra_options(self):
+        from textual.widgets import Button, Select
+        from tui import GoogleAITUI
+        for size in ((110, 35), (90, 20)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                with patch.object(GoogleAITUI, "_confirm_stage") as confirm:
+                    async with app.run_test(size=size) as pilot:
+                        app.advanced_pressed()
+                        # Windows runners can need several refreshes for the
+                        # deferred scroll and layout to settle.
+                        for _ in range(30):
+                            await pilot.pause(0.1)
+                            viewport = app.query_one("#results").region
+                            if all(viewport.y <= app.query_one(q).region.y and
+                                   app.query_one(q).region.bottom <= viewport.bottom
+                                   for q in ("#step", "#run")):
+                                break
+                        self.assertFalse(app.query_one("#mode_field").display)
+                        self.assertTrue(app.query_one("#step", Select).display)
+                        viewport = app.query_one("#results").region
+                        for selector in ("#step", "#run"):
+                            region = app.query_one(selector).region
+                            self.assertGreaterEqual(region.y, viewport.y)
+                            self.assertLessEqual(region.bottom, viewport.bottom)
+                        self.assertIn("Run this step", str(app.query_one("#run", Button).label))
+                        self.assertEqual(app.query_one("#mode", Select).value, "single")
+                        app.selected_pressed()
+                        confirm.assert_called_with(1, False)
+                        # The advanced modes are accessible at the end of
+                        # the step dropdown, without a separate third button.
+                        app.query_one("#step", Select).value = 99
+                        for _ in range(20):
+                            await pilot.pause(0.05)
+                            if app.query_one("#mode_field").display:
+                                break
+                        self.assertTrue(app.query_one("#mode_field").display)
+                        self.assertEqual(app.query_one("#step", Select).value, 1)
+                        app.query_one("#mode", Select).value = "from"
+                        app.query_one("#step", Select).value = 99
+                        for _ in range(20):
+                            await pilot.pause(0.05)
+                            if not app.query_one("#mode_field").display:
+                                break
+                        self.assertFalse(app.query_one("#mode_field").display)
+                        self.assertEqual(app.query_one("#mode", Select).value, "single")
+
+    async def test_run_hint_sits_below_the_run_button_not_beside_it(self):
+        from tui import GoogleAITUI
+        for size in ((110, 35), (90, 20)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                with patch.object(GoogleAITUI, "_confirm_stage"):
+                    async with app.run_test(size=size) as pilot:
+                        app.advanced_pressed()
+                        # Windows runners can need several refreshes for the
+                        # deferred scroll and layout to settle.
+                        for _ in range(30):
+                            await pilot.pause(0.1)
+                            viewport = app.query_one("#results").region
+                            hint = app.query_one("#mode_hint").region
+                            if viewport.y <= hint.y and hint.bottom <= viewport.bottom:
+                                break
+                        run = app.query_one("#run").region
+                        step = app.query_one("#step").region
+                        hint = app.query_one("#mode_hint").region
+                        # The primary action must match the step selector in
+                        # both compact and regular terminal layouts.
+                        self.assertEqual(run.x, step.x)
+                        self.assertEqual(run.width, step.width)
+                        self.assertGreaterEqual(hint.y, run.bottom)
+                        viewport = app.query_one("#results").region
+                        for region in (run, hint):
+                            self.assertGreaterEqual(region.y, viewport.y)
+                            self.assertLessEqual(region.bottom, viewport.bottom)
+
+    async def test_connection_monitor_warns_once_and_recovers_without_unlocking_checkout(self):
+        from tui import GoogleAITUI, ConnectionNotice
+        from device_diagnostics import ConnectionStatus
+        from textual.widgets import Static
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._offer_check_ready = True
+                app._connection_polled(ConnectionStatus("disconnected"))
+                await pilot.pause()
+                self.assertIsInstance(app.screen, ConnectionNotice)
+                card = app.screen.query_one("#notice_card").region
+                self.assertGreater(card.x, 0)
+                self.assertGreater(card.y, 0)
+                self.assertFalse(app._offer_check_ready)
+                app._connection_polled(ConnectionStatus("disconnected"))
+                await pilot.pause()
+                self.assertIsInstance(app.screen, ConnectionNotice)
+                app._connection_polled(ConnectionStatus("connected", ("emulator-5554",)))
+                await pilot.pause()
+                self.assertNotIsInstance(app.screen, ConnectionNotice)
+                self.assertFalse(app._offer_check_ready)
+                self.assertIn("connected", str(app.query_one("#device", Static).render()).lower())
+
+    async def test_connection_results_are_ignored_during_checkout(self):
+        from tui import GoogleAITUI
+        from device_diagnostics import ConnectionStatus
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app.busy = True
+                app.current_step = 2
+                app._offer_check_ready = True
+                app._connection_polled(ConnectionStatus("disconnected"))
+                self.assertTrue(app._offer_check_ready)
+                self.assertIsNone(app._connection_state)
+
+    async def test_stale_poll_from_before_stage_cannot_erase_fresh_readiness(self):
+        from tui import GoogleAITUI, CheckComplete, ConnectionNotice
+        from device_diagnostics import ConnectionStatus
+        from tui_core import Outcome
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                old_generation = app._connection_generation
+                app._connection_polling = True
+                with patch.object(GoogleAITUI, "run_stage"):
+                    app._start(1, False)
+                    app._received("Device emulator-5554")
+                    app._verified_account = "test@example.com"
+                    app._finished(1, Outcome("listed", "Offers loaded", "Review"), {
+                        "offers": [{"id": "12months-eft", "micros": "0"}],
+                        "detected_play_account": "test@example.com",
+                    })
+                await pilot.pause()
+                self.assertIsInstance(app.screen, CheckComplete)
+                await pilot.click("#check_later")
+                await pilot.pause()
+                app._connection_polled(ConnectionStatus("disconnected"), old_generation)
+                self.assertTrue(app._offer_check_ready)
+                self.assertNotIsInstance(app.screen, ConnectionNotice)
+                self.assertEqual(app._connection_state.devices, ("emulator-5554",))
+
+    async def test_stale_poll_from_before_diagnosis_is_ignored(self):
+        from tui import GoogleAITUI, ConnectionNotice
+        from device_diagnostics import ConnectionStatus
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                old_generation = app._connection_generation
+                app._connection_polling = True
+                with patch.object(GoogleAITUI, "inspect_android_connection"):
+                    app.diagnose_pressed()
+                app._diagnosing = False
+                app._connection_polled(ConnectionStatus("disconnected"), old_generation)
+                self.assertIsNone(app._connection_state)
+                self.assertNotIsInstance(app.screen, ConnectionNotice)
+
+    async def test_step_one_ready_device_survives_first_postcheck_poll(self):
+        from tui import GoogleAITUI, CheckComplete
+        from device_diagnostics import ConnectionStatus
+        from tui_core import Outcome
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._connection_state = ConnectionStatus("connected", ("emulator-5554",))
+                app._received("Device emulator-5556")
+                app._verified_account = "test@example.com"
+                app._finished(1, Outcome("listed", "Offers loaded", "Review"), {
+                    "offers": [{"id": "12months-eft", "micros": "0"}],
+                    "detected_play_account": "test@example.com",
+                })
+                await pilot.pause()
+                self.assertIsInstance(app.screen, CheckComplete)
+                await pilot.click("#check_later")
+                await pilot.pause()
+                self.assertEqual(app._offer_ready_device, "emulator-5556")
+                app._connection_polled(ConnectionStatus("connected", ("emulator-5556",)))
+                self.assertTrue(app._offer_check_ready)
+                app._connection_polled(ConnectionStatus("connected", ("emulator-5558",)))
+                self.assertFalse(app._offer_check_ready)
+                self.assertIsNone(app._offer_ready_device)
+
     async def test_application_branding(self):
         from tui import GoogleAITUI
         self.assertEqual(GoogleAITUI.TITLE, "ePlus AI Toolkit")
@@ -206,7 +441,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(app.query_one("#step", Select).value, 1)
                     self.assertFalse(app.query_one("#stop", Button).display)
                     self.assertFalse(app.query_one("#next", Button).display)
-                    self.assertIn("Run selected step", str(app.query_one("#run", Button).label))
+                    self.assertIn("Run this step", str(app.query_one("#run", Button).label))
                     app.query_one("#mode", Select).value = "all"
                     # Select.Changed can be queued behind layout work on Windows.
                     # Wait for the event rather than asserting after one idle tick.
@@ -215,7 +450,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                             break
                         await pilot.pause(0.05)
                     self.assertTrue(app.query_one("#step", Select).disabled)
-                    self.assertIn("Run all", str(app.query_one("#run", Button).label))
+                    self.assertIn("Start Step 2", str(app.query_one("#run", Button).label))
                 popen.assert_not_called()
 
     async def test_run_controls_use_wide_content_not_sidebar(self):
@@ -228,6 +463,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 async with app.run_test(size=(110, 35)) as pilot:
                     await pilot.pause()
                     app.advanced_pressed()
+                    app.toggle_more_modes()
                     await pilot.pause()
                     sidebar = app.query_one("#controls").region
                     for selector in ("#mode", "#step", "#run"):
@@ -321,6 +557,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIsNone(app._verified_account)
                     app._received("  Account      Alice@Example.com")
                     self.assertEqual(app._verified_account, "alice@example.com")
+                    app._offer_check_ready = True
                     app._start(3, True)
                     self.assertIsNone(app._verified_account)
 
@@ -457,6 +694,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 app = GoogleAITUI(repo=Path(directory))
                 with patch("tui.subprocess.Popen") as launch:
                     async with app.run_test(size=(110, 35)) as pilot:
+                        app._offer_check_ready = True
                         app._confirm_stage(step, False)
                         await pilot.pause()
                         self.assertIsInstance(app.screen, Approval)
@@ -480,6 +718,8 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory), selected_step=3)
             with patch("tui.subprocess.Popen") as popen:
                 async with app.run_test(size=(110, 35)) as pilot:
+                    app._offer_check_ready = True
+                    app._update_run_mode()
                     await pilot.click("#advanced_toggle")
                     await pilot.pause()
                     await pilot.click("#run")
@@ -488,6 +728,112 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     await pilot.click("#cancel")
                     await pilot.pause()
                     popen.assert_not_called()
+
+    async def test_paid_steps_blocked_until_fresh_verified_offer_check(self):
+        from textual.widgets import Button, Select
+        from tui import GoogleAITUI, Approval
+        from tui_core import Outcome
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory), selected_step=2)
+            with patch.object(GoogleAITUI, "run_stage") as run:
+                async with app.run_test(size=(110, 35)) as pilot:
+                    app._update_run_mode()
+                    self.assertTrue(app.query_one("#run", Button).disabled)
+                    app.action_run_selected()
+                    app.query_one("#mode", Select).value = "all"
+                    app.selected_pressed()
+                    app.query_one("#mode", Select).value = "from"
+                    app.selected_pressed()
+                    app.sequence_pressed()
+                    app._start(2, False)
+                    self.assertFalse(app.busy)
+                    self.assertNotIsInstance(app.screen, Approval)
+                    run.assert_not_called()
+                    app.query_one("#mode", Select).value = "single"
+
+                    app._received("Device emulator-5554")
+                    app._verified_account = "test@example.com"
+                    report = {"status": "listed", "offers": [{"id": "test"}],
+                              "detected_play_account": "test@example.com"}
+                    app._finished(1, Outcome("listed", "Offers loaded", "Review offers"), report)
+                    self.assertFalse(app.query_one("#run", Button).disabled)
+                    app._confirm_stage(2, False)
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, Approval)
+                    await pilot.click("#cancel")
+                    await pilot.pause()
+                    app._finished(1, Outcome("tool_error", "Failed", "Retry"), None)
+                    self.assertTrue(app.query_one("#run", Button).disabled)
+                    self.assertFalse(app._offer_check_ready)
+
+    async def test_offer_check_without_verified_matching_account_stays_locked(self):
+        from tui import GoogleAITUI
+        from tui_core import Outcome
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._verified_account = "first@example.com"
+                app._finished(1, Outcome("listed", "Offers loaded", "Review"),
+                              {"offers": [{"id": "test"}], "detected_play_account": "other@example.com"})
+                self.assertFalse(app._offer_check_ready)
+
+    async def test_success_prompts_next_but_requires_separate_checkout_approval(self):
+        from textual.widgets import Button
+        from tui import GoogleAITUI, Approval, CheckComplete
+        from tui_core import Outcome
+        for size in ((110, 35), (90, 20)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                with patch.object(GoogleAITUI, "run_stage") as run:
+                    async with app.run_test(size=size) as pilot:
+                        app._received("Device emulator-5554")
+                        app._verified_account = "test@example.com"
+                        app._finished(1, Outcome("listed", "Offers loaded", "Review"), {
+                            "offers": [{"id": "12months-eft", "micros": "0"}],
+                            "detected_play_account": "test@example.com"})
+                        await pilot.pause()
+                        self.assertIsInstance(app.screen, CheckComplete)
+                        run.assert_not_called()
+                        await pilot.click("#check_continue")
+                        await pilot.pause()
+                        self.assertIsInstance(app.screen, Approval)
+                        run.assert_not_called()
+                        await pilot.click("#cancel")
+                        await pilot.pause()
+                        self.assertIn("Step 2", str(app.query_one("#quickstart", Button).label))
+
+    async def test_setup_error_shows_actionable_notice(self):
+        from tui import GoogleAITUI, SetupNotice
+        from tui_core import cli_issue_outcome
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)) as pilot:
+                app._finished(1, cli_issue_outcome(["EPLUS_ISSUE:device_missing"], 1), None)
+                await pilot.pause()
+                self.assertIsInstance(app.screen, SetupNotice)
+                self.assertIn("ADB", app.screen.instruction)
+                await pilot.click("#notice_close")
+
+    async def test_next_checkout_action_is_visible_outside_advanced(self):
+        from textual.widgets import Button
+        from tui import GoogleAITUI, Approval
+        from tui_core import Outcome
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            with patch.object(GoogleAITUI, "run_stage") as run:
+                async with app.run_test(size=(110, 35)) as pilot:
+                    app._offer_check_ready = True
+                    app.sequence = True
+                    app.current_step = 2
+                    app._finished(2, Outcome("checkout_requested", "Check Google Play", "Verify", True), {})
+                    await pilot.pause()
+                    self.assertFalse(app.query_one("#workflow_actions").display)
+                    self.assertTrue(app.query_one("#next", Button).display)
+                    await pilot.click("#next")
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, Approval)
+                    run.assert_not_called()
 
 
 if __name__ == "__main__":

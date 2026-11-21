@@ -4,7 +4,7 @@
 
 A terminal toolkit for **Windows and macOS** to inspect Google AI Pro offers through Android, ADB, Frida and Google Play. The shared Textual dashboard uses a PowerShell/Python launcher on Windows and a native Python adapter on macOS.
 
-<img width="2048" height="1521" alt="image" src="https://github.com/user-attachments/assets/fc27278f-7833-4484-9770-33e46bf10005" />
+![ePlus AI Toolkit — step picker (90×20)](images/terminal-ui-step-picker.png)
 
 > [!CAUTION]
 > **Unofficial project. Potential billing charges.** Steps **2–5** can open a real Google Play checkout and may automatically tap **Subscribe**. An offer appearing in a list, a displayed first-phase price of zero, or a message indicating that the Subscribe action was attempted does **not** establish eligibility, an active subscription, a free subscription, or a changed renewal date. Verify the exact account, today's charge, future pricing and renewal date directly in Google Play before any checkout.
@@ -121,19 +121,27 @@ The macOS adapter exposes **Steps 0–5**. **Steps 2–5 may initiate real Googl
 1. Click **Check Device & Offers** on the welcome screen. It invokes **Step 1 — Available offers**, intended to *list* offers rather than initiate checkout.
 2. Watch **Live Status** for the stage, elapsed time, current activity and result. **Show technical details** reveals execution output. A warning after 30 seconds without new output indicates inactivity, **not proof of a hang**.
 3. Check the account and offer information on the Android screen. A listed offer is **not** a guarantee of eligibility or a successful subscription.
-4. Expand **Advanced: Run by step** only when you deliberately need to select a different stage.
+4. Expand **Choose another step** only when you deliberately need to select a different stage.
+
+While the dashboard is idle, it checks existing ADB connections about every five seconds. If ADB or Android is unavailable, a popup explains what to check. It checks again automatically and updates the device status; reconnecting alone does not unlock paid steps. Monitoring pauses during a running step and other dialogs. It does not install or connect devices in the background, though `adb devices` may start the local ADB server.
+
+On Windows, **Check Device & Offers** looks for ADB and, if necessary, attempts to download official Android SDK Platform-Tools. Downloads or installation can fail; check **Show technical details** if they do. On macOS, install Platform-Tools following the Mac instructions. Install and start MuMu separately, enable root and ADB debugging, and sign in to Google Play and Google One.
+
+Steps 2–5 stay locked until a fresh Step 1 check returns offers and verifies the Play account. If the 12-month offer `12months-eft` has a zero-priced first phase, the completion popup and main screen show **Continue to Step 2**. Otherwise, review the listed offers. The button opens a separate approval; it does not prove eligibility or final cost. After checkout, verify the actual subscription, renewal date and charges in Google Play before choosing **Verified in Google Play → Next**. Each later stage requires its own approval. A new check, failed paid stage or device change can lock the paid steps again.
 
 **Important distinction:** Step 1 does not initiate a purchase, but underlying environment preflight can still install or repair ADB/Frida and change emulator/network settings. **Step 0 — Environment** is a setup/diagnostics stage, not a purchase-free guarantee of zero local side effects.
 
 The sidebar lists the six stages. Android Device / Google Account cards update from observed output; account identifiers are masked. Original-author and maintainer credits link to their GitHub profiles in supported terminals.
 
-### Advanced run modes
+### Additional run options
+
+By default, only the selected step runs. In **Choose another step**, select **More run options…** at the bottom of the step dropdown to show guided-sequence modes.
 
 | Mode | Behavior |
 | --- | --- |
-| **One step only** | Runs only the selected Step **0–5**. |
-| **From selected step** | Begins a guided checkout sequence at the chosen Step **2–5**, without replaying earlier checkout steps. |
-| **All: Steps 2–5** | Begins the guided checkout sequence at **Step 2**. Step **5** is optional. |
+| **Stop after this step** | Runs only the selected Step **0–5**. |
+| **Offer the next step** | Begins a guided checkout sequence at the chosen Step **2–5**, without replaying earlier checkout steps. |
+| **Start at Step 2** | Begins the guided checkout sequence at **Step 2**. Step **5** is optional. |
 
 **Reported 24-month example (subject to Google Play confirmation):**
 
@@ -205,7 +213,7 @@ To use the original **CLI** guided sequence:
 .\run-all.ps1 -AllStages -StartStep 3
 ```
 
-The CLI performs its environment/offer checks and then proceeds through the original subscription stages, requesting numbered approvals between potentially billable operations (**1 = Continue, 2 = End run, 0 = Stop**). This differs from **All: Steps 2–5** on the TUI, which begins its guided sequence at Step 2. Starting the CLI sequence at Step 3 must only follow independent verification of an existing plan; it does not prove any prior extension succeeded.
+The CLI performs its environment/offer checks and then proceeds through the original subscription stages, requesting numbered approvals between potentially billable operations (**1 = Continue, 2 = End run, 0 = Stop**). This differs from **Start at Step 2** on the TUI, which begins its guided sequence at Step 2. Starting the CLI sequence at Step 3 must only follow independent verification of an existing plan; it does not prove any prior extension succeeded.
 
 Optional parameters:
 

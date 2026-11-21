@@ -64,18 +64,18 @@ class ReadmeSourceParityTests(unittest.TestCase):
     def test_localized_screenshot_matches_canonical_readme(self):
         """Keep the screenshot shown in all translated READMEs in sync with English."""
         english = (ROOT / "README.md").read_text(encoding="utf-8")
-        image_urls = re.findall(
-            r"https://github[.]com/user-attachments/assets/[0-9a-f-]+",
-            english,
+        screenshot_pattern = (
+            r"https://github[.]com/user-attachments/assets/[0-9a-f-]+"
+            r"|images/[A-Za-z0-9._-]+[.]png"
         )
+        image_urls = re.findall(screenshot_pattern, english)
         self.assertEqual(len(image_urls), 1, "Expected one canonical screenshot")
+        if image_urls[0].startswith("images/"):
+            self.assertTrue((ROOT / image_urls[0]).is_file(), "Local README screenshot is missing")
         for locale in LOCALES:
             with self.subTest(locale=locale):
                 localized = (ROOT / ("README." + locale + ".md")).read_text(encoding="utf-8")
-                localized_urls = re.findall(
-                    r"https://github[.]com/user-attachments/assets/[0-9a-f-]+",
-                    localized,
-                )
+                localized_urls = re.findall(screenshot_pattern, localized)
                 self.assertEqual(
                     localized_urls, image_urls,
                     "Screenshot differs from README.md; sync the image and source marker",
@@ -92,6 +92,14 @@ class ReadmeSourceParityTests(unittest.TestCase):
                 self.assertIn("3 × US$1 = US$3", localized)
                 self.assertIn("24", localized)
                 self.assertIn("Step 5", localized)
+
+    def test_connection_and_step_two_flow_documented_in_all_locales(self):
+        for name in ("README.md", *(f"README.{locale}.md" for locale in LOCALES)):
+            with self.subTest(name=name):
+                content = (ROOT / name).read_text(encoding="utf-8")
+                for label in ("adb devices", "12months-eft", "Continue to Step 2",
+                              "Verified in Google Play → Next", "More run options"):
+                    self.assertIn(label, content)
 
     def test_english_alias_links_to_root_source(self):
         self.assertIn("(README.md)", (ROOT / "README.en.md").read_text(encoding="utf-8"))

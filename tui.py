@@ -19,12 +19,14 @@ import time
 from rich.markup import escape
 from textual import on, work
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Static
 
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
-    needs_setup, outcome_for_stage, read_fresh_report, report_summary, validate_step
+    needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
+    report_summary, validate_step
+from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_connection, poll_connection
 
 
 class Approval(ModalScreen[bool]):
@@ -33,10 +35,11 @@ class Approval(ModalScreen[bool]):
     CSS = """
     Approval { align: center middle; background: #070d19 75%; }
     #approval_card {
-        width: 66; max-width: 92%; height: auto;
-        padding: 2 3; background: #15243a; border: round #3d6383;
+        width: 66; max-width: 92%; height: auto; max-height: 95%;
+        padding: 1 3; background: #15243a; border: round #3d6383;
     }
     #approval_title { text-style: bold; color: #ebf5ff; margin-bottom: 1; }
+    #approval_scroll { height: auto; max-height: 1fr; }
     #approval_message { color: #c9d8e8; margin-bottom: 2; }
     #approval_actions { height: auto; align-horizontal: right; }
     #approval_actions Button { margin-left: 1; }
@@ -49,7 +52,8 @@ class Approval(ModalScreen[bool]):
     def compose(self) -> ComposeResult:
         with Vertical(id="approval_card"):
             yield Static(self.title_text, id="approval_title")
-            yield Static(self.message_text, id="approval_message")
+            with VerticalScroll(id="approval_scroll", can_focus=True):
+                yield Static(self.message_text, id="approval_message")
             with Horizontal(id="approval_actions"):
                 yield Button("Cancel", id="cancel")
                 yield Button("Continue", id="approve", variant="warning")
@@ -57,6 +61,63 @@ class Approval(ModalScreen[bool]):
     @on(Button.Pressed, "#approval_actions Button")
     def approve(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == "approve")
+
+
+class CheckComplete(ModalScreen[bool]):
+    """Offer a clear next action; this dialog never authorizes checkout."""
+    CSS = """
+    CheckComplete { align: center middle; }
+    #check_card { width: 64; max-width: 94%; height: auto; max-height: 90%;
+                  padding: 1 2; background: #15243a; border: round #3d6383; }
+    #check_scroll { height: auto; max-height: 1fr; }
+    #check_actions { height: 3; align-horizontal: right; }
+    #check_actions Button { margin-left: 1; }
+    """
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="check_card"):
+            with VerticalScroll(id="check_scroll"):
+                yield Static("Device and offer check complete", classes="section")
+                yield Static("The 12-month offer has a zero-priced first phase. "
+                             "This does not confirm eligibility or final cost. "
+                             "Continue to review Step 2; a separate approval is required.")
+            with Horizontal(id="check_actions"):
+                yield Button("Later", id="check_later")
+                yield Button("Continue to Step 2", id="check_continue", variant="primary")
+
+    @on(Button.Pressed, "#check_actions Button")
+    def choose(self, event: Button.Pressed) -> None:
+        self.dismiss(event.button.id == "check_continue")
+
+
+class SetupNotice(ModalScreen[None]):
+    CSS = """
+    SetupNotice { align: center middle; }
+    #notice_card { width: 64; max-width: 94%; height: auto; max-height: 90%;
+                   padding: 1 2; background: #15243a; border: round #d6a34f; }
+    #notice_scroll { height: auto; max-height: 1fr; }
+    #notice_close { width: 100%; }
+    """
+
+    def __init__(self, title: str, instruction: str) -> None:
+        super().__init__()
+        self.notice_title, self.instruction = title, instruction
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="notice_card"):
+            with VerticalScroll(id="notice_scroll"):
+                yield Static(self.notice_title, classes="section")
+                yield Static(self.instruction)
+            yield Button("Got it", id="notice_close", variant="primary")
+
+    @on(Button.Pressed, "#notice_close")
+    def close_notice(self) -> None:
+        self.dismiss(None)
+
+
+class ConnectionNotice(SetupNotice):
+    """Dismissible warning for a missing Android connection."""
+    CSS = SetupNotice.CSS + "\nConnectionNotice { align: center middle; background: #081424 75%; }"
 
 
 def is_macos_platform() -> bool:
@@ -105,49 +166,55 @@ class GoogleAITUI(App[None]):
     .section { color: #6cdbf8; text-style: bold; margin: 0 0 1 0; }
     #workflow { height: auto; margin-bottom: 1; }
     .workflow-step { color: #b4cbe0; height: 1; }
-    #nav_help, #debug, #exit {
+    #nav_help, #diagnose, #debug, #exit {
         width: 100%; height: 3; margin: 0;
     }
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
-    #quickstart { display: block; width: 100%; height: 3; margin: 0 0 1 0; }
+    #quickstart { display: block; width: 100%; height: 3; margin: 0; }
     #advanced_toggle { width: 100%; height: 3; margin: 0; }
     #workflow_actions { display: none; height: auto; margin-top: 1; border-top: solid #285d83; padding-top: 1; }
     #status_panel { min-height: 8; overflow-y: auto; scrollbar-size: 1 1; }
 
     #welcome_panel {
-        height: auto; border: round #2b97bc;
-        background: #112b49; padding: 1 2; margin-bottom: 1;
+        height: 1fr; min-height: 8; overflow-y: auto; scrollbar-size: 1 1;
+        border: round #2b97bc; background: #112b49; padding: 0 2; margin-bottom: 1;
     }
     #welcome { color: #91e3ff; text-style: bold; height: 1; }
-    #quick_hint { color: #afcce3; height: auto; margin: 0 0 1 0; }
+    #quick_hint { color: #afcce3; height: auto; margin: 0; }
     #payment_notice {
-        height: auto; margin: 1 0 0 0; padding: 0 1;
+        height: auto; margin: 0; padding: 0 1;
         color: #e2ecf4; background: #233248; border-left: solid #d6a34f;
     }
     #payment_notice_compact { display: none; }
     #read_only { color: #81c6df; height: auto; margin-top: 1; }
     #workflow_actions { height: auto; }
     #form_row { height: auto; }
+    #mode_field { display: none; }
     .field { width: 1fr; min-width: 12; height: auto; }
     #step_field { margin-left: 1; }
     #mode_label, #advanced_label {
         color: #8edff1; text-style: bold; height: 1; margin: 0 0 1 0;
     }
     #mode, #step { width: 100%; margin: 0; }
-    #run_row { height: auto; margin-top: 1; }
-    #run { width: 25; min-width: 17; height: 3; margin: 0; }
+    #run_row { layout: vertical; width: 1fr; height: auto; margin: 1 0 0 1; }
+    #run { width: 100%; min-width: 0; height: 3; margin: 0; content-align: center middle; }
     #mode_hint {
         width: 1fr; height: auto; color: #a5c8df;
-        padding: 0 1;
+        padding: 1 0 0 0;
     }
     #next, #stop { display: none; width: 100%; height: 3; margin-top: 1; }
     #status_panel {
-        height: 1fr; min-height: 0; border: round #285a80;
+        height: 8; min-height: 8; border: round #285a80;
         background: #101f35; padding: 0 1;
     }
     #state { color: #f2f9ff; text-style: bold; margin: 1 0 0 0; }
     #message { color: #c5ddee; }
-    #step_result { color: #8cdfbb; }
+    #step_result { color: #8cdfbb; height: auto; }
+    #offers_title { display: none; color: #8edff1; text-style: bold; margin-top: 1; }
+    #offer_view {
+        display: none; height: 8; min-height: 4; margin-top: 1;
+        border: round #285a80; background: #081a2d;
+    }
     #elapsed, #activity { color: #95c4dd; }
     #debug_log {
         display: none; height: 1fr; min-height: 3;
@@ -161,7 +228,6 @@ class GoogleAITUI(App[None]):
     Screen.compact #device, Screen.compact #account { height: 1; border: none; }
     Screen.compact #welcome_panel { padding: 0 1; }
     Screen.compact #quick_hint, Screen.compact #read_only { display: none; }
-    Screen.compact #welcome_panel { padding: 0 1; }
     Screen.compact #welcome { display: none; }
     Screen.compact #payment_notice { display: none; }
     Screen.compact #payment_notice_compact {
@@ -169,11 +235,18 @@ class GoogleAITUI(App[None]):
         color: #ffe0a0; background: #283047;
     }
     Screen.compact #welcome_panel { padding: 0 1; }
+    Screen.compact #welcome_panel { min-height: 7; }
+    Screen.compact #status_panel { height: 5; min-height: 5; }
+    Screen.compact #status_panel .section, Screen.compact #state { margin: 0; }
+    Screen.compact #workflow_actions { margin-top: 0; padding-top: 0; border-top: none; }
+    Screen.compact #mode_label, Screen.compact #advanced_label { margin-bottom: 0; }
+    Screen.compact #run_row { margin-top: 0; margin-right: 1; offset: 1 0; }
+    Screen.compact #mode_hint { padding: 0; }
     Screen.compact #quickstart, Screen.compact #advanced_toggle { height: 3; }
     Screen.narrow #form_row { layout: vertical; }
     Screen.narrow #step_field { margin: 1 0 0 0; }
     Screen.narrow #run_row { layout: vertical; }
-    Screen.narrow #run { width: 100%; }
+    Screen.narrow #run { width: 1fr; margin-left: 1; }
     Screen.narrow #mode_hint { padding: 1 0 0 0; }
     Screen.narrow #controls { width: 21; min-width: 21; }
     Screen.tiny #content { layout: vertical; }
@@ -194,6 +267,7 @@ class GoogleAITUI(App[None]):
         self.start_sequence = start_sequence
         self.debug_visible = initial_debug
         self.busy = False
+        self._diagnosing = False
         self.sequence = False
         self.current_step: int | None = None
         self._child: subprocess.Popen[str] | None = None
@@ -204,9 +278,18 @@ class GoogleAITUI(App[None]):
         self._exit_after_step = False
         self._last_outcome: Outcome | None = None
         self._verified_account: str | None = None
+        self._offer_check_ready = False
+        self._initial_offer_ready = False
+        self._checked_device: str | None = None
+        self._offer_ready_device: str | None = None
+        self._connection_state: ConnectionStatus | None = None
+        self._connection_polling = False
+        self._connection_generation = 0
         self._started_at: float | None = None
         self._last_activity_at: float | None = None
         self.advanced_visible = False
+        self.more_modes_visible = False
+        self._last_selected_step = self.initial_step
         self._last_mode = "single"
 
     def compose(self) -> ComposeResult:
@@ -224,8 +307,8 @@ class GoogleAITUI(App[None]):
                 yield Link("@hoangsvit", url="https://github.com/hoangsvit",
                            tooltip="Maintainer on GitHub", id="maintainer")
             with Horizontal(id="details"):
-                yield Static("ANDROID DEVICE\nMuMu • Auto-detect", id="device")
-                yield Static("GOOGLE ACCOUNT\nNot checked", id="account")
+                yield Static("Device  •  Auto-detect", id="device")
+                yield Static("Account  •  Not checked", id="account")
             with Horizontal(id="content"):
                 with Vertical(id="controls"):
                     yield Static("STEPS", classes="section")
@@ -234,6 +317,7 @@ class GoogleAITUI(App[None]):
                             yield Static(f"○  {stage.number}. {stage.label}",
                                          id=f"stage_{stage.number}", classes="workflow-step")
                     yield Button("Help & Guide", id="nav_help")
+                    yield Button("Diagnose Android connection", id="diagnose")
                     yield Button("Show technical details", id="debug")
                     yield Button("Exit toolkit", id="exit")
                 with Vertical(id="results"):
@@ -241,29 +325,28 @@ class GoogleAITUI(App[None]):
                         yield Static("GET STARTED · READ-ONLY CHECK", id="welcome")
                         yield Static("Check MuMu connection and Google AI offers without opening checkout.", id="quick_hint")
                         yield Button("Check Device & Offers", id="quickstart", variant="success")
-                        yield Button("Advanced: Run by step  +", id="advanced_toggle")
+                        yield Button("Verified in Google Play → Next", id="next", disabled=True)
+                        yield Button("Choose another step  +", id="advanced_toggle")
                         with Vertical(id="workflow_actions"):
                             with Horizontal(id="form_row"):
-                                with Vertical(classes="field", id="mode_field"):
-                                    yield Static("Run mode", id="mode_label")
-                                    yield Select([
-                                        ("One step only", "single"),
-                                        ("From selected step", "from"),
-                                        ("All: Steps 2–5", "all"),
-                                    ], value="single", id="mode", allow_blank=False)
                                 with Vertical(classes="field", id="step_field"):
-                                    yield Static("Step", id="advanced_label")
+                                    yield Static("Choose a step", id="advanced_label")
                                     yield Select(
                                         [(f"{stage.number}. {stage.label}", stage.number)
-                                         for stage in STAGES],
+                                         for stage in STAGES] + [("More run options…", 99)],
                                         value=self.initial_step, id="step", allow_blank=False)
+                                with Vertical(classes="field", id="mode_field"):
+                                    yield Static("After this step", id="mode_label")
+                                    yield Select([
+                                        ("Stop after this step", "single"),
+                                        ("Offer the next step", "from"),
+                                        ("Start at Step 2", "all"),
+                                    ], value="single", id="mode", allow_blank=False)
                             with Horizontal(id="run_row"):
-                                yield Button("Run selected step", id="run", variant="primary")
+                                yield Button("Run this step", id="run", variant="primary")
                                 yield Static("Runs one step; no next step is automatic.", id="mode_hint")
                             yield Button("Run sequence from step", id="sequence")
                             yield Button("Run all", id="run_all")
-                            yield Button("Verified in Google Play → Next",
-                                         id="next", disabled=True)
                             yield Button("Stop after current step", id="stop", disabled=True)
                             yield Static("Steps 2–5 can open checkout and require confirmation.", id="read_only")
                         yield Static(
@@ -281,8 +364,10 @@ class GoogleAITUI(App[None]):
                     with Vertical(id="status_panel"):
                         yield Static("LIVE STATUS", classes="section")
                         yield Static("Ready — no check started", id="state")
-                        yield Static("Press Check Device & Offers to begin. Advanced modes are optional.", id="message")
+                        yield Static("Check the device and offers to begin.", id="message")
                         yield Static("", id="step_result")
+                        yield Static("AVAILABLE OFFERS · FIRST PHASE ONLY", id="offers_title")
+                        yield RichLog(id="offer_view", wrap=True, highlight=False, markup=False)
                         yield Static("Elapsed: --", id="elapsed")
                         yield Static("Waiting for your action.", id="activity")
                         yield Button("Completed action on Android", id="manual", disabled=True)
@@ -310,10 +395,58 @@ class GoogleAITUI(App[None]):
         self._set_message("Start with a read-only offer check. Steps 2-5 can request "
                           "real payments; verify the account, terms and renewal date.")
 
+    @on(Button.Pressed, "#diagnose")
+    def diagnose_pressed(self) -> None:
+        if self.busy or self._diagnosing:
+            return
+        self._invalidate_connection_polls()
+        self._offer_check_ready = False
+        self._initial_offer_ready = False
+        self._offer_ready_device = None
+        self.query_one("#quickstart", Button).label = "Check Device & Offers"
+        self._diagnosing = True
+        self.query_one("#diagnose", Button).disabled = True
+        self.query_one("#quickstart", Button).disabled = True
+        self.query_one("#quickstart", Button).display = True
+        self.query_one("#next", Button).display = False
+        self.query_one("#next", Button).disabled = True
+        self.sequence = False
+        self.query_one("#run", Button).disabled = True
+        self._set_status("Inspecting Android connection...")
+        self._set_message(
+            "Checking local ADB, Android transport and Google One. No checkout, "
+            "installation or emulator reset; adb devices may start the local ADB server."
+        )
+        self.inspect_android_connection()
+
+    @work(thread=True, exclusive=True, group="android-connection")
+    def inspect_android_connection(self) -> None:
+        try:
+            diagnosis = inspect_connection()
+        except Exception:
+            diagnosis = ConnectionDiagnosis(
+                "error", "Connection check could not complete", (),
+                "Check the ADB installation and try again. No checkout was started.",
+            )
+        self.call_from_thread(self._diagnosis_done, diagnosis)
+
+    def _diagnosis_done(self, diagnosis: ConnectionDiagnosis) -> None:
+        self._diagnosing = False
+        self.query_one("#diagnose", Button).disabled = False
+        self.query_one("#quickstart", Button).disabled = False
+        self.query_one("#run", Button).disabled = False
+        self._set_status(diagnosis.headline)
+        self._set_message(diagnosis.guidance)
+        self.query_one("#step_result", Static).update("\n".join(diagnosis.details))
+        self.query_one("#offers_title", Static).display = False
+        self.query_one("#offer_view", RichLog).display = False
+        self._update_run_mode()
+
     def on_mount(self) -> None:
         self.set_interval(1, self._refresh_elapsed)
+        self.set_interval(5, self._poll_connection)
         if self.macos_mode:
-            self.query_one("#device", Static).update("ANDROID DEVICE\nADB • Auto-detect")
+            self.query_one("#device", Static).update("Device  •  Auto-detect")
             self.query_one("#quick_hint", Static).update(
                 "Check Android and Google AI offers before any subscription step."
             )
@@ -324,7 +457,85 @@ class GoogleAITUI(App[None]):
         self.query_one("#debug", Button).label = "Hide technical details" if self.debug_visible else "Show technical details"
         if self.start_sequence:
             self.query_one("#mode", Select).value = "from"
+            self.more_modes_visible = True
+            self.advanced_visible = True
+            self.query_one("#workflow_actions", Vertical).display = True
+            self.query_one("#advanced_toggle", Button).label = "Hide step selection  −"
+            self.query_one("#mode_field", Vertical).display = True
         self._update_run_mode()
+
+    def _invalidate_connection_polls(self) -> None:
+        """A pre-operation poll must never overwrite a newer stage or diagnosis."""
+        self._connection_generation += 1
+        self._connection_polling = False
+
+    def _poll_connection(self) -> None:
+        if (self.busy or self._diagnosing or self._connection_polling or
+                (isinstance(self.screen, ModalScreen) and not isinstance(self.screen, ConnectionNotice))):
+            return
+        self._connection_polling = True
+        self._inspect_connection_periodically(self._connection_generation)
+
+    @work(thread=True, exclusive=True, group="connection-monitor")
+    def _inspect_connection_periodically(self, generation: int) -> None:
+        try:
+            result = poll_connection()
+        except Exception:
+            result = ConnectionStatus("adb_error")
+        try:
+            self.call_from_thread(self._connection_polled, result, generation)
+        except RuntimeError:
+            pass  # The app was closed while the ADB command was in flight.
+
+    def _connection_polled(self, result: ConnectionStatus, generation: int | None = None) -> None:
+        if generation is not None and generation != self._connection_generation:
+            return
+        self._connection_polling = False
+        if (self.busy or self._diagnosing or
+                (isinstance(self.screen, ModalScreen) and not isinstance(self.screen, ConnectionNotice))):
+            return
+        previous = self._connection_state
+        self._connection_state = result
+        changed = previous != result
+        if result.state == "connected":
+            label = "Android connected (ADB)" if len(result.devices) == 1 else "Multiple ADB devices"
+            self.query_one("#device", Static).update("Device  •  " + label)
+            if changed and previous and previous.state != "connected":
+                self.notify("Android connected. Run Check Device & Offers.")
+            if isinstance(self.screen, ConnectionNotice):
+                self.screen.dismiss(None)
+        else:
+            self.query_one("#device", Static).update("Device  •  Not connected")
+        # Compare against the device Step 1 actually checked, not the older
+        # idle observation. ADB polling alone never enables paid steps.
+        checked_device_missing = self._offer_check_ready and (
+            not self._offer_ready_device or self._offer_ready_device not in result.devices
+        )
+        if (result.state != "connected" or checked_device_missing or
+                (not self._offer_check_ready and previous and previous.state == "connected" and changed)):
+            self._offer_check_ready = False
+            self._initial_offer_ready = False
+            self._offer_ready_device = None
+            self.sequence = False
+            self.query_one("#next", Button).display = False
+            self.query_one("#next", Button).disabled = True
+            self.query_one("#quickstart", Button).display = True
+            self.query_one("#quickstart", Button).label = "Check Device & Offers"
+            self._update_run_mode()
+        if result.state in ("missing_adb", "disconnected", "adb_error") and changed:
+            if isinstance(self.screen, ConnectionNotice):
+                return
+            if result.state == "missing_adb":
+                guidance = ("Run Check Device & Offers to prepare ADB on Windows. On macOS, "
+                            "install Android SDK Platform-Tools and reconnect Android.")
+                title = "ADB not found"
+            elif result.state == "adb_error":
+                title = "ADB is not responding"
+                guidance = "Check the ADB installation, then run Check Device & Offers."
+            else:
+                title = "Android is not connected"
+                guidance = "Start MuMu, enable ADB debugging and approve any Android authorization prompt. The connection will be checked again automatically."
+            self.push_screen(ConnectionNotice(title, guidance))
 
     @on(Button.Pressed, "#advanced_toggle")
     def advanced_pressed(self) -> None:
@@ -332,8 +543,30 @@ class GoogleAITUI(App[None]):
         panel = self.query_one("#workflow_actions", Vertical)
         panel.display = self.advanced_visible
         self.query_one("#advanced_toggle", Button).label = (
-            "Hide advanced steps  −" if self.advanced_visible
-            else "Advanced: Run by step  +"
+            "Hide step selection  −" if self.advanced_visible
+            else "Choose another step  +"
+        )
+        target = "#mode_hint" if self.advanced_visible else "#advanced_toggle"
+        self.call_after_refresh(
+            lambda: self._reveal_step_control(target)
+        )
+
+    def _reveal_step_control(self, selector: str) -> None:
+        self.query_one(selector).scroll_visible(animate=False, immediate=True)
+        if selector == "#run":
+            # Keep the bottom border inside the viewport on compact terminals.
+            self.query_one("#results").scroll_relative(y=1, animate=False, immediate=True)
+
+    def toggle_more_modes(self) -> None:
+        if self.busy or self._diagnosing:
+            return
+        self.more_modes_visible = not self.more_modes_visible
+        self.query_one("#mode_field", Vertical).display = self.more_modes_visible
+        if not self.more_modes_visible:
+            self.query_one("#mode", Select).value = "single"
+        self._update_run_mode()
+        self.call_after_refresh(
+            lambda: self._reveal_step_control("#mode_hint")
         )
 
     @on(Select.Changed, "#mode")
@@ -342,6 +575,14 @@ class GoogleAITUI(App[None]):
 
     @on(Select.Changed, "#step")
     def step_changed(self, event: Select.Changed) -> None:
+        if event.value == 99:
+            # Access advanced modes through the existing dropdown: never
+            # attempt to run this synthetic menu item as a stage.
+            self.query_one("#step", Select).value = self._last_selected_step
+            self.toggle_more_modes()
+            return
+        if isinstance(event.value, int) and event.value in range(6):
+            self._last_selected_step = event.value
         self._update_run_mode()
 
     def _update_run_mode(self) -> None:
@@ -350,18 +591,24 @@ class GoogleAITUI(App[None]):
         mode = self.query_one("#mode", Select).value
         step = self.query_one("#step", Select).value
         if mode == "all":
+            if self.query_one("#step", Select).value != 2:
+                self.query_one("#step", Select).value = 2
             self.query_one("#step", Select).disabled = True
-            self.query_one("#run", Button).label = "Run all: Steps 2-5"
-            hint = "Starts Step 2; requires review before every later checkout."
+            self.query_one("#run", Button).label = "Start Step 2"
+            hint = "After each step, review Google Play before continuing."
         elif mode == "from":
             self.query_one("#step", Select).disabled = False
-            self.query_one("#run", Button).label = "Run from selected step"
-            hint = ("Choose Step 2-5. Each later checkout requires verification."
-                    if step in (0, 1) else "Continue from this step; verify each checkout before Next.")
+            self.query_one("#run", Button).label = "Run this step"
+            hint = ("Choose Step 2–5 to continue through later steps."
+                    if step in (0, 1) else "After this step, verify Google Play before the next one.")
         else:
             self.query_one("#step", Select).disabled = False
-            self.query_one("#run", Button).label = "Run selected step"
-            hint = "Run only this step. Steps 2-5 can request real payment."
+            self.query_one("#run", Button).label = "Run this step"
+            hint = "Only this step will run. Steps 2–5 can request payment."
+        paid_selected = mode == "all" or (mode in ("single", "from") and step in (2, 3, 4, 5))
+        self.query_one("#run", Button).disabled = paid_selected and not self._offer_check_ready
+        if paid_selected and not self._offer_check_ready:
+            hint = "First run Check Device & Offers successfully to unlock Steps 2-5."
         self.query_one("#mode_hint", Static).update(hint)
 
     def action_toggle_advanced(self) -> None:
@@ -396,7 +643,11 @@ class GoogleAITUI(App[None]):
 
     def _confirm_stage(self, step: int, sequence: bool,
                        previous_verified: bool = False) -> None:
-        if self.busy:
+        if self.busy or self._diagnosing:
+            return
+        if step >= 2 and not self._offer_check_ready:
+            self._set_status("Check Device & Offers first")
+            self._set_message("Connect Android and complete the offer check before starting a paid step.")
             return
         if step == 2:
             title = "Start initial 12-month checkout?"
@@ -432,11 +683,14 @@ class GoogleAITUI(App[None]):
 
     @on(Button.Pressed, "#quickstart")
     def quickstart_pressed(self) -> None:
-        self._confirm_stage(1, False)
+        if self._initial_offer_ready and self._offer_check_ready:
+            self._confirm_stage(2, True)
+        else:
+            self._confirm_stage(1, False)
 
     @on(Button.Pressed, "#run")
     def selected_pressed(self) -> None:
-        if self.busy:
+        if self.busy or self._diagnosing:
             return
         mode = self.query_one("#mode", Select).value
         if mode == "all":
@@ -559,8 +813,21 @@ class GoogleAITUI(App[None]):
             self.query_one("#exit", Button).disabled = True
 
     def _start(self, step: int, sequence: bool) -> None:
-        if self.busy:
+        if self.busy or self._diagnosing:
             return
+        if step >= 2 and not self._offer_check_ready:
+            self._set_status("Check Device & Offers first")
+            self._set_message("Connect Android and complete the offer check before starting a paid step.")
+            return
+        self._invalidate_connection_polls()
+        self._checked_device = None
+        if step <= 1:
+            self._offer_check_ready = False
+            self._initial_offer_ready = False
+            self._offer_ready_device = None
+        else:
+            self._initial_offer_ready = False
+        self.query_one("#quickstart", Button).label = "Check Device & Offers"
         self.busy = True
         self.sequence = sequence
         self.current_step = step
@@ -572,11 +839,11 @@ class GoogleAITUI(App[None]):
         self._last_output.clear()
         self._run_output.clear()
         self.query_one("#debug_log", RichLog).clear()
-        self.query_one("#device", Static).update(
-            "ANDROID DEVICE\nADB • Auto-detect" if self.macos_mode
-            else "ANDROID DEVICE\nMuMu • Auto-detect"
-        )
-        self.query_one("#account", Static).update("GOOGLE ACCOUNT\nNot checked")
+        self.query_one("#offer_view", RichLog).clear()
+        self.query_one("#offer_view", RichLog).display = False
+        self.query_one("#offers_title", Static).display = False
+        self.query_one("#device", Static).update("Device  •  Auto-detect")
+        self.query_one("#account", Static).update("Account  •  Not checked")
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True
         self._started_at = time.monotonic()
@@ -587,6 +854,8 @@ class GoogleAITUI(App[None]):
             else "Connecting to MuMu and preparing tools..."
         )
         self.query_one("#quickstart", Button).disabled = True
+        self.query_one("#diagnose", Button).disabled = True
+        self.query_one("#quickstart", Button).display = True
         self.query_one("#run", Button).disabled = True
         self.query_one("#sequence", Button).disabled = True
         self.query_one("#mode", Select).disabled = True
@@ -666,6 +935,8 @@ class GoogleAITUI(App[None]):
             report = read_fresh_report(self.repo / "ultra0-report", step, started,
                                        expected_account=self._verified_account)
             result = outcome_for_stage(step, return_code, report)
+            if return_code != 0 or result.code in ("missing_report", "tool_error"):
+                result = cli_issue_outcome(list(self._run_output), step) or result
             self.call_from_thread(self._finished, step, result, report)
         except Exception as error:
             result = Outcome("exception", "Could not start the tool",
@@ -699,8 +970,12 @@ class GoogleAITUI(App[None]):
             btn.display = True
             btn.disabled = False
             self._set_message("Complete the requested action on Android, then click Completed.")
-        if re.search(r"\bDevice\s+(emulator-\d+|[0-9.]+:\d+)\s*$", line):
-            self.query_one("#device", Static).update("Device  •  " + escape(line.split()[-1]))
+        selected_device = re.search(
+            r"\b(?:Connected ADB device:|Device)\s+([A-Za-z0-9._:/-]{1,90})\s*$", line
+        )
+        if selected_device:
+            self._checked_device = selected_device.group(1)
+            self.query_one("#device", Static).update("Device  •  " + escape(self._checked_device))
         # Trust only the structured PowerShell "Account <email>" status line,
         # not arbitrary log messages containing an email address.
         account = re.match(
@@ -726,10 +1001,36 @@ class GoogleAITUI(App[None]):
 
     def _finished(self, step: int, outcome: Outcome, report: dict | None) -> None:
         self.busy = False
+        if step == 1:
+            detected = str((report or {}).get("detected_play_account") or "").strip().lower()
+            verified = (self._verified_account or "").strip().lower()
+            offers = (report or {}).get("offers")
+            self._offer_check_ready = bool(
+                outcome.code == "listed" and isinstance(offers, list) and offers
+                and verified and (not detected or detected == verified)
+                and self._checked_device
+            )
+            self._offer_ready_device = self._checked_device if self._offer_check_ready else None
+            if self._offer_ready_device:
+                # The Stage 1 transport is authoritative; the previous idle
+                # poll may describe a different device from before the check.
+                self._connection_state = ConnectionStatus("connected", (self._offer_ready_device,))
+            self._initial_offer_ready = bool(self._offer_check_ready and any(
+                isinstance(offer, dict) and offer.get("id") == "12months-eft"
+                and str(offer.get("micros")) == "0" for offer in offers
+            ))
+        elif step == 0 or outcome.code != "checkout_requested":
+            self._offer_check_ready = False
+            self._initial_offer_ready = False
+            self._offer_ready_device = None
         self._last_outcome = outcome
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True
         self.query_one("#quickstart", Button).disabled = False
+        self.query_one("#quickstart", Button).label = (
+            "Continue to Step 2" if self._initial_offer_ready else "Check Device & Offers"
+        )
+        self.query_one("#diagnose", Button).disabled = False
         self.query_one("#run", Button).disabled = False
         self.query_one("#sequence", Button).disabled = False
         self.query_one("#mode", Select).disabled = False
@@ -743,6 +1044,10 @@ class GoogleAITUI(App[None]):
         self._set_workflow(step, "done" if outcome.code in ("listed", "environment_ok") else "review")
         self._set_status(outcome.title)
         instruction = outcome.instruction
+        if step == 1 and outcome.code == "listed" and not self._offer_check_ready:
+            instruction += " Verify the Play account and run the check again before starting a paid step."
+        elif step == 1 and self._offer_check_ready and not self._initial_offer_ready:
+            instruction += " The 12-month offer was not found with a zero-priced first phase; review available offers."
         if outcome.code in ("tool_error", "exception", "missing_report", "setup_failed"):
             diagnostic = self._visible_failure()
             if diagnostic:
@@ -750,6 +1055,13 @@ class GoogleAITUI(App[None]):
         self._set_message(instruction)
         if step == 1:
             self.query_one("#step_result", Static).update(report_summary(report))
+            if isinstance(report, dict):
+                offer_view = self.query_one("#offer_view", RichLog)
+                offer_view.clear()
+                for item in offer_explorer_lines(report):
+                    offer_view.write(item)
+                offer_view.display = True
+                self.query_one("#offers_title", Static).display = True
             if self.macos_mode and isinstance(report, dict):
                 detected = report.get("detected_play_account")
                 if isinstance(detected, str) and detected:
@@ -759,12 +1071,27 @@ class GoogleAITUI(App[None]):
         if outcome.can_review and self.sequence and step < 5 and not self._stop_after_step:
             self.query_one("#next", Button).disabled = False
             self.query_one("#next", Button).display = True
+            self.query_one("#quickstart", Button).display = False
         else:
             self.query_one("#next", Button).disabled = True
             self.query_one("#next", Button).display = False
+            self.query_one("#quickstart", Button).display = True
             self.sequence = False
         if self._exit_after_step:
             self.exit()
+            return
+        if step == 1 and self._initial_offer_ready:
+            self.push_screen(CheckComplete(), lambda proceed: self._confirm_stage(2, True) if proceed else None)
+            return
+        if step == 1 and outcome.code == "listed" and not self._initial_offer_ready:
+            self.push_screen(SetupNotice("Review the offer check", instruction))
+            return
+        if step <= 1 and outcome.code in {
+            "device_missing", "device_ambiguous", "app_missing", "adb_missing",
+            "python_missing", "runtime_lookup_failed", "account_unavailable",
+            "account_mismatch", "offer_query_failed", "offers_unavailable",
+        }:
+            self.push_screen(SetupNotice(outcome.title, outcome.instruction))
             return
         if outcome.code == "checkout_requested":
             self.notify("Review the actual subscription in Google Play.", severity="warning")
