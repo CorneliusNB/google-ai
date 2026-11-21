@@ -55,7 +55,7 @@ function Get-UserIssue {
         "subscribe_button_not_found" {
             return [pscustomobject]@{
                 Title = "The checkout button was not found"
-                Action = "Check the Google Play screen. No Subscribe action was confirmed."
+                Action = "Check Google Play pricing, subscriptions, and payment history. No Subscribe action or subscription update was verified."
             }
         }
         "offer_not_available" {
@@ -218,12 +218,6 @@ function Get-UserIssue {
             return [pscustomobject]@{
                 Title = "Could not prepare the subscription change"
                 Action = "Review the existing Google Play subscription before another paid attempt."
-            }
-        }
-        "subscribe_button_not_found" {
-            return [pscustomobject]@{
-                Title = "Could not find the checkout confirmation button"
-                Action = "Check Google Play pricing and payment history; no update was verified."
             }
         }
         "checkout_not_visible" {
