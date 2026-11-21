@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from tui_core import (
     cli_issue_outcome, command_for_step, mask_email, needs_setup, outcome_for_stage,
-    readable_issue_line, read_fresh_report, report_summary, validate_step,
+    readable_issue_line, read_fresh_report, report_summary, runtime_error_outcome, validate_step,
 )
 
 
@@ -27,7 +27,8 @@ class CoreTests(unittest.TestCase):
 
     def test_cli_error_rejects_untrusted_text(self):
         self.assertIsNone(cli_issue_outcome(["EPLUS_ISSUE:app_missing private@example.com"], 1))
-        self.assertIsNone(cli_issue_outcome(["EPLUS_ISSUE:unknown"], 1))
+        self.assertEqual(cli_issue_outcome(["EPLUS_ISSUE:unknown"], 1).title,
+                         "Could not complete this step")
 
     def test_launch_error_has_friendly_title_and_next_action(self):
         for code, phrase in (
@@ -67,8 +68,59 @@ class CoreTests(unittest.TestCase):
         # Do not accept untrusted or malformed markers containing account data.
         self.assertEqual(
             readable_issue_line("EPLUS_ISSUE:launch_failed person@example.com"),
-            "EPLUS_ISSUE:launch_failed person@example.com",
+            "The step could not be completed. Review the status and open technical details.",
         )
+    def test_every_known_engine_failure_has_user_guidance(self):
+        statuses = (
+            "add_account_failed", "add_account_error",
+            "payment_method_not_confirmed", "account_unverified",
+            "wrong_account", "play_account_switch_failed", "app_not_started",
+            "offer_query_failed", "checkout_security_blocked",
+            "checkout_not_confirmed", "launch_failed", "billing_flow_error",
+            "billing_launch_error", "activity_lookup_failed", "no_activity",
+            "subscription_update_unavailable", "ineligible",
+            "purchase_unavailable", "today_price_unverified",
+            "trial_duration_unverified", "already_subscribed",
+            "processing", "backup_payment_methods_prompt",
+            "subscribe_button_not_found", "checkout_not_visible",
+        )
+        for status in statuses:
+            with self.subTest(status=status):
+                result = outcome_for_stage(3, 0, {"status": status})
+                self.assertNotIn("Could not verify this step", result.title)
+                self.assertTrue(result.instruction)
+                self.assertFalse(result.can_review)
+                self.assertNotIn("EPLUS_ISSUE:", result.instruction)
+                self.assertNotEqual(report_summary({"status": status}), status)
+
+    def test_macos_runtime_failures_are_mapped_to_safe_guidance(self):
+        examples = {
+            "ADB is missing. Install Android SDK Platform-Tools.": "adb_missing",
+            "No online Android device. Check adb devices.": "device_missing",
+            "Multiple different Android devices detected. Disconnect extras.": "device_ambiguous",
+            "Frida 16.5.9 required (found none).": "frida_missing",
+            "Google Play account changed during checks; stop before checkout": "account_mismatch",
+            "Google Play account lookup failed; no checkout started": "account_unavailable",
+            "Google Play offer listing failed; checkout not started": "offer_query_failed",
+            "Step 3 offer 6months-eft has no verified zero-priced first phase.": "offer_not_available",
+            "A new matching report was not produced": "report_missing",
+            "Android environment checks failed; no checkout started": "environment_failed",
+            "Explicit checkout and existing-plan confirmations required": "confirmation_required",
+        }
+        for error, code in examples.items():
+            with self.subTest(code=code):
+                result = runtime_error_outcome(error, 3)
+                self.assertEqual(result.code, code)
+                self.assertTrue(result.title)
+                self.assertIn("Google Play", result.instruction) if code not in (
+                    "adb_missing", "device_missing", "device_ambiguous", "frida_missing",
+                    "confirmation_required",
+                ) else None
+                self.assertFalse(result.can_review)
+        fallback = runtime_error_outcome("Unexpected private error@example.com", 2)
+        self.assertEqual(fallback.code, "unknown")
+        self.assertNotIn("error@example.com", fallback.instruction)
+
     def test_setup_only_when_pinned_frida_is_missing(self):
         with patch("tui_core.importlib.metadata.version", return_value="16.5.9"):
             self.assertFalse(needs_setup())
