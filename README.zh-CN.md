@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: 73bbcbf87166f1ad85cac1b0391def2e35b6f038 -->
+<!-- Source README.md git-blob: 041b8b3ff864dfeddadb82ae59ff6f7a803934dc -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -111,6 +111,12 @@ sh run-macos.sh
 
 
 点击 **Check Device & Offers** 执行 **Step 1 — Available offers**：查询优惠，**不会发起订阅结账**。可通过 **Live Status** 和 **Show technical details** 查看进度。如果 30 秒内没有新日志，程序会给出提醒，但这**不一定表示程序卡住了**。
+
+界面空闲时，工具约每 5 秒检查一次现有 ADB 连接。找不到 ADB 或 Android 设备时，会弹窗说明处理方法；工具会继续检查并更新设备状态。重新连接本身不会解锁付款步骤。执行步骤或显示其他对话框时，监测会暂停。工具不会在后台安装或连接设备，但 `adb devices` 可能启动电脑上的本地 ADB 服务。
+
+在 Windows 上，运行 **Check Device & Offers** 时，工具会查找 ADB，必要时尝试下载官方 Android SDK Platform-Tools。下载或安装可能失败，请通过 **Show technical details** 查看详情。macOS 请按 Mac 指南安装 Platform-Tools。MuMu 需要自行安装和启动，并启用 root、ADB 调试，登录 Google Play 与 Google One。
+
+只有新的 Step 1 检查返回优惠并确认 Play 账号后，Step 2–5 才会解锁。如果 12 个月优惠 `12months-eft` 的首期价格为 0，完成弹窗和主界面会显示 **Continue to Step 2**；否则请查看优惠列表。该按钮只会打开单独的确认窗口，并不保证账号符合条件或最终费用为零。提交付款请求后，请先在 Google Play 核对订阅、续费日期和实际费用，再选择 **Verified in Google Play → Next**。后续每一步都需要单独确认。重新检查、付款步骤失败或设备变化可能使付款步骤重新锁定。
 
 在 **Choose another step** 中，可选择：
 

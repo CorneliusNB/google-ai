@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: 73bbcbf87166f1ad85cac1b0391def2e35b6f038 -->
+<!-- Source README.md git-blob: 041b8b3ff864dfeddadb82ae59ff6f7a803934dc -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -112,6 +112,12 @@ Lệnh `sh run-macos.sh` mở cùng giao diện Textual với **Steps 0–5**. `
 Nhấn **Check Device & Offers** để chạy **Step 1 — Available offers** và kiểm tra ưu đãi mà **không bắt đầu thanh toán**. Bạn có thể theo dõi tiến trình tại **Live Status**, chọn **Show technical details** để xem thông tin kỹ thuật và kiểm tra đúng tài khoản trong Google Play. Nếu 30 giây không có thông báo mới, công cụ sẽ cảnh báo; điều đó **chưa có nghĩa là chương trình đã bị treo**.
 
 Step 1 không mua hàng, nhưng quá trình chuẩn bị vẫn có thể tải hoặc sửa ADB/Frida và thay đổi cấu hình máy ảo hoặc mạng. **Step 0 — Environment cũng có thể thay đổi môi trường trên máy**, nên không được xem là thao tác hoàn toàn chỉ đọc. Thanh bên hiển thị sáu bước; thông tin trong Android Device và Google Account được lấy từ kết quả thực tế, đồng thời che bớt dữ liệu nhận dạng tài khoản. Những terminal có hỗ trợ liên kết sẽ cho phép mở trang của tác giả gốc và người duy trì.
+
+Khi giao diện đang rảnh, công cụ kiểm tra các kết nối ADB hiện có khoảng 5 giây/lần. Nếu không tìm thấy ADB hoặc thiết bị Android, popup sẽ hướng dẫn cách xử lý. Công cụ tiếp tục kiểm tra và cập nhật trạng thái thiết bị; kết nối lại không tự mở khóa bước thanh toán. Việc theo dõi tạm dừng khi một bước đang chạy hoặc có hộp thoại khác. Công cụ không cài hay tự kết nối thiết bị ở chế độ nền, dù lệnh `adb devices` có thể khởi động máy chủ ADB trên máy tính.
+
+Trên Windows, khi chạy **Check Device & Offers**, công cụ tìm ADB và thử tải Android SDK Platform-Tools chính thức nếu cần. Quá trình tải hoặc cài có thể thất bại; hãy xem **Show technical details** khi gặp lỗi. Trên macOS, cài Platform-Tools theo hướng dẫn dành cho Mac. Người dùng cần tự cài và mở MuMu, bật root và ADB debugging, rồi đăng nhập Google Play và Google One.
+
+Step 2–5 chỉ được mở khóa khi lần kiểm tra Step 1 mới nhất trả về ưu đãi và xác nhận được tài khoản Play. Nếu có ưu đãi 12 tháng `12months-eft` với kỳ đầu giá 0, popup hoàn tất và màn hình chính sẽ hiển thị **Continue to Step 2**; nếu không, hãy xem danh sách ưu đãi. Nút này mở hộp xác nhận riêng, chưa chứng minh tài khoản đủ điều kiện hay chi phí cuối cùng. Sau khi gửi yêu cầu thanh toán, hãy kiểm tra gói, ngày gia hạn và khoản phí thực tế trong Google Play trước khi chọn **Verified in Google Play → Next**. Mỗi bước tiếp theo đều cần xác nhận riêng. Kiểm tra lại, bước thanh toán thất bại hoặc thay đổi thiết bị có thể khóa lại các bước thanh toán.
 
 Mục **Choose another step** gồm:
 

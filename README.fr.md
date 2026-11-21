@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Français
 
-<!-- Source README.md git-blob: 73bbcbf87166f1ad85cac1b0391def2e35b6f038 -->
+<!-- Source README.md git-blob: 041b8b3ff864dfeddadb82ae59ff6f7a803934dc -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
@@ -112,6 +112,12 @@ Lorsqu'une étape est en cours, les commandes **Check Device & Offers**, **Run**
 
 
 **Check Device & Offers** exécute **Step 1 — Available offers**, pour consulter les offres **sans déclencher de paiement**. Surveillez **Live Status** et **Show technical details** ; l'absence de nouveaux journaux pendant 30 secondes ne signifie pas forcément que l'outil est bloqué.
+
+Lorsque l’interface est inactive, l’outil vérifie les connexions ADB existantes environ toutes les cinq secondes. Si ADB ou l’appareil Android est introuvable, une fenêtre indique les vérifications à effectuer. La recherche continue automatiquement et l’état de l’appareil est mis à jour ; une reconnexion ne déverrouille pas à elle seule les étapes de paiement. La surveillance est suspendue pendant une étape ou l’affichage d’une autre boîte de dialogue. Elle n’installe ni ne connecte d’appareil en arrière-plan, même si `adb devices` peut démarrer le serveur ADB local.
+
+Sous Windows, **Check Device & Offers** recherche ADB et tente, si nécessaire, de télécharger les Android SDK Platform-Tools officiels. Le téléchargement ou l’installation peut échouer : consultez **Show technical details** en cas d’erreur. Sous macOS, installez Platform-Tools selon les instructions pour Mac. Installez et démarrez MuMu séparément, activez root et le débogage ADB, puis connectez-vous à Google Play et à Google One.
+
+Les étapes 2–5 ne sont déverrouillées qu’après une nouvelle vérification de l’étape 1 ayant retourné des offres et confirmé le compte Play. Si l’offre de 12 mois `12months-eft` comporte une première période à 0, la fenêtre de résultat et l’écran principal affichent **Continue to Step 2** ; sinon, consultez la liste des offres. Ce bouton ouvre une confirmation distincte et ne garantit ni l’éligibilité ni le coût final. Après la demande de paiement, vérifiez l’abonnement, la date de renouvellement et les frais réels dans Google Play avant de choisir **Verified in Google Play → Next**. Chaque étape suivante exige une confirmation distincte. Une nouvelle vérification, l’échec d’une étape de paiement ou un changement d’appareil peut verrouiller à nouveau les étapes de paiement.
 
 Dans **Choose another step** :
 

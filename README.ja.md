@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 日本語
 
-<!-- Source README.md git-blob: 73bbcbf87166f1ad85cac1b0391def2e35b6f038 -->
+<!-- Source README.md git-blob: 041b8b3ff864dfeddadb82ae59ff6f7a803934dc -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -111,6 +111,12 @@ sh run-macos.sh
 
 
 **Check Device & Offers** を押すと **Step 1 — Available offers** が実行され、オファーを照会します。**購入処理は開始しません**。**Live Status** と **Show technical details** で進行状況を確認します。ログ更新が 30 秒ない場合の警告は、フリーズの確定ではありません。
+
+画面が待機中は、既存の ADB 接続を約5秒ごとに確認します。ADB または Android 端末が見つからない場合は、対処方法をポップアップで案内します。確認は自動的に続き、端末の状態が更新されますが、再接続だけで決済ステップは解除されません。ステップ実行中や別のダイアログ表示中は監視を一時停止します。バックグラウンドでのインストールや端末への接続は行いませんが、`adb devices` により PC 上の ADB サーバーが起動する場合があります。
+
+Windows で **Check Device & Offers** を実行すると ADB を探し、必要に応じて公式の Android SDK Platform-Tools のダウンロードを試みます。ダウンロードやインストールに失敗した場合は **Show technical details** を確認してください。macOS では Mac 向けの手順で Platform-Tools をインストールします。MuMu は別途インストールして起動し、root と ADB デバッグを有効にして、Google Play と Google One にログインしてください。
+
+新しい Step 1 の確認でオファーが取得され、Play アカウントが確認できた場合に限り、Step 2–5 が解除されます。12か月オファー `12months-eft` の初回期間が 0 の場合は、完了ポップアップとメイン画面に **Continue to Step 2** が表示されます。それ以外の場合はオファー一覧を確認してください。このボタンは別の確認画面を開くだけで、適用資格や最終料金を保証するものではありません。決済リクエスト後は Google Play で契約、更新日、実際の料金を確認してから **Verified in Google Play → Next** を選んでください。以降の各ステップでも個別の確認が必要です。再確認、決済ステップの失敗、端末の変更により、決済ステップが再びロックされる場合があります。
 
 **Choose another step** のモード：
 

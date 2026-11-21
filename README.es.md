@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: 73bbcbf87166f1ad85cac1b0391def2e35b6f038 -->
+<!-- Source README.md git-blob: 041b8b3ff864dfeddadb82ae59ff6f7a803934dc -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -112,6 +112,12 @@ Mientras se ejecuta un paso, se desactivan **Check Device & Offers**, **Run** y 
 
 
 **Check Device & Offers** ejecuta **Step 1 — Available offers**: consulta ofertas y **no inicia el pago**. Supervisa **Live Status** y **Show technical details**; 30 segundos sin nuevos mensajes no implican necesariamente un bloqueo.
+
+Mientras la interfaz está inactiva, la herramienta comprueba las conexiones ADB existentes aproximadamente cada cinco segundos. Si no encuentra ADB o el dispositivo Android, muestra una ventana con indicaciones. Sigue comprobando y actualiza el estado del dispositivo; reconectarlo no desbloquea por sí solo los pasos de pago. La supervisión se pausa durante un paso o mientras hay otros diálogos abiertos. No instala ni conecta dispositivos en segundo plano, aunque `adb devices` puede iniciar el servidor ADB local.
+
+En Windows, al ejecutar **Check Device & Offers**, la herramienta busca ADB y, si hace falta, intenta descargar Android SDK Platform-Tools oficial. La descarga o instalación puede fallar; consulta **Show technical details** si ocurre. En macOS, instala Platform-Tools siguiendo las instrucciones para Mac. Instala e inicia MuMu por separado, activa root y la depuración ADB e inicia sesión en Google Play y Google One.
+
+Los pasos 2–5 solo se desbloquean cuando una nueva comprobación del paso 1 devuelve ofertas y verifica la cuenta de Play. Si la oferta de 12 meses `12months-eft` tiene una primera fase de precio 0, la ventana de resultado y la pantalla principal muestran **Continue to Step 2**; de lo contrario, revisa la lista. Este botón abre una confirmación independiente y no garantiza la elegibilidad ni el coste final. Tras solicitar el pago, comprueba la suscripción, la fecha de renovación y los cargos reales en Google Play antes de elegir **Verified in Google Play → Next**. Cada paso posterior requiere una confirmación propia. Una nueva comprobación, un fallo en un paso de pago o un cambio de dispositivo pueden bloquear de nuevo los pasos de pago.
 
 En **Choose another step**:
 

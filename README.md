@@ -123,6 +123,12 @@ The macOS adapter exposes **Steps 0–5**. **Steps 2–5 may initiate real Googl
 3. Check the account and offer information on the Android screen. A listed offer is **not** a guarantee of eligibility or a successful subscription.
 4. Expand **Choose another step** only when you deliberately need to select a different stage.
 
+While the dashboard is idle, it checks existing ADB connections about every five seconds. If ADB or Android is unavailable, a popup explains what to check. It checks again automatically and updates the device status; reconnecting alone does not unlock paid steps. Monitoring pauses during a running step and other dialogs. It does not install or connect devices in the background, though `adb devices` may start the local ADB server.
+
+On Windows, **Check Device & Offers** looks for ADB and, if necessary, attempts to download official Android SDK Platform-Tools. Downloads or installation can fail; check **Show technical details** if they do. On macOS, install Platform-Tools following the Mac instructions. Install and start MuMu separately, enable root and ADB debugging, and sign in to Google Play and Google One.
+
+Steps 2–5 stay locked until a fresh Step 1 check returns offers and verifies the Play account. If the 12-month offer `12months-eft` has a zero-priced first phase, the completion popup and main screen show **Continue to Step 2**. Otherwise, review the listed offers. The button opens a separate approval; it does not prove eligibility or final cost. After checkout, verify the actual subscription, renewal date and charges in Google Play before choosing **Verified in Google Play → Next**. Each later stage requires its own approval. A new check, failed paid stage or device change can lock the paid steps again.
+
 **Important distinction:** Step 1 does not initiate a purchase, but underlying environment preflight can still install or repair ADB/Frida and change emulator/network settings. **Step 0 — Environment** is a setup/diagnostics stage, not a purchase-free guarantee of zero local side effects.
 
 The sidebar lists the six stages. Android Device / Google Account cards update from observed output; account identifiers are masked. Original-author and maintainer credits link to their GitHub profiles in supported terminals.

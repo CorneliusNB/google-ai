@@ -93,6 +93,14 @@ class ReadmeSourceParityTests(unittest.TestCase):
                 self.assertIn("24", localized)
                 self.assertIn("Step 5", localized)
 
+    def test_connection_and_step_two_flow_documented_in_all_locales(self):
+        for name in ("README.md", *(f"README.{locale}.md" for locale in LOCALES)):
+            with self.subTest(name=name):
+                content = (ROOT / name).read_text(encoding="utf-8")
+                for label in ("adb devices", "12months-eft", "Continue to Step 2",
+                              "Verified in Google Play → Next", "More run options"):
+                    self.assertIn(label, content)
+
     def test_english_alias_links_to_root_source(self):
         self.assertIn("(README.md)", (ROOT / "README.en.md").read_text(encoding="utf-8"))
 
