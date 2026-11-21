@@ -219,6 +219,30 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         await pilot.pause()
                         self.assertEqual(app.query_one("#mode", Select).value, "single")
 
+    async def test_run_hint_sits_below_the_run_button_not_beside_it(self):
+        from tui import GoogleAITUI
+        for size in ((110, 35), (90, 20)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                with patch.object(GoogleAITUI, "_confirm_stage"):
+                    async with app.run_test(size=size) as pilot:
+                        app.advanced_pressed()
+                        # Windows runners can need several refreshes for the
+                        # deferred scroll and layout to settle.
+                        for _ in range(30):
+                            await pilot.pause(0.1)
+                            viewport = app.query_one("#results").region
+                            hint = app.query_one("#mode_hint").region
+                            if viewport.y <= hint.y and hint.bottom <= viewport.bottom:
+                                break
+                        run = app.query_one("#run").region
+                        hint = app.query_one("#mode_hint").region
+                        self.assertGreaterEqual(hint.y, run.bottom)
+                        viewport = app.query_one("#results").region
+                        for region in (run, hint):
+                            self.assertGreaterEqual(region.y, viewport.y)
+                            self.assertLessEqual(region.bottom, viewport.bottom)
+
     async def test_connection_monitor_warns_once_and_recovers_without_unlocking_checkout(self):
         from tui import GoogleAITUI, ConnectionNotice
         from device_diagnostics import ConnectionStatus
