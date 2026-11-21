@@ -120,7 +120,7 @@ sh run-macos.sh
 
 在 **Choose another step** 中，可选择：
 
-默认只执行所选步骤。选择 **More run options** 可使用引导式流程。
+默认只执行所选步骤。在 **Choose another step** 的步骤下拉列表底部选择 **More run options…**，即可显示引导式运行模式。
 
 | 模式 | 行为 |
 | --- | --- |
