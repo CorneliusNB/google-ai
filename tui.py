@@ -35,10 +35,11 @@ class Approval(ModalScreen[bool]):
     CSS = """
     Approval { align: center middle; background: #070d19 75%; }
     #approval_card {
-        width: 66; max-width: 92%; height: auto;
-        padding: 2 3; background: #15243a; border: round #3d6383;
+        width: 66; max-width: 92%; height: auto; max-height: 95%;
+        padding: 1 3; background: #15243a; border: round #3d6383;
     }
     #approval_title { text-style: bold; color: #ebf5ff; margin-bottom: 1; }
+    #approval_scroll { height: auto; max-height: 1fr; }
     #approval_message { color: #c9d8e8; margin-bottom: 2; }
     #approval_actions { height: auto; align-horizontal: right; }
     #approval_actions Button { margin-left: 1; }
@@ -51,7 +52,8 @@ class Approval(ModalScreen[bool]):
     def compose(self) -> ComposeResult:
         with Vertical(id="approval_card"):
             yield Static(self.title_text, id="approval_title")
-            yield Static(self.message_text, id="approval_message")
+            with VerticalScroll(id="approval_scroll", can_focus=True):
+                yield Static(self.message_text, id="approval_message")
             with Horizontal(id="approval_actions"):
                 yield Button("Cancel", id="cancel")
                 yield Button("Continue", id="approve", variant="warning")

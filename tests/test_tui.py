@@ -151,6 +151,23 @@ class CoreTests(unittest.TestCase):
 
 
 class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_checkout_dialog_fits_compact_terminal(self):
+        from tui import GoogleAITUI, Approval
+        for size in ((90, 20), (60, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    app._offer_check_ready = True
+                    app._confirm_stage(2, False)
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, Approval)
+                    card = app.screen.query_one("#approval_card").region
+                    self.assertGreaterEqual(card.y, 0)
+                    self.assertLessEqual(card.bottom, size[1])
+                    for selector in ("#cancel", "#approve", "#approval_scroll"):
+                        region = app.screen.query_one(selector).region
+                        self.assertGreaterEqual(region.y, card.y)
+                        self.assertLessEqual(region.bottom, card.bottom)
     async def test_step_picker_defaults_to_one_step_and_hides_extra_options(self):
         from textual.widgets import Button, Select
         from tui import GoogleAITUI
