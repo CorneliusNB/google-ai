@@ -1057,9 +1057,9 @@ class GoogleAITUI(App[None]):
         elif step == 1 and self._offer_check_ready and not self._initial_offer_ready:
             instruction += " The 12-month offer was not found with a zero-priced first phase; review available offers."
         if outcome.code in ("tool_error", "exception", "missing_report", "setup_failed"):
-            diagnostic = self._visible_failure()
-            if diagnostic:
-                instruction = f"{instruction}  Last CLI message: {diagnostic}"
+            # Never echo arbitrary child-process lines on the main status screen:
+            # they can contain internal codes, local paths or private account data.
+            instruction += " Open Show technical details for troubleshooting."
         self._set_message(instruction)
         if step == 1:
             self.query_one("#step_result", Static).update(report_summary(report))
