@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: fd33739d3dfce6447a54761f8ad3f682634de172 -->
+<!-- Source README.md git-blob: 73bbcbf87166f1ad85cac1b0391def2e35b6f038 -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -113,13 +113,15 @@ Nhấn **Check Device & Offers** để chạy **Step 1 — Available offers** v�
 
 Step 1 không mua hàng, nhưng quá trình chuẩn bị vẫn có thể tải hoặc sửa ADB/Frida và thay đổi cấu hình máy ảo hoặc mạng. **Step 0 — Environment cũng có thể thay đổi môi trường trên máy**, nên không được xem là thao tác hoàn toàn chỉ đọc. Thanh bên hiển thị sáu bước; thông tin trong Android Device và Google Account được lấy từ kết quả thực tế, đồng thời che bớt dữ liệu nhận dạng tài khoản. Những terminal có hỗ trợ liên kết sẽ cho phép mở trang của tác giả gốc và người duy trì.
 
-Mục **Advanced: Run by step** gồm:
+Mục **Choose another step** gồm:
+
+Mặc định, công cụ chỉ chạy bước đã chọn. Mở **More run options** nếu muốn tiếp tục theo chuỗi có hướng dẫn.
 
 | Chế độ | Chức năng |
 | --- | --- |
-| **One step only** | Chỉ chạy một bước được chọn từ 0 đến 5 |
-| **From selected step** | Bắt đầu chuỗi có hướng dẫn từ Step 2–5 |
-| **All: Steps 2–5** | Bắt đầu chuỗi từ Step 2; Step 5 là tùy chọn |
+| **Stop after this step** | Chỉ chạy một bước được chọn từ 0 đến 5 |
+| **Offer the next step** | Bắt đầu chuỗi có hướng dẫn từ Step 2–5 |
+| **Start at Step 2** | Bắt đầu chuỗi từ Step 2; Step 5 là tùy chọn |
 
 | Bước | Vai trò | Rủi ro |
 | --- | --- | --- |

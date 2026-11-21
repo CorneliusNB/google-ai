@@ -12,7 +12,7 @@ While idle, the dashboard checks existing ADB connections roughly every five sec
 2. Watch **Live Status** for the stage, elapsed time, current activity and result. **Show technical details** reveals execution output. A warning after 30 seconds without new output indicates inactivity, **not proof of a hang**.
 3. Check the account and offer information on the Android screen. A listed offer is **not** a guarantee of eligibility or a successful subscription.
 4. If the verified account has a listed 12-month offer with a zero-priced first phase, choose **Continue to Step 2** in the completion dialog or on the main screen. A separate approval explains the payment risk before the step starts. If the offer is absent, review the listed offers instead.
-5. Expand **Advanced: Run by step** only when you deliberately need to select a different stage.
+5. Expand **Choose another step** only when you deliberately need to select a different stage.
 
 Steps 2–5 stay locked until a fresh offer check returns offers and verifies the Play account. A new check or failed paid stage locks them again. The engine rechecks the device, account and chosen offer before a paid action; the earlier check does not guarantee eligibility or connectivity.
 
@@ -22,13 +22,15 @@ On Windows, running the check locates ADB or attempts to download official Andro
 
 The sidebar lists the six stages. Android Device / Google Account cards update from observed output; account identifiers are masked. Original-author and maintainer credits link to their GitHub profiles in supported terminals.
 
-### Advanced run modes
+### Additional run options
+
+By default, only the selected step runs. Open **More run options** to choose a guided sequence.
 
 | Mode | Behavior |
 | --- | --- |
-| **One step only** | Runs only the selected Step **0–5**. |
-| **From selected step** | Begins a guided checkout sequence at the chosen Step **2–5**, without replaying earlier checkout steps. |
-| **All: Steps 2–5** | Begins the guided checkout sequence at **Step 2**. Step **5** is optional. |
+| **Stop after this step** | Runs only the selected Step **0–5**. |
+| **Offer the next step** | Begins a guided checkout sequence at the chosen Step **2–5**, without replaying earlier checkout steps. |
+| **Start at Step 2** | Begins the guided checkout sequence at **Step 2**. Step **5** is optional. |
 
 All checkout stages on the dashboard require **explicit approval per stage**. After a stage reports that it attempted to submit checkout, check the real Google Play subscription and renewal date. The tool cannot independently confirm a successful activation or extension. Only press **Verified in Google Play → Next** if the change has actually been verified. The next stage still requires separate approval. Failed or ambiguous results do not authorize advancing.
 
@@ -89,7 +91,7 @@ To use the original **CLI** guided sequence:
 .\run-all.ps1 -AllStages -StartStep 3
 ```
 
-The CLI performs its environment/offer checks and then proceeds through the original subscription stages, requesting numbered approvals between potentially billable operations (**1 = Continue, 2 = End run, 0 = Stop**). This differs from **All: Steps 2–5** on the TUI, which begins its guided sequence at Step 2. Starting the CLI sequence at Step 3 must only follow independent verification of an existing plan; it does not prove any prior extension succeeded.
+The CLI performs its environment/offer checks and then proceeds through the original subscription stages, requesting numbered approvals between potentially billable operations (**1 = Continue, 2 = End run, 0 = Stop**). This differs from **Start at Step 2** on the TUI, which begins its guided sequence at Step 2. Starting the CLI sequence at Step 3 must only follow independent verification of an existing plan; it does not prove any prior extension succeeded.
 
 Optional parameters:
 

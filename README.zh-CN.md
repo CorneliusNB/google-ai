@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: fd33739d3dfce6447a54761f8ad3f682634de172 -->
+<!-- Source README.md git-blob: 73bbcbf87166f1ad85cac1b0391def2e35b6f038 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -112,13 +112,15 @@ sh run-macos.sh
 
 点击 **Check Device & Offers** 执行 **Step 1 — Available offers**：查询优惠，**不会发起订阅结账**。可通过 **Live Status** 和 **Show technical details** 查看进度。如果 30 秒内没有新日志，程序会给出提醒，但这**不一定表示程序卡住了**。
 
-在 **Advanced: Run by step** 中，可选择：
+在 **Choose another step** 中，可选择：
+
+默认只执行所选步骤。选择 **More run options** 可使用引导式流程。
 
 | 模式 | 行为 |
 | --- | --- |
-| **One step only** | 只执行所选的 Step 0–5 |
-| **From selected step** | 从所选 Step 2–5 启动引导式流程 |
-| **All: Steps 2–5** | 从 Step 2 启动引导式流程；Step 5 可选 |
+| **Stop after this step** | 只执行所选的 Step 0–5 |
+| **Offer the next step** | 从所选 Step 2–5 启动引导式流程 |
+| **Start at Step 2** | 从 Step 2 启动引导式流程；Step 5 可选 |
 
 | 步骤 | 用途 | 风险 |
 | --- | --- | --- |

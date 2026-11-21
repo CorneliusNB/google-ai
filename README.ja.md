@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 日本語
 
-<!-- Source README.md git-blob: fd33739d3dfce6447a54761f8ad3f682634de172 -->
+<!-- Source README.md git-blob: 73bbcbf87166f1ad85cac1b0391def2e35b6f038 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -112,13 +112,15 @@ sh run-macos.sh
 
 **Check Device & Offers** を押すと **Step 1 — Available offers** が実行され、オファーを照会します。**購入処理は開始しません**。**Live Status** と **Show technical details** で進行状況を確認します。ログ更新が 30 秒ない場合の警告は、フリーズの確定ではありません。
 
-**Advanced: Run by step** のモード：
+**Choose another step** のモード：
+
+初期設定では選択したステップだけを実行します。続きも案内に沿って進めるには **More run options** を開いてください。
 
 | モード | 動作 |
 | --- | --- |
-| **One step only** | 選択した Step 0〜5 だけを実行 |
-| **From selected step** | 選択した Step 2〜5 から確認付きのフローを開始 |
-| **All: Steps 2–5** | Step 2 から確認付きフローを開始。Step 5 は任意 |
+| **Stop after this step** | 選択した Step 0〜5 だけを実行 |
+| **Offer the next step** | 選択した Step 2〜5 から確認付きのフローを開始 |
+| **Start at Step 2** | Step 2 から確認付きフローを開始。Step 5 は任意 |
 
 | Step | 内容 | リスク |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Français
 
-<!-- Source README.md git-blob: fd33739d3dfce6447a54761f8ad3f682634de172 -->
+<!-- Source README.md git-blob: 73bbcbf87166f1ad85cac1b0391def2e35b6f038 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
@@ -113,13 +113,15 @@ Lorsqu'une étape est en cours, les commandes **Check Device & Offers**, **Run**
 
 **Check Device & Offers** exécute **Step 1 — Available offers**, pour consulter les offres **sans déclencher de paiement**. Surveillez **Live Status** et **Show technical details** ; l'absence de nouveaux journaux pendant 30 secondes ne signifie pas forcément que l'outil est bloqué.
 
-Dans **Advanced: Run by step** :
+Dans **Choose another step** :
+
+Par défaut, seule l’étape sélectionnée est exécutée. Ouvrez **More run options** pour suivre une séquence guidée.
 
 | Mode | Fonctionnement |
 | --- | --- |
-| **One step only** | Exécute uniquement l'étape 0 à 5 sélectionnée |
-| **From selected step** | Lance une séquence guidée depuis l'étape 2 à 5 sélectionnée |
-| **All: Steps 2–5** | Lance une séquence guidée à partir de l'étape 2 ; l'étape 5 est facultative |
+| **Stop after this step** | Exécute uniquement l'étape 0 à 5 sélectionnée |
+| **Offer the next step** | Lance une séquence guidée depuis l'étape 2 à 5 sélectionnée |
+| **Start at Step 2** | Lance une séquence guidée à partir de l'étape 2 ; l'étape 5 est facultative |
 
 | Étape | Fonction | Risque |
 | --- | --- | --- |

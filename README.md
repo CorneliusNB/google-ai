@@ -121,19 +121,21 @@ The macOS adapter exposes **Steps 0–5**. **Steps 2–5 may initiate real Googl
 1. Click **Check Device & Offers** on the welcome screen. It invokes **Step 1 — Available offers**, intended to *list* offers rather than initiate checkout.
 2. Watch **Live Status** for the stage, elapsed time, current activity and result. **Show technical details** reveals execution output. A warning after 30 seconds without new output indicates inactivity, **not proof of a hang**.
 3. Check the account and offer information on the Android screen. A listed offer is **not** a guarantee of eligibility or a successful subscription.
-4. Expand **Advanced: Run by step** only when you deliberately need to select a different stage.
+4. Expand **Choose another step** only when you deliberately need to select a different stage.
 
 **Important distinction:** Step 1 does not initiate a purchase, but underlying environment preflight can still install or repair ADB/Frida and change emulator/network settings. **Step 0 — Environment** is a setup/diagnostics stage, not a purchase-free guarantee of zero local side effects.
 
 The sidebar lists the six stages. Android Device / Google Account cards update from observed output; account identifiers are masked. Original-author and maintainer credits link to their GitHub profiles in supported terminals.
 
-### Advanced run modes
+### Additional run options
+
+By default, only the selected step runs. Open **More run options** to choose a guided sequence.
 
 | Mode | Behavior |
 | --- | --- |
-| **One step only** | Runs only the selected Step **0–5**. |
-| **From selected step** | Begins a guided checkout sequence at the chosen Step **2–5**, without replaying earlier checkout steps. |
-| **All: Steps 2–5** | Begins the guided checkout sequence at **Step 2**. Step **5** is optional. |
+| **Stop after this step** | Runs only the selected Step **0–5**. |
+| **Offer the next step** | Begins a guided checkout sequence at the chosen Step **2–5**, without replaying earlier checkout steps. |
+| **Start at Step 2** | Begins the guided checkout sequence at **Step 2**. Step **5** is optional. |
 
 **Reported 24-month example (subject to Google Play confirmation):**
 
@@ -205,7 +207,7 @@ To use the original **CLI** guided sequence:
 .\run-all.ps1 -AllStages -StartStep 3
 ```
 
-The CLI performs its environment/offer checks and then proceeds through the original subscription stages, requesting numbered approvals between potentially billable operations (**1 = Continue, 2 = End run, 0 = Stop**). This differs from **All: Steps 2–5** on the TUI, which begins its guided sequence at Step 2. Starting the CLI sequence at Step 3 must only follow independent verification of an existing plan; it does not prove any prior extension succeeded.
+The CLI performs its environment/offer checks and then proceeds through the original subscription stages, requesting numbered approvals between potentially billable operations (**1 = Continue, 2 = End run, 0 = Stop**). This differs from **Start at Step 2** on the TUI, which begins its guided sequence at Step 2. Starting the CLI sequence at Step 3 must only follow independent verification of an existing plan; it does not prove any prior extension succeeded.
 
 Optional parameters:
 

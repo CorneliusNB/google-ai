@@ -151,6 +151,35 @@ class CoreTests(unittest.TestCase):
 
 
 class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_step_picker_defaults_to_one_step_and_hides_extra_options(self):
+        from textual.widgets import Button, Select
+        from tui import GoogleAITUI
+        for size in ((110, 35), (90, 20)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                with patch.object(GoogleAITUI, "_confirm_stage") as confirm:
+                    async with app.run_test(size=size) as pilot:
+                        app.advanced_pressed()
+                        await pilot.pause()
+                        self.assertFalse(app.query_one("#mode_field").display)
+                        self.assertTrue(app.query_one("#step", Select).display)
+                        viewport = app.query_one("#results").region
+                        for selector in ("#step", "#more_modes", "#run"):
+                            region = app.query_one(selector).region
+                            self.assertGreaterEqual(region.y, viewport.y)
+                            self.assertLessEqual(region.bottom, viewport.bottom)
+                        self.assertIn("Run this step", str(app.query_one("#run", Button).label))
+                        self.assertEqual(app.query_one("#mode", Select).value, "single")
+                        app.selected_pressed()
+                        confirm.assert_called_with(1, False)
+                        app.toggle_more_modes()
+                        await pilot.pause()
+                        self.assertTrue(app.query_one("#mode_field").display)
+                        app.query_one("#mode", Select).value = "from"
+                        app.toggle_more_modes()
+                        await pilot.pause()
+                        self.assertEqual(app.query_one("#mode", Select).value, "single")
+
     async def test_connection_monitor_warns_once_and_recovers_without_unlocking_checkout(self):
         from tui import GoogleAITUI, ConnectionNotice
         from device_diagnostics import ConnectionStatus
@@ -255,7 +284,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(app.query_one("#step", Select).value, 1)
                     self.assertFalse(app.query_one("#stop", Button).display)
                     self.assertFalse(app.query_one("#next", Button).display)
-                    self.assertIn("Run selected step", str(app.query_one("#run", Button).label))
+                    self.assertIn("Run this step", str(app.query_one("#run", Button).label))
                     app.query_one("#mode", Select).value = "all"
                     # Select.Changed can be queued behind layout work on Windows.
                     # Wait for the event rather than asserting after one idle tick.
@@ -264,7 +293,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                             break
                         await pilot.pause(0.05)
                     self.assertTrue(app.query_one("#step", Select).disabled)
-                    self.assertIn("Run all", str(app.query_one("#run", Button).label))
+                    self.assertIn("Start Step 2", str(app.query_one("#run", Button).label))
                 popen.assert_not_called()
 
     async def test_run_controls_use_wide_content_not_sidebar(self):
@@ -277,6 +306,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 async with app.run_test(size=(110, 35)) as pilot:
                     await pilot.pause()
                     app.advanced_pressed()
+                    app.toggle_more_modes()
                     await pilot.pause()
                     sidebar = app.query_one("#controls").region
                     for selector in ("#mode", "#step", "#run"):

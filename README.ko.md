@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 한국어
 
-<!-- Source README.md git-blob: fd33739d3dfce6447a54761f8ad3f682634de172 -->
+<!-- Source README.md git-blob: 73bbcbf87166f1ad85cac1b0391def2e35b6f038 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -112,13 +112,15 @@ sh run-macos.sh
 
 **Check Device & Offers**는 **Step 1 — Available offers**를 실행하여 프로모션을 조회합니다. **구독 결제를 시작하지 않습니다**. **Live Status**와 **Show technical details**에서 진행 상황을 확인하세요. 30초 동안 로그가 없다는 경고는 반드시 프로그램이 멈췄다는 뜻이 아닙니다.
 
-**Advanced: Run by step** 모드:
+**Choose another step** 모드:
+
+기본적으로 선택한 단계만 실행합니다. 안내에 따라 다음 단계도 진행하려면 **More run options**를 여세요.
 
 | 모드 | 기능 |
 | --- | --- |
-| **One step only** | 선택한 Step 0–5 하나만 실행 |
-| **From selected step** | 선택한 Step(2–5)부터 안내에 따라 여러 단계를 진행 |
-| **All: Steps 2–5** | Step 2부터 순서대로 진행하며, Step 5는 선택할 수 있음 |
+| **Stop after this step** | 선택한 Step 0–5 하나만 실행 |
+| **Offer the next step** | 선택한 Step(2–5)부터 안내에 따라 여러 단계를 진행 |
+| **Start at Step 2** | Step 2부터 순서대로 진행하며, Step 5는 선택할 수 있음 |
 
 | Step | 기능 | 위험 |
 | --- | --- | --- |

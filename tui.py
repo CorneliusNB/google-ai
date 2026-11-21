@@ -186,6 +186,8 @@ class GoogleAITUI(App[None]):
     #read_only { color: #81c6df; height: auto; margin-top: 1; }
     #workflow_actions { height: auto; }
     #form_row { height: auto; }
+    #mode_field { display: none; }
+    #more_modes { width: 100%; height: 3; margin-top: 1; }
     .field { width: 1fr; min-width: 12; height: auto; }
     #step_field { margin-left: 1; }
     #mode_label, #advanced_label {
@@ -274,6 +276,7 @@ class GoogleAITUI(App[None]):
         self._started_at: float | None = None
         self._last_activity_at: float | None = None
         self.advanced_visible = False
+        self.more_modes_visible = False
         self._last_mode = "single"
 
     def compose(self) -> ComposeResult:
@@ -310,24 +313,25 @@ class GoogleAITUI(App[None]):
                         yield Static("Check MuMu connection and Google AI offers without opening checkout.", id="quick_hint")
                         yield Button("Check Device & Offers", id="quickstart", variant="success")
                         yield Button("Verified in Google Play → Next", id="next", disabled=True)
-                        yield Button("Advanced: Run by step  +", id="advanced_toggle")
+                        yield Button("Choose another step  +", id="advanced_toggle")
                         with Vertical(id="workflow_actions"):
                             with Horizontal(id="form_row"):
-                                with Vertical(classes="field", id="mode_field"):
-                                    yield Static("Run mode", id="mode_label")
-                                    yield Select([
-                                        ("One step only", "single"),
-                                        ("From selected step", "from"),
-                                        ("All: Steps 2–5", "all"),
-                                    ], value="single", id="mode", allow_blank=False)
                                 with Vertical(classes="field", id="step_field"):
-                                    yield Static("Step", id="advanced_label")
+                                    yield Static("Choose a step", id="advanced_label")
                                     yield Select(
                                         [(f"{stage.number}. {stage.label}", stage.number)
                                          for stage in STAGES],
                                         value=self.initial_step, id="step", allow_blank=False)
+                                with Vertical(classes="field", id="mode_field"):
+                                    yield Static("After this step", id="mode_label")
+                                    yield Select([
+                                        ("Stop after this step", "single"),
+                                        ("Offer the next step", "from"),
+                                        ("Start at Step 2", "all"),
+                                    ], value="single", id="mode", allow_blank=False)
+                            yield Button("More run options  +", id="more_modes")
                             with Horizontal(id="run_row"):
-                                yield Button("Run selected step", id="run", variant="primary")
+                                yield Button("Run this step", id="run", variant="primary")
                                 yield Static("Runs one step; no next step is automatic.", id="mode_hint")
                             yield Button("Run sequence from step", id="sequence")
                             yield Button("Run all", id="run_all")
@@ -389,6 +393,7 @@ class GoogleAITUI(App[None]):
         self._diagnosing = True
         self.query_one("#diagnose", Button).disabled = True
         self.query_one("#quickstart", Button).disabled = True
+        self.query_one("#more_modes", Button).disabled = True
         self.query_one("#quickstart", Button).display = True
         self.query_one("#next", Button).display = False
         self.query_one("#next", Button).disabled = True
@@ -416,6 +421,7 @@ class GoogleAITUI(App[None]):
         self._diagnosing = False
         self.query_one("#diagnose", Button).disabled = False
         self.query_one("#quickstart", Button).disabled = False
+        self.query_one("#more_modes", Button).disabled = False
         self.query_one("#run", Button).disabled = False
         self._set_status(diagnosis.headline)
         self._set_message(diagnosis.guidance)
@@ -439,6 +445,9 @@ class GoogleAITUI(App[None]):
         self.query_one("#debug", Button).label = "Hide technical details" if self.debug_visible else "Show technical details"
         if self.start_sequence:
             self.query_one("#mode", Select).value = "from"
+            self.more_modes_visible = True
+            self.query_one("#mode_field", Vertical).display = True
+            self.query_one("#more_modes", Button).label = "Hide run options  −"
         self._update_run_mode()
 
     def _poll_connection(self) -> None:
@@ -508,8 +517,34 @@ class GoogleAITUI(App[None]):
         panel = self.query_one("#workflow_actions", Vertical)
         panel.display = self.advanced_visible
         self.query_one("#advanced_toggle", Button).label = (
-            "Hide advanced steps  −" if self.advanced_visible
-            else "Advanced: Run by step  +"
+            "Hide step selection  −" if self.advanced_visible
+            else "Choose another step  +"
+        )
+        target = "#run" if self.advanced_visible else "#advanced_toggle"
+        self.call_after_refresh(
+            lambda: self._reveal_step_control(target)
+        )
+
+    def _reveal_step_control(self, selector: str) -> None:
+        self.query_one(selector).scroll_visible(animate=False, immediate=True)
+        if selector == "#run":
+            # Keep the bottom border inside the viewport on compact terminals.
+            self.query_one("#results").scroll_relative(y=1, animate=False, immediate=True)
+
+    @on(Button.Pressed, "#more_modes")
+    def toggle_more_modes(self) -> None:
+        if self.busy or self._diagnosing:
+            return
+        self.more_modes_visible = not self.more_modes_visible
+        self.query_one("#mode_field", Vertical).display = self.more_modes_visible
+        self.query_one("#more_modes", Button).label = (
+            "Hide run options  −" if self.more_modes_visible else "More run options  +"
+        )
+        if not self.more_modes_visible:
+            self.query_one("#mode", Select).value = "single"
+        self._update_run_mode()
+        self.call_after_refresh(
+            lambda: self._reveal_step_control("#run")
         )
 
     @on(Select.Changed, "#mode")
@@ -526,18 +561,20 @@ class GoogleAITUI(App[None]):
         mode = self.query_one("#mode", Select).value
         step = self.query_one("#step", Select).value
         if mode == "all":
+            if self.query_one("#step", Select).value != 2:
+                self.query_one("#step", Select).value = 2
             self.query_one("#step", Select).disabled = True
-            self.query_one("#run", Button).label = "Run all: Steps 2-5"
-            hint = "Starts Step 2; requires review before every later checkout."
+            self.query_one("#run", Button).label = "Start Step 2"
+            hint = "After each step, review Google Play before continuing."
         elif mode == "from":
             self.query_one("#step", Select).disabled = False
-            self.query_one("#run", Button).label = "Run from selected step"
-            hint = ("Choose Step 2-5. Each later checkout requires verification."
-                    if step in (0, 1) else "Continue from this step; verify each checkout before Next.")
+            self.query_one("#run", Button).label = "Run this step"
+            hint = ("Choose Step 2–5 to continue through later steps."
+                    if step in (0, 1) else "After this step, verify Google Play before the next one.")
         else:
             self.query_one("#step", Select).disabled = False
-            self.query_one("#run", Button).label = "Run selected step"
-            hint = "Run only this step. Steps 2-5 can request real payment."
+            self.query_one("#run", Button).label = "Run this step"
+            hint = "Only this step will run. Steps 2–5 can request payment."
         paid_selected = mode == "all" or (mode in ("single", "from") and step in (2, 3, 4, 5))
         self.query_one("#run", Button).disabled = paid_selected and not self._offer_check_ready
         if paid_selected and not self._offer_check_ready:
@@ -792,6 +829,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#run", Button).disabled = True
         self.query_one("#sequence", Button).disabled = True
         self.query_one("#mode", Select).disabled = True
+        self.query_one("#more_modes", Button).disabled = True
         self.query_one("#step", Select).disabled = True
         self.query_one("#next", Button).disabled = True
         self.query_one("#stop", Button).disabled = False
@@ -956,6 +994,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#run", Button).disabled = False
         self.query_one("#sequence", Button).disabled = False
         self.query_one("#mode", Select).disabled = False
+        self.query_one("#more_modes", Button).disabled = False
         self.query_one("#step", Select).disabled = False
         self._update_run_mode()
         self.query_one("#stop", Button).disabled = True

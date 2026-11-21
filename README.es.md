@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: fd33739d3dfce6447a54761f8ad3f682634de172 -->
+<!-- Source README.md git-blob: 73bbcbf87166f1ad85cac1b0391def2e35b6f038 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -113,13 +113,15 @@ Mientras se ejecuta un paso, se desactivan **Check Device & Offers**, **Run** y 
 
 **Check Device & Offers** ejecuta **Step 1 — Available offers**: consulta ofertas y **no inicia el pago**. Supervisa **Live Status** y **Show technical details**; 30 segundos sin nuevos mensajes no implican necesariamente un bloqueo.
 
-En **Advanced: Run by step**:
+En **Choose another step**:
+
+De forma predeterminada solo se ejecuta el paso elegido. Abre **More run options** para seguir una secuencia guiada.
 
 | Modo | Acción |
 | --- | --- |
-| **One step only** | Ejecuta un único paso seleccionado, del 0 al 5 |
-| **From selected step** | Inicia una secuencia guiada desde el paso que elijas (entre el 2 y el 5) |
-| **All: Steps 2–5** | Inicia la secuencia desde el paso 2; el 5 es opcional |
+| **Stop after this step** | Ejecuta un único paso seleccionado, del 0 al 5 |
+| **Offer the next step** | Inicia una secuencia guiada desde el paso que elijas (entre el 2 y el 5) |
+| **Start at Step 2** | Inicia la secuencia desde el paso 2; el 5 es opcional |
 
 | Paso | Función | Riesgo |
 | --- | --- | --- |
