@@ -121,7 +121,7 @@ Los pasos 2–5 solo se desbloquean cuando una nueva comprobación del paso 1 de
 
 En **Choose another step**:
 
-De forma predeterminada solo se ejecuta el paso elegido. Abre **More run options** para seguir una secuencia guiada.
+De forma predeterminada solo se ejecuta el paso elegido. En **Choose another step**, selecciona **More run options…** al final del menú de pasos para mostrar los modos guiados.
 
 | Modo | Acción |
 | --- | --- |
