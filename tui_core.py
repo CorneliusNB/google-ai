@@ -187,8 +187,8 @@ MESSAGES = {
 # These are fixed strings, rather than arbitrary child output, so the normal
 # status panel cannot expose account details or a payment token.
 CLI_ISSUES = {
-    "device_missing": ("Android device is not connected", "Start MuMu and enable ADB debugging, then run the device check."),
-    "device_ambiguous": ("More than one Android device is connected", "Disconnect extra devices or select a serial in the CLI."),
+    "device_missing": ("Android device is not connected", "Start your Android device or emulator and enable ADB debugging, then run the device check."),
+    "device_ambiguous": ("More than one Android device is connected", "Disconnect extra Android devices, leaving only the intended device connected, then retry."),
     "app_missing": ("An Android app is missing or disabled", "Enable Google Play and Google One; install Google One from Play Store, or use a Google Play-enabled emulator image."),
     "adb_missing": ("ADB is unavailable", "Run setup_env.py on Windows or install Android SDK platform-tools."),
     "python_missing": ("Python is unavailable", "Install Python 3.10 or newer and restart the toolkit."),
@@ -273,10 +273,6 @@ def runtime_error_outcome(message: str, step: int) -> Outcome:
         "Check the Android screen and technical details. Verify Google Play payments before retrying.",
     )
     title, instruction = entry
-    if code == "device_missing":
-        instruction = "Start your Android device or compatible emulator and enable ADB debugging, then retry."
-    elif code == "device_ambiguous":
-        instruction = "Disconnect extra Android devices so only the intended device remains connected."
     if step >= 2:
         instruction += " Confirm the actual subscription and payment history in Google Play."
     return Outcome(code, title, instruction, can_review=False)
