@@ -858,16 +858,14 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn("EPLUS_ISSUE:", app._last_output[-1])
                 self.assertEqual(app._visible_failure(), "")
                 result = outcome_for_stage(3, 0, {"status": "launch_failed"})
-                app._finished(3, result, {"status": "launch_failed"})
+                with patch.object(app, "_set_status", wraps=app._set_status) as status, \
+                     patch.object(app, "_set_message", wraps=app._set_message) as message:
+                    app._finished(3, result, {"status": "launch_failed"})
                 await pilot.pause()
-                self.assertIn(
-                    "Could not open Google Play checkout",
-                    str(app.query_one("#state", Static).renderable),
-                )
-                self.assertNotIn(
-                    "EPLUS_ISSUE:",
-                    str(app.query_one("#message", Static).renderable),
-                )
+                status.assert_called_with("Could not open Google Play checkout")
+                shown_message = message.call_args.args[0]
+                self.assertIn("Google Play", shown_message)
+                self.assertNotIn("EPLUS_ISSUE:", shown_message)
 
     async def test_setup_error_shows_actionable_notice(self):
         from tui import GoogleAITUI, SetupNotice
