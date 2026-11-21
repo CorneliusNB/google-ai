@@ -27,6 +27,8 @@ jobs:
             # One-time main-based fix. PR numbers cannot be reused.
             if [[ "$PR_NUMBER" == "63" && "$HEAD" == "fix/setup-guided-flow-main" && "$HEAD_REPO" == "$TARGET_REPO" ]]; then
               echo "Branch routing OK: main-based fix for PR #63"
+            elif [[ "$PR_NUMBER" == "67" && "$HEAD" == "fix/friendly-runtime-error-messages" && "$HEAD_REPO" == "$TARGET_REPO" ]]; then
+              echo "Branch routing OK: main-based error-message fix for PR #67"
             elif [[ "$HEAD" != "dev" || "$HEAD_REPO" != "$TARGET_REPO" ]]; then
               echo "::error::Only the repository's dev branch may be promoted into main."
               exit 1

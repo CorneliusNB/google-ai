@@ -1,6 +1,9 @@
 """macOS port tests. All Android/checkout interactions are mocked."""
 import base64
+import contextlib
+import io
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -111,6 +114,22 @@ class MacStageAdapterTests(unittest.TestCase):
                 path.write_text(json.dumps({"status": "listed"}), encoding="utf-8")
                 with self.assertRaises(RuntimeError):
                     macos_runner.fresh_report("current.json", time.time_ns() + 1_000_000_000)
+
+    def test_macos_adapter_shows_friendly_error_and_private_tui_marker(self):
+        for tui_mode in (False, True):
+            with self.subTest(tui_mode=tui_mode):
+                output = io.StringIO()
+                errors = io.StringIO()
+                environment = {"EPLUS_TUI": "1"} if tui_mode else {"EPLUS_TUI": ""}
+                with patch.dict(os.environ, environment):
+                    with patch("macos_runner.preflight",
+                               side_effect=RuntimeError("No online Android device. Check adb devices.")):
+                        with contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+                            self.assertEqual(macos_runner.main(["--step", "1"]), 1)
+                self.assertIn("Android device is not connected", errors.getvalue())
+                self.assertNotIn("RuntimeError:", errors.getvalue())
+                self.assertNotIn("EPLUS_ISSUE:", errors.getvalue())
+                self.assertEqual("EPLUS_ISSUE:device_missing" in output.getvalue(), tui_mode)
 
     def test_launcher_help_is_explicit_about_real_charges(self):
         src = (Path(__file__).resolve().parents[1] / "run-macos.sh").read_text(encoding="utf-8")

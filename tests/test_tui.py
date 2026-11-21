@@ -8,7 +8,8 @@ from unittest.mock import patch
 
 from tui_core import (
     cli_issue_outcome, command_for_step, mask_email, needs_setup, outcome_for_stage,
-    read_fresh_report, validate_step,
+    readable_issue_line, read_fresh_report, report_summary, runtime_error_outcome,
+    safe_launch_diagnostic, validate_step,
 )
 
 
@@ -27,7 +28,133 @@ class CoreTests(unittest.TestCase):
 
     def test_cli_error_rejects_untrusted_text(self):
         self.assertIsNone(cli_issue_outcome(["EPLUS_ISSUE:app_missing private@example.com"], 1))
-        self.assertIsNone(cli_issue_outcome(["EPLUS_ISSUE:unknown"], 1))
+        self.assertEqual(cli_issue_outcome(["EPLUS_ISSUE:unknown"], 1).title,
+                         "Could not complete this step")
+
+    def test_launch_error_has_friendly_title_and_next_action(self):
+        for code, phrase in (
+            ("launch_failed", "Google Play checkout"),
+            ("billing_flow_error", "Google Play"),
+            ("activity_lookup_failed", "Google One"),
+            ("no_activity", "Google One"),
+        ):
+            with self.subTest(code=code):
+                result = cli_issue_outcome([f"EPLUS_ISSUE:{code}"], 3)
+                self.assertIsNotNone(result)
+                self.assertIn(phrase, result.title)
+                self.assertIn("Google Play", result.instruction)
+                self.assertFalse(result.can_review)
+
+    def test_fresh_billing_error_report_is_explained_even_on_nonzero_exit(self):
+        report = {"status": "launch_failed"}
+        for code in (0, 1):
+            with self.subTest(exit_code=code):
+                result = outcome_for_stage(3, code, report)
+                self.assertEqual(result.code, "launch_failed")
+                self.assertIn("Could not open Google Play checkout", result.title)
+                self.assertFalse(result.can_review)
+        self.assertEqual(report_summary(report), "Could not open Google Play checkout")
+
+    def test_cli_protocol_markers_are_humanized_for_screen_and_debug(self):
+        readable = readable_issue_line("EPLUS_ISSUE:launch_failed")
+        self.assertIn("Could not open Google Play checkout", readable)
+        self.assertIn("Next:", readable)
+        self.assertNotIn("EPLUS_ISSUE:", readable)
+        self.assertNotIn("launch_failed", readable)
+        self.assertEqual(
+            readable_issue_line("EPLUS_ISSUE:unknown"),
+            "The step could not be completed. Review the status and open technical details.",
+        )
+        self.assertEqual(readable_issue_line("Normal progress line"), "Normal progress line")
+        # Do not accept untrusted or malformed markers containing account data.
+        self.assertEqual(
+            readable_issue_line("EPLUS_ISSUE:launch_failed person@example.com"),
+            "The step could not be completed. Review the status and open technical details.",
+        )
+    def test_every_known_engine_failure_has_user_guidance(self):
+        statuses = (
+            "add_account_failed", "add_account_error",
+            "payment_method_not_confirmed", "account_unverified",
+            "wrong_account", "play_account_switch_failed", "app_not_started",
+            "offer_query_failed", "checkout_security_blocked",
+            "checkout_not_confirmed", "launch_failed", "billing_flow_error",
+            "billing_launch_error", "activity_lookup_failed", "no_activity",
+            "subscription_update_unavailable", "ineligible",
+            "purchase_unavailable", "today_price_unverified",
+            "trial_duration_unverified", "already_subscribed",
+            "processing", "backup_payment_methods_prompt",
+            "subscribe_button_not_found", "checkout_not_visible",
+        )
+        for status in statuses:
+            with self.subTest(status=status):
+                result = outcome_for_stage(3, 0, {"status": status})
+                self.assertNotIn("Could not verify this step", result.title)
+                self.assertTrue(result.instruction)
+                self.assertFalse(result.can_review)
+                self.assertNotIn("EPLUS_ISSUE:", result.instruction)
+                self.assertNotEqual(report_summary({"status": status}), status)
+
+    def test_startup_debug_does_not_leak_private_paths_or_account_data(self):
+        examples = (
+            (FileNotFoundError("setup_env.py is missing from C:/Users/private@example.com"),
+             "Required toolkit file missing: setup_env.py"),
+            (FileNotFoundError("C:/Users/private@example.com/private.json"),
+             "A required local file is missing"),
+            (PermissionError("Access denied: /Users/private@example.com"),
+             "Access denied"),
+            (RuntimeError("PowerShell was not found."),
+             "PowerShell could not be located"),
+            (RuntimeError("Token secret-private@example.com"), "An unexpected startup error"),
+        )
+        for error, expected in examples:
+            with self.subTest(error=type(error).__name__):
+                diagnosis = safe_launch_diagnostic(error)
+                self.assertIn(expected, diagnosis)
+                self.assertNotIn("private@example.com", diagnosis)
+
+    def test_macos_runtime_failures_are_mapped_to_safe_guidance(self):
+        examples = {
+            "ADB is missing. Install Android SDK Platform-Tools.": "adb_missing",
+            "No online Android device. Check adb devices.": "device_missing",
+            "Multiple different Android devices detected. Disconnect extras.": "device_ambiguous",
+            "Frida 16.5.9 required (found none).": "frida_missing",
+            "Google Play account changed during checks; stop before checkout": "account_mismatch",
+            "Google Play account lookup failed; no checkout started": "account_unavailable",
+            "Google Play offer listing failed; checkout not started": "offer_query_failed",
+            "Step 3 offer 6months-eft has no verified zero-priced first phase.": "offer_not_available",
+            "A new matching report was not produced": "report_missing",
+            "Android environment checks failed; no checkout started": "environment_failed",
+            "Explicit checkout and existing-plan confirmations required": "confirmation_required",
+        }
+        for error, code in examples.items():
+            with self.subTest(code=code):
+                result = runtime_error_outcome(error, 3)
+                self.assertEqual(result.code, code)
+                self.assertTrue(result.title)
+                self.assertIn("Google Play", result.instruction) if code not in (
+                    "adb_missing", "device_missing", "device_ambiguous", "frida_missing",
+                    "confirmation_required",
+                ) else None
+                self.assertFalse(result.can_review)
+        fallback = runtime_error_outcome("Unexpected private error@example.com", 2)
+        self.assertEqual(fallback.code, "unknown")
+        self.assertNotIn("error@example.com", fallback.instruction)
+
+    def test_macos_tui_marker_round_trip_keeps_device_recovery_guidance(self):
+        for message, code in (
+            ("No online Android device. Check adb devices.", "device_missing"),
+            ("Multiple different Android devices detected. Disconnect extras.", "device_ambiguous"),
+        ):
+            with self.subTest(code=code):
+                native = runtime_error_outcome(message, 1)
+                shown = cli_issue_outcome([f"EPLUS_ISSUE:{native.code}"], 1)
+                self.assertEqual(shown.code, native.code)
+                self.assertEqual(shown.instruction, native.instruction)
+                self.assertIn("Android", shown.instruction)
+                self.assertNotIn("MuMu", shown.instruction)
+                self.assertNotIn("select a serial in the CLI", shown.instruction)
+                self.assertFalse(shown.can_review)
+
     def test_setup_only_when_pinned_frida_is_missing(self):
         with patch("tui_core.importlib.metadata.version", return_value="16.5.9"):
             self.assertFalse(needs_setup())
@@ -157,6 +284,17 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
         patcher = patch.object(GoogleAITUI, "_poll_connection")
         patcher.start()
         self.addCleanup(patcher.stop)
+
+    async def test_mode_refresh_ignores_unmounted_widgets(self):
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)):
+                # A delayed Select.Changed event can arrive during shutdown
+                # after Textual has removed its widgets.
+                with patch.object(app, "query", return_value=[]):
+                    app._update_run_mode()
 
     async def test_start_screen_shows_status_and_primary_action(self):
         from tui import GoogleAITUI
@@ -802,6 +940,62 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         await pilot.click("#cancel")
                         await pilot.pause()
                         self.assertIn("Step 2", str(app.query_one("#quickstart", Button).label))
+
+    async def test_local_launch_failure_shows_safe_cause_in_technical_details(self):
+        from tui import GoogleAITUI
+        from textual.widgets import RichLog
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)) as pilot:
+                app._record_internal_diagnostic(
+                    safe_launch_diagnostic(FileNotFoundError(
+                        "setup_env.py is missing from C:/Users/private@example.com"))
+                )
+                self.assertIn("Required toolkit file missing: setup_env.py", app._last_output[-1])
+                self.assertNotIn("private@example.com", app._last_output[-1])
+                self.assertFalse(app._run_output)
+                app.action_toggle_debug()
+                await pilot.pause()
+                self.assertGreater(len(app.query_one("#debug_log", RichLog).lines), 0)
+
+    async def test_cli_marker_is_never_shown_raw_in_debug_or_status(self):
+        from textual.widgets import Static
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)) as pilot:
+                app.action_toggle_debug()
+                app._received("EPLUS_ISSUE:launch_failed")
+                self.assertEqual(app._run_output[-1], "EPLUS_ISSUE:launch_failed")
+                self.assertIn("Could not open Google Play checkout", app._last_output[-1])
+                self.assertNotIn("EPLUS_ISSUE:", app._last_output[-1])
+                result = outcome_for_stage(3, 0, {"status": "launch_failed"})
+                with patch.object(app, "_set_status", wraps=app._set_status) as status, \
+                     patch.object(app, "_set_message", wraps=app._set_message) as message:
+                    app._finished(3, result, {"status": "launch_failed"})
+                await pilot.pause()
+                status.assert_called_with("Could not open Google Play checkout")
+                shown_message = message.call_args.args[0]
+                self.assertIn("Google Play", shown_message)
+                self.assertNotIn("EPLUS_ISSUE:", shown_message)
+
+    async def test_all_step_one_failures_show_actionable_notice(self):
+        from tui import GoogleAITUI, SetupNotice
+        from tui_core import Outcome
+
+        for code in ("app_not_started", "activity_lookup_failed",
+                     "missing_report", "tool_error", "exception", "unknown"):
+            with self.subTest(code=code), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=(90, 20)) as pilot:
+                    app._finished(1, Outcome(code, "Cannot complete check",
+                                            "Check Android setup and try the read-only check again."), None)
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, SetupNotice)
+                    self.assertIn("Android", app.screen.instruction)
+                    await pilot.click("#notice_close")
 
     async def test_setup_error_shows_actionable_notice(self):
         from tui import GoogleAITUI, SetupNotice

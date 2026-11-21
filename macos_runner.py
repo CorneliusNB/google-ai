@@ -200,7 +200,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Device {serial}", flush=True)
         return run_stage(args.step, serial, env, args.confirmed, args.active_confirmed)
     except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
-        print(f"Stage stopped: {type(error).__name__}: {error}", file=sys.stderr, flush=True)
+        # Native CLI users receive a plain-language explanation. Only the
+        # Textual parent gets the internal marker for structured status display.
+        from tui_core import runtime_error_outcome
+        issue = runtime_error_outcome(str(error), args.step)
+        if os.environ.get("EPLUS_TUI") == "1":
+            print(f"EPLUS_ISSUE:{issue.code}", flush=True)
+        print(f"{issue.title}. Next: {issue.instruction}", file=sys.stderr, flush=True)
         return 1
 
 

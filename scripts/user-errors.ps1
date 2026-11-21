@@ -55,7 +55,7 @@ function Get-UserIssue {
         "subscribe_button_not_found" {
             return [pscustomobject]@{
                 Title = "The checkout button was not found"
-                Action = "Check the Google Play screen. No Subscribe action was confirmed."
+                Action = "Check Google Play pricing, subscriptions, and payment history. No Subscribe action or subscription update was verified."
             }
         }
         "offer_not_available" {
@@ -124,6 +124,114 @@ function Get-UserIssue {
                 Action = "Check the local debug log. Verify Google Play before retrying any payment step."
             }
         }
+        "add_account_failed" {
+            return [pscustomobject]@{
+                Title = "Could not add the Google account"
+                Action = "Check Android sign-in and the Play Store profile before continuing."
+            }
+        }
+        "add_account_error" {
+            return [pscustomobject]@{
+                Title = "Google account setup was interrupted"
+                Action = "Check Android sign-in prompts and verify the intended Google Play account."
+            }
+        }
+        "payment_method_not_confirmed" {
+            return [pscustomobject]@{
+                Title = "Could not verify the payment method"
+                Action = "Review Google Play payment methods manually. No successful payment was verified."
+            }
+        }
+        "play_account_switch_failed" {
+            return [pscustomobject]@{
+                Title = "Could not switch Google Play accounts"
+                Action = "Select your intended Play Store account and run the offer check again."
+            }
+        }
+        "account_unverified" {
+            return [pscustomobject]@{
+                Title = "Google Play account was not verified"
+                Action = "Open the Play Store profile and verify the account before checkout."
+            }
+        }
+        "wrong_account" {
+            return [pscustomobject]@{
+                Title = "Google Play is using the wrong account"
+                Action = "Switch to the intended account and run Step 1 again."
+            }
+        }
+        "frida_missing" {
+            return [pscustomobject]@{
+                Title = "Android instrumentation is not ready"
+                Action = "Prepare the compatible Frida version and verify the Android connection."
+            }
+        }
+        "environment_failed" {
+            return [pscustomobject]@{
+                Title = "Android environment check did not finish"
+                Action = "Check ADB, Google One and Frida. Verify Google Play payments before retrying a paid step."
+            }
+        }
+        "confirmation_required" {
+            return [pscustomobject]@{
+                Title = "Approval is required to continue"
+                Action = "Use the on-screen confirmation for each paid step."
+            }
+        }
+        "launch_failed" {
+            return [pscustomobject]@{
+                Title = "Could not open Google Play checkout"
+                Action = "The app did not confirm checkout opened. Check Google One and Google Play, then verify subscriptions and payment history before retrying."
+            }
+        }
+        "billing_flow_error" {
+            return [pscustomobject]@{
+                Title = "Google Play could not open checkout"
+                Action = "Review the Android screen and payment history before trying this step again."
+            }
+        }
+        "billing_launch_error" {
+            return [pscustomobject]@{
+                Title = "Could not start Google Play checkout"
+                Action = "Check Google One and Android diagnostics. Verify payments before another attempt."
+            }
+        }
+        "activity_lookup_failed" {
+            return [pscustomobject]@{
+                Title = "Could not access the Google One screen"
+                Action = "Bring Google One to the foreground and check ADB/Frida in technical details."
+            }
+        }
+        "no_activity" {
+            return [pscustomobject]@{
+                Title = "Google One is not ready"
+                Action = "Open Google One on Android and rerun the device and offer check."
+            }
+        }
+        "app_not_started" {
+            return [pscustomobject]@{
+                Title = "Google One could not be opened"
+                Action = "Start Google One manually and check the Android connection before retrying."
+            }
+        }
+        "subscription_update_unavailable" {
+            return [pscustomobject]@{
+                Title = "Could not prepare the subscription change"
+                Action = "Review the existing Google Play subscription before another paid attempt."
+            }
+        }
+        "checkout_not_visible" {
+            return [pscustomobject]@{
+                Title = "Could not see the Google Play checkout screen"
+                Action = "Inspect the Android screen and payment history before retrying."
+            }
+        }
+        "price_unverified" {
+            return [pscustomobject]@{
+                Title = "Could not verify the checkout price"
+                Action = "Check today's amount and the renewal price in Google Play."
+            }
+        }
         "checkout_not_confirmed" {
             return [pscustomobject]@{
                 Title = "The purchase was not confirmed"
@@ -152,8 +260,8 @@ function Get-FailureCode {
     if ($ErrorMessage -match '(?i)No online ADB devices|selected serial.*not online') { return "device_missing" }
     if ($ErrorMessage -match '(?i)Cannot select a single Android device|Invalid device number') { return "device_ambiguous" }
     if ($ErrorMessage -match '(?i)Android package missing|Android package.*unavailable') { return "app_missing" }
-    if ($ErrorMessage -match '(?i)Play account mismatch|Play Store account changed|Invalid Play Store account') { return "account_mismatch" }
-    if ($ErrorMessage -match '(?i)Cannot identify the active Google Play account|No valid email') { return "account_unavailable" }
+    if ($ErrorMessage -match '(?i)Play account mismatch|Play Store account changed') { return "account_mismatch" }
+    if ($ErrorMessage -match '(?i)Cannot identify the active Google Play account|No valid email|Invalid Play Store account') { return "account_unavailable" }
     if ($ErrorMessage -match '(?i)Offer query did not complete|Could not refresh the offer list') { return "offer_query_failed" }
     if ($ErrorMessage -match '(?i)No report produced') { return "report_missing" }
     if ($ErrorMessage -match '(?i)Runtime lookup failed|No machine-readable runtime result') { return "runtime_lookup_failed" }
@@ -167,9 +275,10 @@ function Show-UserIssue {
         [bool]$DebugMode = $false
     )
     $issue = Get-UserIssue -Code $Code
-    # Stable, non-sensitive code for the dashboard; never include raw errors,
-    # account details or purchase data in this machine-readable line.
-    if ($Code -match '^[a-z_]+$') { Write-Host ("EPLUS_ISSUE:{0}" -f $Code) }
+    # Structured marker is for the TUI parser, never direct CLI users.
+    if ($env:EPLUS_TUI -eq "1" -and $Code -match '^[a-z_]+$') {
+        Write-Host ("EPLUS_ISSUE:{0}" -f $Code)
+    }
     Write-Host ""
     Write-Host ("  ! {0}" -f $issue.Title) -ForegroundColor Yellow
     Write-Host ("    Next: {0}" -f $issue.Action) -ForegroundColor Gray

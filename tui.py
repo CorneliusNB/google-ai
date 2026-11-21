@@ -25,7 +25,7 @@ from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Stati
 
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
-    report_summary, validate_step
+    readable_issue_line, report_summary, safe_launch_diagnostic, validate_step
 from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_connection, poll_connection
 
 
@@ -588,6 +588,10 @@ class GoogleAITUI(App[None]):
     def _update_run_mode(self) -> None:
         if self.busy:
             return
+        # Textual can deliver a queued Select.Changed while its screen is
+        # being unmounted (especially on Windows). Ignore stale UI events.
+        if not len(self.query("#mode")) or not len(self.query("#step")):
+            return
         mode = self.query_one("#mode", Select).value
         step = self.query_one("#step", Select).value
         if mode == "all":
@@ -881,6 +885,8 @@ class GoogleAITUI(App[None]):
         child_env = os.environ.copy()
         child_env["PYTHONIOENCODING"] = "utf-8"
         child_env["PYTHONUTF8"] = "1"
+        # Internal marker from PowerShell is only enabled for this TUI consumer.
+        child_env["EPLUS_TUI"] = "1"
         if self._cancel_requested:
             return -1
         options = ({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
@@ -939,16 +945,30 @@ class GoogleAITUI(App[None]):
                 result = cli_issue_outcome(list(self._run_output), step) or result
             self.call_from_thread(self._finished, step, result, report)
         except Exception as error:
-            result = Outcome("exception", "Could not start the tool",
-                             f"{type(error).__name__}: {error}. See Debug and verify Google Play.")
+            # Keep a safe, concrete failure category in Technical details,
+            # even when a subprocess could not start and produced no output.
+            diagnostic = safe_launch_diagnostic(error)
+            self.call_from_thread(self._record_internal_diagnostic, diagnostic)
+            result = Outcome("exception", "Could not start the selected step",
+                             "Check Python, ADB and the Android connection. Open technical "
+                             "details if needed; verify Google Play before retrying payments.")
             self.call_from_thread(self._finished, step, result, None)
         finally:
             self._child = None
 
+    def _record_internal_diagnostic(self, diagnostic: str) -> None:
+        # Do not add to _run_output: protocol parsing only accepts child output.
+        self._last_output.append(diagnostic)
+        if self.debug_visible:
+            self.query_one("#debug_log", RichLog).write(diagnostic)
+
     def _received(self, line: str) -> None:
         if not line:
             return
-        self._last_output.append(line)
+        # Keep the original marker for the parser, but never print raw
+        # EPLUS_ISSUE codes in the visible RichLog, even when Debug is open.
+        visible_line = readable_issue_line(line)
+        self._last_output.append(visible_line)
         self._run_output.append(line)
         self._last_activity_at = time.monotonic()
         lower = line.lower()
@@ -964,7 +984,7 @@ class GoogleAITUI(App[None]):
             phase = "Process responding. Details available in technical log."
         self.query_one("#activity", Static).update(phase)
         if self.debug_visible:
-            self.query_one("#debug_log", RichLog).write(line)
+            self.query_one("#debug_log", RichLog).write(visible_line)
         if re.search(r"Action required:|Press Enter to continue", line, re.I):
             btn = self.query_one("#manual", Button)
             btn.display = True
@@ -987,17 +1007,6 @@ class GoogleAITUI(App[None]):
             self.query_one("#account", Static).update(
                 "Account  •  " + escape(mask_email(self._verified_account))
             )
-
-    def _visible_failure(self) -> str:
-        """Show a concise CLI error without exposing account emails."""
-        for raw in reversed(self._run_output):
-            line = re.sub(r"\x1b\[[0-9;]*m", "", raw).strip()
-            if not line:
-                continue
-            if re.search(r"error|failed|missing|not found|cannot|unable|offline|unauthorized|issue|stopped|device", line, re.I):
-                line = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[account hidden]", line)
-                return line[:220]
-        return ""
 
     def _finished(self, step: int, outcome: Outcome, report: dict | None) -> None:
         self.busy = False
@@ -1049,9 +1058,9 @@ class GoogleAITUI(App[None]):
         elif step == 1 and self._offer_check_ready and not self._initial_offer_ready:
             instruction += " The 12-month offer was not found with a zero-priced first phase; review available offers."
         if outcome.code in ("tool_error", "exception", "missing_report", "setup_failed"):
-            diagnostic = self._visible_failure()
-            if diagnostic:
-                instruction = f"{instruction}  Last CLI message: {diagnostic}"
+            # Never echo arbitrary child-process lines on the main status screen:
+            # they can contain internal codes, local paths or private account data.
+            instruction += " Open Show technical details for troubleshooting."
         self._set_message(instruction)
         if step == 1:
             self.query_one("#step_result", Static).update(report_summary(report))
@@ -1086,11 +1095,9 @@ class GoogleAITUI(App[None]):
         if step == 1 and outcome.code == "listed" and not self._initial_offer_ready:
             self.push_screen(SetupNotice("Review the offer check", instruction))
             return
-        if step <= 1 and outcome.code in {
-            "device_missing", "device_ambiguous", "app_missing", "adb_missing",
-            "python_missing", "runtime_lookup_failed", "account_unavailable",
-            "account_mismatch", "offer_query_failed", "offers_unavailable",
-        }:
+        if step <= 1 and outcome.code not in ("listed", "environment_ok", "cancelled"):
+            # Step 0/1 errors are always actionable for non-technical users,
+            # including unknown setup failures and newly added engine codes.
             self.push_screen(SetupNotice(outcome.title, outcome.instruction))
             return
         if outcome.code == "checkout_requested":
