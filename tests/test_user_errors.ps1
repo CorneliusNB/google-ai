@@ -10,6 +10,7 @@ $cases = @(
     @{ Code = "trial_duration_unverified"; Needle = "trial length" },
     @{ Code = "backup_payment_methods_prompt"; Needle = "backup payment methods" },
     @{ Code = "processing"; Needle = "still processing" },
+    @{ Code = "subscribe_button_not_found"; Needle = "The checkout button was not found" },
     @{ Code = "offer_not_available"; Needle = "not available" },
     @{ Code = "offer_query_failed"; Needle = "Could not load" },
     @{ Code = "account_unavailable"; Needle = "Google Play account" },
@@ -57,6 +58,17 @@ $compact = (Show-UserIssue -Code "trial_duration_unverified" 6>&1 | Out-String)
 $source = Get-Content -LiteralPath (Join-Path $PSScriptRoot "../scripts/user-errors.ps1") -Raw
 if (-not $source.Contains('if ($DebugMode)')) {
     throw "Raw error diagnostics must be conditional on debug mode."
+}
+# A missing Subscribe button must retain the payment-safety guidance
+# and the helper must not have a duplicated/unreachable case.
+$buttonIssue = Get-UserIssue -Code "subscribe_button_not_found"
+foreach ($phrase in @("pricing", "subscriptions", "payment history", "No Subscribe action")) {
+    if (-not $buttonIssue.Action.Contains($phrase)) {
+        throw ("Missing checkout-button safety advice: {0}" -f $phrase)
+    }
+}
+if (([regex]::Matches($source, '"subscribe_button_not_found"\s*\{')).Count -ne 1) {
+    throw "Duplicate subscribe_button_not_found cases are not allowed"
 }
 # Interactive PowerShell must not print the private TUI marker.
 $previousTuiMode = $env:EPLUS_TUI
