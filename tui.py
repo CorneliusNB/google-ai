@@ -25,7 +25,7 @@ from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Stati
 
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
-    report_summary, validate_step
+    readable_issue_line, report_summary, validate_step
 from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_connection, poll_connection
 
 
@@ -881,6 +881,8 @@ class GoogleAITUI(App[None]):
         child_env = os.environ.copy()
         child_env["PYTHONIOENCODING"] = "utf-8"
         child_env["PYTHONUTF8"] = "1"
+        # Internal marker from PowerShell is only enabled for this TUI consumer.
+        child_env["EPLUS_TUI"] = "1"
         if self._cancel_requested:
             return -1
         options = ({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
@@ -939,8 +941,11 @@ class GoogleAITUI(App[None]):
                 result = cli_issue_outcome(list(self._run_output), step) or result
             self.call_from_thread(self._finished, step, result, report)
         except Exception as error:
-            result = Outcome("exception", "Could not start the tool",
-                             f"{type(error).__name__}: {error}. See Debug and verify Google Play.")
+            # The status screen should never expose raw stack traces or paths.
+            # Do not assume a failed local start proves any payment outcome.
+            result = Outcome("exception", "Could not start the selected step",
+                             "Check Python, ADB and the Android connection. Open technical "
+                             "details if needed; verify Google Play before retrying payments.")
             self.call_from_thread(self._finished, step, result, None)
         finally:
             self._child = None
@@ -948,7 +953,10 @@ class GoogleAITUI(App[None]):
     def _received(self, line: str) -> None:
         if not line:
             return
-        self._last_output.append(line)
+        # Keep the original marker for the parser, but never print raw
+        # EPLUS_ISSUE codes in the visible RichLog, even when Debug is open.
+        visible_line = readable_issue_line(line)
+        self._last_output.append(visible_line)
         self._run_output.append(line)
         self._last_activity_at = time.monotonic()
         lower = line.lower()
@@ -964,7 +972,7 @@ class GoogleAITUI(App[None]):
             phase = "Process responding. Details available in technical log."
         self.query_one("#activity", Static).update(phase)
         if self.debug_visible:
-            self.query_one("#debug_log", RichLog).write(line)
+            self.query_one("#debug_log", RichLog).write(visible_line)
         if re.search(r"Action required:|Press Enter to continue", line, re.I):
             btn = self.query_one("#manual", Button)
             btn.display = True
@@ -992,7 +1000,7 @@ class GoogleAITUI(App[None]):
         """Show a concise CLI error without exposing account emails."""
         for raw in reversed(self._run_output):
             line = re.sub(r"\x1b\[[0-9;]*m", "", raw).strip()
-            if not line:
+            if not line or re.fullmatch(r"EPLUS_ISSUE:[a-z_]+", line):
                 continue
             if re.search(r"error|failed|missing|not found|cannot|unable|offline|unauthorized|issue|stopped|device", line, re.I):
                 line = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[account hidden]", line)
