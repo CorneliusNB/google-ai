@@ -2,7 +2,9 @@
 
 [Documentation home](README.md) · [Dashboard usage](USAGE.md) · [Safety](SAFETY.md)
 
-The Linux launcher targets Ubuntu x86_64 and exposes Steps 0–5 through the shared Textual dashboard. Use a rooted Android test device you control. Steps 0 and 1 can change the device's Frida installation, Android files or network settings. If you only need to check the USB connection, use **Diagnose Android connection** in the dashboard.
+The Linux launcher targets Ubuntu x86_64 and exposes Steps 0–5 through the shared Textual dashboard. Use a rooted Android test device you control. If you only need to check the USB connection, use **Diagnose Android connection** in the dashboard.
+
+The engine used by Steps 0 and 1 can request an ADB daemon restart for root, deploy or restart the Android Frida server, copy a billing module, clear the Android global HTTP proxy, and force-stop supported VPN apps.
 
 ## Setup
 

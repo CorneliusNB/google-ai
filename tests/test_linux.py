@@ -64,6 +64,12 @@ class LauncherTests(unittest.TestCase):
                          ("--force",), ("--list", "--check")]:
                 self.assertEqual(invoke(*args).returncode, 2)
             self.assertIn("ADB_PATH", invoke(ADB_PATH=str(root / "missing")).stderr)
+            relative_adb = subprocess.run(
+                ["sh", str(root / "run-linux.sh"), "--list"], cwd=root.parent,
+                env={**env, "ADB_PATH": f"./{root.name}/custom adb"},
+                text=True, capture_output=True,
+            )
+            self.assertEqual(relative_adb.returncode, 0, relative_adb.stderr)
             (root / ".venv/bin/python").unlink()
             (root / "python3").write_text('#!/bin/sh\n[ "$1" != "-m" ]\n')
             self.assertIn("python3-venv", invoke().stderr)
@@ -77,6 +83,24 @@ class LinuxAdapterTests(unittest.TestCase):
                 self.assertEqual(command[1:4], [str(ROOT / "macos_runner.py"), "--step", str(step)])
                 self.assertEqual("--confirmed" in command, step >= 2)
                 self.assertEqual("--active-confirmed" in command, step >= 3)
+
+    def test_linux_isolates_engine_temporary_files(self):
+        paths = []
+
+        def run_stage(step, serial, env, *_args):
+            self.assertEqual(env["TMPDIR"], env[adapter.LINUX_WORKDIR])
+            directory = Path(env["TMPDIR"])
+            self.assertTrue(directory.is_dir())
+            paths.append(directory)
+            return 0
+
+        with patch("macos_runner.sys.platform", "linux"), \
+             patch.object(adapter, "preflight", return_value=("/example/adb", "mock-device")), \
+             patch.object(adapter, "run_stage", side_effect=run_stage):
+            self.assertEqual(adapter.main(["--step", "0"]), 0)
+            self.assertEqual(adapter.main(["--step", "0"]), 0)
+        self.assertNotEqual(*paths)
+        self.assertFalse(any(path.exists() for path in paths))
 
     def test_adb_path_is_used_before_path_and_missing_adb_is_actionable(self):
         with patch.dict(os.environ, {"ADB_PATH": "/opt/custom/adb"}), \
@@ -106,27 +130,30 @@ class LinuxAdapterTests(unittest.TestCase):
              patch("macos_runner.locate_adb", return_value="/example/adb"), \
              patch("macos_runner.metadata.version", return_value="16.5.9"), \
              patch("macos_runner.online_serials", return_value=["first", "second"]), \
-             patch("macos_runner.auto_select_device", return_value=None), \
+             patch("macos_runner.auto_select_device", return_value="first") as choose, \
              patch("macos_runner.run_engine") as engine, redirect_stdout(StringIO()):
             self.assertEqual(adapter.main(["--step", "1"]), 1)
+            choose.assert_not_called()
             engine.assert_not_called()
 
     def test_paid_guards_and_result_matching_for_each_linux_stage(self):
         account = "verified@example.test"
         for step, (plan, offer_id, stack) in adapter.STAGES.items():
-            for detected, looked_up, offer, micros, passes in (
-                (account, account, offer_id, 0, True),
-                (account, account, "other-offer", 0, False),
-                (account, account, offer_id, 1000, False),
-                (account, "other@example.test", offer_id, 0, False),
-                (account, "", offer_id, 0, False),
-                ("", account, offer_id, 0, False),
+            product = adapter.CHECKOUT_PRODUCT
+            for detected, looked_up, listed_product, offer, micros, passes in (
+                (account, account, product, offer_id, 0, True),
+                (account, account, product, "other-offer", 0, False),
+                (account, account, "g1.play.2tb.ai", offer_id, 0, False),
+                (account, account, product, offer_id, 1000, False),
+                (account, "other@example.test", product, offer_id, 0, False),
+                (account, "", product, offer_id, 0, False),
+                ("", account, product, offer_id, 0, False),
             ):
                 with self.subTest(step=step, detected=detected, looked_up=looked_up,
-                                  offer=offer, micros=micros), tempfile.TemporaryDirectory() as tmp:
+                                  product=listed_product, offer=offer, micros=micros), tempfile.TemporaryDirectory() as tmp:
                     env = {adapter.LINUX_WORKDIR: tmp}
                     report = {"status": "listed", "detected_play_account": detected,
-                              "offers": [{"id": offer, "micros": micros}]}
+                              "offers": [{"product": listed_product, "id": offer, "micros": micros}]}
 
                     def engine(command, environment):
                         if "--check" not in command:
@@ -173,7 +200,7 @@ class LinuxAdapterTests(unittest.TestCase):
 
     def test_account_change_after_offer_validation_blocks_checkout(self):
         report = {"status": "listed", "detected_play_account": "verified@example.test",
-                  "offers": [{"id": "12months-eft", "micros": 0}]}
+                  "offers": [{"product": adapter.CHECKOUT_PRODUCT, "id": "12months-eft", "micros": 0}]}
         with patch.object(adapter, "run_engine", return_value=0) as invoke, \
              patch.object(adapter, "list_offers", return_value=report), \
              patch.object(adapter, "read_play_account",
@@ -204,15 +231,29 @@ class LinuxAdapterTests(unittest.TestCase):
 
             result = root / "result.json"
             with patch.object(adapter, "run_engine", side_effect=engine) as invoke, \
-                 patch.object(adapter, "read_play_account", return_value="verified@example.test"), \
+                 patch.object(adapter, "read_play_account") as lookup, \
                  redirect_stdout(StringIO()) as output:
                 self.assertEqual(adapter.run_stage(1, "private-serial", env, result_file=result), 0)
             invoke.assert_called_once()
+            lookup.assert_not_called()
             self.assertNotIn("verified@example.test", output.getvalue())
             data = json.loads(result.read_text())
             self.assertEqual(data, {"status": "listed", "offers": [
                 {"product": "mock-pro", "id": "mock-offer", "period": "P1M", "micros": 0},
             ]})
+
+    def test_unverified_profile_does_not_hide_linux_offer_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = Path(tmp) / "result.json"
+            report = {"status": "listed", "detected_play_account": "", "offers": []}
+            with patch.object(adapter, "list_offers", return_value=report), \
+                 patch.object(adapter, "read_play_account") as lookup, \
+                 redirect_stdout(StringIO()) as output:
+                self.assertEqual(adapter.run_stage(
+                    1, "device-mock", {adapter.LINUX_WORKDIR: tmp}, result_file=result), 0)
+            lookup.assert_not_called()
+            self.assertIn("Google Play account could not be verified.", output.getvalue())
+            self.assertEqual(json.loads(result.read_text()), {"status": "listed", "offers": []})
 
     def test_engine_drops_raw_private_output(self):
         child = Mock()

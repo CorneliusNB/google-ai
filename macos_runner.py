@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parent
 FRIDA_REQUIRED = "16.5.9"
 REPORT_DIR = ROOT / "ultra0-report"
 LINUX_WORKDIR = "EPLUS_LINUX_STAGE_WORKDIR"
+CHECKOUT_PRODUCT = "g1.2tb.ai.subs_variant"
 EMAIL = re.compile(r"^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$")
 STAGES = {
     2: ("pro12", "12months-eft", False),
@@ -85,7 +86,13 @@ def preflight() -> tuple[str, str]:
         if linux:
             raise RuntimeError(inspect_connection("linux").guidance)
         raise RuntimeError("No online Android device. Check adb devices.")
-    serial = auto_select_device(adb, serials=devices)
+    if linux:
+        # Linux targets one authorized device. App availability is not
+        # enough to establish which connected device the user intends.
+        serials = set(devices)
+        serial = next(iter(serials)) if len(serials) == 1 else None
+    else:
+        serial = auto_select_device(adb, serials=devices)
     if not serial:
         raise RuntimeError("Multiple different Android devices detected. Disconnect extras.")
     return adb, serial
@@ -192,10 +199,11 @@ def verified_account(serial: str, env: dict[str, str], report: dict,
 def check_offer(report: dict, step: int) -> None:
     _plan, expected, _stack = STAGES[step]
     matches = [offer for offer in report["offers"] if isinstance(offer, dict) and
-               offer.get("id") == expected and str(offer.get("micros")) == "0"]
+               offer.get("product") == CHECKOUT_PRODUCT and offer.get("id") == expected and
+               str(offer.get("micros")) == "0"]
     if not matches:
         raise RuntimeError(
-            f"Step {step} offer {expected} has no verified zero-priced first phase. "
+            f"Step {step} offer {expected} on {CHECKOUT_PRODUCT} has no verified zero-priced first phase. "
             "No checkout started."
         )
 
@@ -229,8 +237,17 @@ def run_stage(step: int, serial: str, env: dict[str, str],
         return run_engine(stage_command(0, serial), env)
     if step == 1:
         report = list_offers(serial, env)
-        account = verified_account(serial, env, report)
-        print("Google Play account verified." if linux else f"Account {account}", flush=True)
+        if linux:
+            # Offer inspection can complete when the current Play profile
+            # could not be read. Checkout performs its own mandatory lookup.
+            listed = str(report.get("detected_play_account") or "").strip().lower()
+            if EMAIL.fullmatch(listed):
+                print("Google Play account verified.", flush=True)
+            else:
+                print("Google Play account could not be verified.", flush=True)
+        else:
+            account = verified_account(serial, env, report)
+            print(f"Account {account}", flush=True)
         print(f"Offers {len(report['offers'])} (eligibility not guaranteed)", flush=True)
         if result_file is not None:
             publish_result(result_file, report)
@@ -295,6 +312,9 @@ def main(argv: list[str] | None = None) -> int:
             parent = args.result_file.parent if args.result_file else None
             with TemporaryDirectory(prefix="eplus-android-", dir=parent) as workdir:
                 env[LINUX_WORKDIR] = workdir
+                # The engine also uses fixed names for downloaded setup
+                # files. Keep those files isolated with this invocation.
+                env["TMPDIR"] = workdir
                 return run_stage(args.step, serial, env, args.confirmed, args.active_confirmed,
                                  args.result_file)
         print(f"Device {serial}", flush=True)

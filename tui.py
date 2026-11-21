@@ -796,6 +796,8 @@ class GoogleAITUI(App[None]):
                 self.query_one("#device", Static).update("ANDROID DEVICE\nADB • Connected")
             elif line == "Google Play account verified.":
                 self.query_one("#account", Static).update("GOOGLE ACCOUNT\nVerified")
+            elif line == "Google Play account could not be verified.":
+                self.query_one("#account", Static).update("GOOGLE ACCOUNT\nUnverified")
             return
         if re.search(r"\bDevice\s+(emulator-\d+|[0-9.]+:\d+)\s*$", line):
             self.query_one("#device", Static).update("Device  •  " + escape(line.split()[-1]))

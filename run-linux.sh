@@ -1,7 +1,6 @@
 #!/bin/sh
 # Native Linux launcher for ePlus AI Toolkit. Checkout requires TUI approval.
 set -eu
-cd "$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 
 usage() {
   printf '%s\n' \
@@ -59,6 +58,7 @@ case "$adb" in
 esac
 export ADB_PATH="$adb"
 
+cd "$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 if [ ! -x .venv/bin/python ] && ! python3 -m venv .venv; then
   printf '%s\n' "Could not create .venv. Install python3-venv (or the venv package for your Python version) and check this folder is writable." >&2
   exit 1
