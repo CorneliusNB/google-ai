@@ -160,7 +160,15 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 with patch.object(GoogleAITUI, "_confirm_stage") as confirm:
                     async with app.run_test(size=size) as pilot:
                         app.advanced_pressed()
-                        await pilot.pause()
+                        # Windows runners can need several refreshes for the
+                        # deferred scroll and layout to settle.
+                        for _ in range(30):
+                            await pilot.pause(0.1)
+                            viewport = app.query_one("#results").region
+                            if all(viewport.y <= app.query_one(q).region.y and
+                                   app.query_one(q).region.bottom <= viewport.bottom
+                                   for q in ("#step", "#more_modes", "#run")):
+                                break
                         self.assertFalse(app.query_one("#mode_field").display)
                         self.assertTrue(app.query_one("#step", Select).display)
                         viewport = app.query_one("#results").region
