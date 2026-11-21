@@ -240,7 +240,7 @@ class GoogleAITUI(App[None]):
     Screen.compact #status_panel .section, Screen.compact #state { margin: 0; }
     Screen.compact #workflow_actions { margin-top: 0; padding-top: 0; border-top: none; }
     Screen.compact #mode_label, Screen.compact #advanced_label { margin-bottom: 0; }
-    Screen.compact #run_row { margin-top: 0; }
+    Screen.compact #run_row { margin-top: 0; margin-left: 2; }
     Screen.compact #mode_hint { padding: 0; }
     Screen.compact #quickstart, Screen.compact #advanced_toggle { height: 3; }
     Screen.narrow #form_row { layout: vertical; }
