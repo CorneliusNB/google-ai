@@ -9,6 +9,7 @@ import argparse
 import base64
 import contextlib
 import io
+import json
 from pathlib import Path
 import sys
 
@@ -26,21 +27,24 @@ def resolve_value(command, serial=None):
             import setup_env
             from device_selector import auto_select_device
             return auto_select_device(setup_env.find_adb()) or ""
-        if command == "play-account":
+        if command in ("play-account", "play-accounts"):
             import ultra0
             ultra0.ADB = ultra0.find_adb()
             ultra0.pick_device(preferred=serial)
+            if command == "play-accounts":
+                # Candidate list only: not verified as current billing account.
+                return json.dumps(ultra0.available_google_accounts(), separators=(",", ":"))
             return str(ultra0.current_play_account() or "")
     raise ValueError("Unsupported runtime lookup command")
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="ASCII-safe runtime metadata lookup")
-    parser.add_argument("command", choices=("adb", "device", "play-account"))
+    parser.add_argument("command", choices=("adb", "device", "play-account", "play-accounts"))
     parser.add_argument("--serial", help="ADB device serial (required for play-account)")
     args = parser.parse_args(argv)
-    if args.command == "play-account" and not args.serial:
-        parser.error("--serial is required for play-account")
+    if args.command in ("play-account", "play-accounts") and not args.serial:
+        parser.error("--serial is required for Play account lookup")
     try:
         value = resolve_value(args.command, args.serial)
     except (Exception, SystemExit) as exc:
