@@ -39,7 +39,8 @@ foreach ($case in $cases) {
 }
 $errors = @(
     @{ Message = "No online ADB devices"; Expected = "device_missing" },
-    @{ Message = "Play account mismatch or unverified"; Expected = "account_mismatch" },
+    @{ Message = "Play account mismatch. Detected 'one@example.com', expected 'two@example.com'."; Expected = "account_mismatch" },
+    @{ Message = "Cannot identify the active Google Play account. Open the Play Store profile."; Expected = "account_unavailable" },
     @{ Message = "Offer query did not complete: offer_query_failed"; Expected = "offer_query_failed" },
     @{ Message = "No report produced at ..." ; Expected = "report_missing" },
     @{ Message = "Python not found"; Expected = "python_missing" },
