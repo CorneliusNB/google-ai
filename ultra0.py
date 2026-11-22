@@ -847,7 +847,7 @@ def get_target_frida_device(pid: int, serial: str):
     return selected
 
 
-def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_token="", stack_mode=None, activity_method="auto") -> dict:
+def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_token="", stack_mode=None, activity_method="auto", post_launch=None) -> dict:
     step("Injecting billing module to inspect introductory offers")
     dev = get_target_frida_device(pid, SERIAL)
     note(f"Using Frida device: {dev.id} (ADB: {SERIAL})")
@@ -888,6 +888,18 @@ def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_
         sc.on("message", on_msg)
         sc.load()
         time.sleep(wait)
+        # Keep Frida attached through the Subscribe tap and bounded UI observation,
+        # allowing delayed purchase_cb failures to reach on_msg before cleanup.
+        # Never tap for an unverified offer or a failed billing callback.
+        if post_launch is not None and not list_only and (
+                isinstance(res.get("launched"), dict) and res["launched"].get("code") == 0):
+            expected = {"pro12": "12months-eft", "pro6": "6months-eft",
+                        "pro6b": "6months-eft-2", "pro6c": "6months-eft-ss-2026"}.get(plan)
+            chosen = res.get("chosen_offer")
+            callback = res.get("purchase")
+            rejected = isinstance(callback, dict) and str(callback.get("code")) not in ("0", "None")
+            if expected and isinstance(chosen, dict) and chosen.get("id") == expected and not rejected:
+                res["sheet"] = post_launch()
     finally:
         try:
             sess.detach()
@@ -1064,6 +1076,19 @@ def confirm_zero(wait=40, password="", expected_plan="auto", expected_account=""
                     warn("Checkout account could not be matched to the selected account. "
                          "Review the account on the Google Play checkout screen before retrying.")
                     return out
+                # An email anywhere on the screen is NOT evidence of the payer.
+                # Require the checkout itself to explicitly identify the payer,
+                # otherwise leave the sheet open for manual confirmation.
+                payer_label = (
+                    r"(?:paying\\s+(?:with|as)|billed\\s+to|purchase\\s+account|"
+                    r"google\\s+play\\s+account)\\s*[:：\\-]?\\s*" +
+                    re.escape(expected_account.strip().lower())
+                )
+                if not re.search(payer_label, visible, re.I):
+                    out["reason"] = "checkout_account_unverified"
+                    warn("Google Play does not explicitly identify the purchase payer. "
+                         "No automatic Subscribe tap; verify manually in Google Play.")
+                    return out
             if tap_text("\u8ba2\u9605", "Subscribe", "Đăng ký"):
                 out["confirmed"] = True
                 ok("Tapped Subscribe after verifying today's zero total and expected trial period.")
@@ -1077,7 +1102,8 @@ def confirm_zero(wait=40, password="", expected_plan="auto", expected_account=""
                     if observed["reason"] in (
                             "purchase_unavailable", "ineligible", "already_subscribed",
                             "payment_security_blocked", "processing",
-                            "backup_payment_methods_prompt"):
+                            "backup_payment_methods_prompt",
+                            "today_price_unverified", "trial_duration_unverified"):
                         out["confirmed"] = False
                         out["reason"] = observed["reason"]
                         out["text"] = observed["text"]
@@ -1175,7 +1201,9 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
     options = dict(plan=plan, stack=stack, old_token=old_token,
                    stack_mode=stack_mode, activity_method=activity_method)
     fr = (query_offers_with_recovery(pid, **options) if list_only else
-          run_trial(pid, list_only=False, **options))
+          run_trial(pid, list_only=False, **options,
+                    post_launch=lambda: confirm_zero(
+                        password=password, expected_plan=plan, expected_account=email)))
     rec.update(fr)
     if not list_only and plan in ("pro12", "pro6", "pro6b", "pro6c"):
         expected = {"pro12": "12months-eft", "pro6": "6months-eft",
@@ -1205,7 +1233,10 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
                                 if purchase_code == 4 else
                                 f"Google Play purchase callback returned code {purchase_code}.")
                 return rec
-        rec["sheet"] = confirm_zero(password=password, expected_plan=plan, expected_account=email)
+        # Production observes the post-tap screen while Frida remains attached.
+        # Fallback supports existing test doubles that only return launch events.
+        rec["sheet"] = (fr["sheet"] if isinstance(fr.get("sheet"), dict) else
+                        confirm_zero(password=password, expected_plan=plan, expected_account=email))
         # Preserve the original checkout screen if amount or offer terms
         # are ambiguous; never navigate away before the user can inspect it.
         if rec["sheet"].get("confirmed"):
