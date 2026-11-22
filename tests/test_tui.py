@@ -116,6 +116,7 @@ class CoreTests(unittest.TestCase):
         examples = {
             "ADB is missing. Install Android SDK Platform-Tools.": "adb_missing",
             "No online Android device. Check adb devices.": "device_missing",
+            "Android device changed since Step 1; no checkout started": "device_mismatch",
             "Multiple different Android devices detected. Disconnect extras.": "device_ambiguous",
             "Frida 16.5.9 required (found none).": "frida_missing",
             "Google Play account changed during checks; stop before checkout": "account_mismatch",
