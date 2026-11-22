@@ -370,6 +370,77 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(app._offer_check_ready)
                 self.assertIsNone(app._offer_ready_account)
 
+    async def test_unlocking_step_two_also_unlocks_steps_three_through_five(self):
+        from textual.widgets import Button, Select, Static
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app.query_one("#step", Select).value = 3
+                await pilot.pause()
+                self.assertTrue(app.query_one("#run", Button).disabled)
+
+                # The single successful read-only Step 1 check unlocks every
+                # independent paid choice, not only the initial 12-month step.
+                app._checked_device = "emulator-5554"
+                app._verified_account = "first@example.com"
+                app._finished(1, Outcome("listed", "Offers listed", "Review first phase."), {
+                    "status": "listed",
+                    "detected_play_account": "first@example.com",
+                    "offers": [{"id": "12months-eft", "micros": "0"}],
+                })
+                await pilot.pause()
+                self.assertTrue(app._offer_check_ready)
+                self.assertEqual(app._offer_ready_account, "first@example.com")
+                self.assertEqual(app._offer_ready_device, "emulator-5554")
+                if app.screen is not app:
+                    app.screen.dismiss(False)
+                    await pilot.pause()
+
+                for step in (2, 3, 4, 5):
+                    with self.subTest(step=step):
+                        app.query_one("#step", Select).value = step
+                        await pilot.pause()
+                        self.assertFalse(app.query_one("#run", Button).disabled)
+                        self.assertIn("unlocked", str(app.query_one("#mode_hint", Static).render()))
+
+                # A paid stage may fail before its runner emits fresh account
+                # details. That uncertainty is not evidence of a changed
+                # account: leave all choices open and let the NEXT paid run
+                # revalidate the identity/offer before billing.
+                app.current_step = 2
+                app._checked_device = None
+                app._verified_account = None
+                app._finished(2, Outcome("tool_error", "Step failed", "Review Google Play."), None)
+                await pilot.pause()
+                self.assertTrue(app._offer_check_ready)
+                for step in (2, 3, 4, 5):
+                    with self.subTest(step_after_failure=step):
+                        app.query_one("#step", Select).value = step
+                        await pilot.pause()
+                        self.assertFalse(app.query_one("#run", Button).disabled)
+
+    async def test_verified_identity_failure_relocks_every_paid_step(self):
+        from textual.widgets import Button, Select
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._offer_check_ready = True
+                app._offer_ready_device = "emulator-5554"
+                app._offer_ready_account = "first@example.com"
+                app.current_step = 3
+                app._finished(3, Outcome("account_mismatch",
+                                         "Wrong account", "Check Play Store."), None)
+                self.assertFalse(app._offer_check_ready)
+                self.assertIsNone(app._offer_ready_account)
+                for step in (2, 3, 4, 5):
+                    app.query_one("#step", Select).value = step
+                    await pilot.pause()
+                    self.assertTrue(app.query_one("#run", Button).disabled)
+
     async def test_failed_paid_stage_can_retry_only_on_same_account_and_device(self):
         from tui import Approval, GoogleAITUI
 
