@@ -91,6 +91,31 @@ class OriginalFlowGuardrails(unittest.TestCase):
         self.assertFalse(result["confirmed"])
         self.assertTrue(result["ineligible"])
 
+    def test_unverified_terms_after_subscribe_revoke_confirmation(self):
+        for screen, reason in (
+                ("Google AI Pro Subscribe Due today US$1 12-month trial", "today_price_unverified"),
+                ("Google AI Pro Subscribe Due today US$0 limited trial", "trial_duration_unverified")):
+            with self.subTest(reason=reason):
+                pages = iter([
+                    "Google AI Pro Subscribe Due today US$0 12-month trial", screen,
+                ])
+                with patch.object(mod, "ui_xml", side_effect=lambda: next(pages)), \
+                     patch.object(mod, "nodes", side_effect=lambda page: [{"text": page, "desc": ""}]), \
+                     patch.object(mod, "tap_text", return_value=True), \
+                     patch.object(mod.time, "sleep"):
+                    result = mod.confirm_zero(wait=4, expected_plan="pro12")
+                self.assertEqual(result["reason"], reason)
+                self.assertFalse(result["confirmed"])
+
+    def test_checkout_refuses_account_without_explicit_payer_label(self):
+        page = "Google AI Pro alice@example.com Subscribe Due today US$0 12-month trial"
+        with patch.object(mod, "ui_xml", return_value=page), \
+             patch.object(mod, "nodes", side_effect=lambda page: [{"text": page, "desc": ""}]), \
+             patch.object(mod, "tap_text") as tapped:
+            result = mod.confirm_zero(wait=2, expected_plan="pro12", expected_account="alice@example.com")
+        self.assertEqual(result["reason"], "checkout_account_unverified")
+        tapped.assert_not_called()
+
     def test_backup_payment_prompt_after_subscribe_is_not_success(self):
         screens = iter([
             "Google AI Pro Subscribe Today US$0 12-month free trial",
