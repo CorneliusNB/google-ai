@@ -1009,6 +1009,32 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause()
                 self.assertNotIsInstance(app.screen, ConnectionNotice)
 
+    async def test_paid_stage_button_shows_running_step_and_elapsed_seconds(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button
+        from tui_core import Outcome
+
+        for step in range(2, 6):
+            with self.subTest(step=step), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=(90, 20)):
+                    with patch.object(app, "run_stage") as run:
+                        app._offer_check_ready = True
+                        app._start(step, False)
+                        button = app.query_one("#quickstart", Button)
+                        self.assertTrue(button.disabled)
+                        self.assertTrue(button.display)
+                        self.assertTrue(button.has_class("checking"))
+                        self.assertEqual(str(button.label), f"Running Step {step}… 0s")
+                        with patch("tui.time.monotonic", return_value=app._started_at + 92):
+                            app._refresh_elapsed()
+                        self.assertEqual(str(button.label), f"Running Step {step}… 92s")
+                        app.quickstart_pressed()
+                        run.assert_called_once_with(step)
+                    app._finished(step, Outcome("cancelled", "Stopped", ""), None)
+                    self.assertFalse(button.has_class("checking"))
+                    self.assertNotIn("Running Step", str(button.label))
+
     async def test_account_choice_is_next_to_account_and_locked_during_stage(self):
         from tui import GoogleAITUI
         from textual.widgets import Button

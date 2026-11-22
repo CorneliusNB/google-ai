@@ -779,6 +779,8 @@ class GoogleAITUI(App[None]):
         self.query_one("#elapsed", Static).update(f"Elapsed: {elapsed // 60:02d}:{elapsed % 60:02d}")
         if self.current_step == 1:
             self.query_one("#quickstart", Button).label = f"Checking offers… {elapsed}s"
+        elif self.current_step is not None:
+            self.query_one("#quickstart", Button).label = f"Running Step {self.current_step}… {elapsed}s"
         if self._last_activity_at is not None:
             idle = int(time.monotonic() - self._last_activity_at)
             if idle >= 30:
@@ -1029,9 +1031,11 @@ class GoogleAITUI(App[None]):
         )
         quick_check = self.query_one("#quickstart", Button)
         quick_check.disabled = True
+        quick_check.add_class("checking")
         if step == 1:
-            quick_check.add_class("checking")
             quick_check.label = "Checking offers… 0s"
+        else:
+            quick_check.label = f"Running Step {step}… 0s"
         self.query_one("#diagnose", Button).disabled = True
         self.query_one("#quickstart", Button).display = True
         self.query_one("#choose_account", Button).disabled = True
