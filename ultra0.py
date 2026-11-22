@@ -490,6 +490,23 @@ def accounts_on_device() -> list:
     return out.splitlines()
 
 
+def available_google_accounts() -> list[str]:
+    """Read candidate accounts from Android. NOT proof of the active Play payer.
+
+    Some Android versions redact AccountManager identities, so an empty list
+    should prompt manual Play Store selection rather than guessing.
+    """
+    found = set()
+    for line in accounts_on_device():
+        if "type=com.google" not in line:
+            continue
+        for email in re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
+                                line, flags=re.I):
+            if len(email) <= 254:
+                found.add(email.lower())
+    return sorted(found)
+
+
 def add_account(email, password, totp_secret="") -> bool:
     """Add a Google account on Android, pausing for manual verification when needed."""
     step(f"Adding account to Android: {email}")
