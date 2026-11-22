@@ -269,7 +269,7 @@ class GoogleAITUI(App[None]):
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
     #choose_account { width: 18; min-width: 18; height: 3; margin: 0 0 0 1; }
     #quickstart { display: block; width: 100%; height: 3; margin: 0; }
-    #quickstart.checking:disabled {
+    #quickstart.checking:disabled, #run.checking:disabled {
         background: #123b31; color: #e5fff2; text-style: bold;
         text-opacity: 1; opacity: 1;
     }
@@ -789,6 +789,8 @@ class GoogleAITUI(App[None]):
             self.query_one("#quickstart", Button).label = f"Checking offers… {elapsed}s"
         elif self.current_step is not None:
             self.query_one("#quickstart", Button).label = f"Running Step {self.current_step}… {elapsed}s"
+        if self.current_step is not None:
+            self.query_one("#run", Button).label = f"Running Step {self.current_step}… {elapsed}s"
         if self._last_activity_at is not None:
             idle = int(time.monotonic() - self._last_activity_at)
             if idle >= 30:
@@ -1080,6 +1082,9 @@ class GoogleAITUI(App[None]):
         quick_check = self.query_one("#quickstart", Button)
         quick_check.disabled = True
         quick_check.add_class("checking")
+        run_button = self.query_one("#run", Button)
+        run_button.add_class("checking")
+        run_button.label = f"Running Step {step}… 0s"
         if step == 1:
             quick_check.label = "Checking offers… 0s"
         else:
@@ -1256,6 +1261,7 @@ class GoogleAITUI(App[None]):
 
     def _finished(self, step: int, outcome: Outcome, report: dict | None) -> None:
         self.busy = False
+        self.query_one("#run", Button).remove_class("checking")
         self.query_one("#refresh_offers", Button).disabled = False
         history_account = self._history_account
         if step == 1:

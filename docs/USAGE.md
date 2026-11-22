@@ -60,6 +60,7 @@ While a stage is running, **Check Device & Offers**, Run, Run mode and Step sele
 During Step 1, the **Check Device & Offers** button displays the elapsed time in seconds.
 If Steps 2–5 are selected without a fresh verified check, the step panel shows a green **Check Device & Offers — Step 1** action and explains the prerequisite. Click it to refresh the current device, account and offers.
 During Steps 2–5, the same button shows **Running Step N…** and elapsed seconds until the step finishes.
+The **Run this step** button in step selection also shows the running step and elapsed seconds.
 The engine restarts Google One after the device and account checks, before querying offers. **Live Status** reports when this restart begins. A failed stop command ends the attempt.
 When the Windows offer check completes its Environment check, Step 0 receives a checkmark while Step 1 continues running.
 The action panel fits its controls, and **Live Status** fills the remaining height. Expanding the step controls keeps them in a scrollable panel.

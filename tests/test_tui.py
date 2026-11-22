@@ -1079,14 +1079,20 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         self.assertTrue(button.display)
                         self.assertTrue(button.has_class("checking"))
                         self.assertEqual(str(button.label), f"Running Step {step}… 0s")
+                        run_button = app.query_one("#run", Button)
+                        self.assertEqual(str(run_button.label), f"Running Step {step}… 0s")
+                        self.assertTrue(run_button.has_class("checking"))
                         with patch("tui.time.monotonic", return_value=app._started_at + 92):
                             app._refresh_elapsed()
                         self.assertEqual(str(button.label), f"Running Step {step}… 92s")
+                        self.assertEqual(str(run_button.label), f"Running Step {step}… 92s")
                         app.quickstart_pressed()
                         run.assert_called_once_with(step)
                     app._finished(step, Outcome("cancelled", "Stopped", ""), None)
                     self.assertFalse(button.has_class("checking"))
                     self.assertNotIn("Running Step", str(button.label))
+                    self.assertFalse(run_button.has_class("checking"))
+                    self.assertNotIn("Running Step", str(run_button.label))
 
     async def test_account_choice_is_next_to_account_and_locked_during_stage(self):
         from tui import GoogleAITUI
