@@ -378,19 +378,28 @@ def read_purchase_token(sku_short: str, expected_account: str = "") -> str:
             pass
 
 
-def ensure_vending():
+def ensure_vending(*, retry_startup: bool = False):
     """Google Play Store must be running for BillingClient queries to complete."""
     if sh("shell", f"pidof {VENDING}"):
         ok("Google Play Store process is running")
         return
     warn("Google Play Store is not running; attempting to start it...")
-    sh("shell", f"monkey -p {VENDING} -c android.intent.category.LAUNCHER 1", timeout=30)
-    for _ in range(20):
-        time.sleep(1)
-        if sh("shell", f"pidof {VENDING}"):
-            ok("Google Play Store started")
-            time.sleep(2)
-            return
+    for attempt in range(2 if retry_startup else 1):
+        if attempt:
+            warn("Google Play Store did not start during the offer check; restarting it once.")
+            sh("shell", f"am force-stop {VENDING}", timeout=15)
+        try:
+            sh("shell", f"monkey -p {VENDING} -c android.intent.category.LAUNCHER 1", timeout=30)
+        except subprocess.TimeoutExpired:
+            if not retry_startup:
+                raise
+            warn("Google Play Store launch command timed out; checking whether it started.")
+        for _ in range(20):
+            time.sleep(1)
+            if sh("shell", f"pidof {VENDING}"):
+                ok("Google Play Store started")
+                time.sleep(2)
+                return
     warn("Google Play Store did not start. Open it manually or restart the emulator.")
 
 
@@ -1291,7 +1300,7 @@ def main():
     ensure_network()
     ensure_frida_server()
     ensure_module_apk()
-    ensure_vending()   # Google Play Store must be running for product-query callbacks.
+    ensure_vending(retry_startup=a.list)
 
     REPORT_DIR.mkdir(exist_ok=True)
     rows = []

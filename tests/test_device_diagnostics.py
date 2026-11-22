@@ -11,6 +11,22 @@ spec.loader.exec_module(mod)
 
 
 class DeviceDiagnosticsTests(unittest.TestCase):
+    def test_play_store_startup_retry_is_limited_to_offer_checks(self):
+        for retry, expected_launches in ((False, 1), (True, 2)):
+            with self.subTest(retry=retry), \
+                 patch.object(mod, "sh", return_value="") as adb, \
+                 patch.object(mod.time, "sleep"):
+                mod.ensure_vending(retry_startup=retry)
+            commands = [call.args[1] for call in adb.call_args_list]
+            launch = f"monkey -p {mod.VENDING} -c android.intent.category.LAUNCHER 1"
+            self.assertEqual(commands.count(launch), expected_launches)
+            self.assertEqual(commands.count(f"am force-stop {mod.VENDING}"), int(retry))
+
+    def test_play_store_already_running_is_not_restarted(self):
+        with patch.object(mod, "sh", return_value="1234") as adb:
+            mod.ensure_vending(retry_startup=True)
+        adb.assert_called_once_with("shell", f"pidof {mod.VENDING}")
+
     def test_unknown_account_fails_closed_without_launching(self):
         with patch.object(mod, "current_play_account", return_value=""), \
              patch.object(mod, "launch_app") as launch:
