@@ -724,6 +724,9 @@ class GoogleAITUI(App[None]):
         self.query_one("#run", Button).disabled = paid_selected and not self._offer_check_ready
         if paid_selected and not self._offer_check_ready:
             hint = "First run Check Device & Offers successfully to unlock Steps 2-5."
+        elif paid_selected and mode in ("single", "from"):
+            hint = ("Steps 2-5 unlocked for selection. Each paid run rechecks "
+                    "the Play account, device and selected offer.")
         self.query_one("#mode_hint", Static).update(hint)
 
     def action_toggle_advanced(self) -> None:
@@ -1155,20 +1158,31 @@ class GoogleAITUI(App[None]):
             self._initial_offer_ready = False
             self._offer_ready_device = None
             self._offer_ready_account = None
-        elif outcome.code != "checkout_requested":
-            # A manual retry is allowed only for a recognized failure and a
-            # verified *same* device/account. Paid runner repeats its own Step
-            # 0/1 preflight before any subsequent purchase attempt.
-            retryable = outcome.code in (
-                "purchase_unavailable", "billing_flow_error",
-                "checkout_not_confirmed", "launch_failed",
-            )
-            same_context = bool(self._offer_ready_account and self._verified_account
-                                and self._verified_account == self._offer_ready_account
-                                and self._checked_device == self._offer_ready_device)
-            self._offer_check_ready = bool(retryable and same_context)
+        elif step >= 2:
+            # Step 1 unlocks *all* paid choices (2-5), not just Step 2.
+            # A failed or inconclusive paid attempt must not silently revoke
+            # the user's ability to choose a different step or manually retry.
+            # Actual paid operations still run fresh account/device/offer
+            # preflight and require a separate checkout approval every time.
             self._initial_offer_ready = False
-            if not self._offer_check_ready:
+            account_changed = bool(
+                self._verified_account and self._offer_ready_account
+                and self._verified_account != self._offer_ready_account
+            )
+            device_changed = bool(
+                self._checked_device and self._offer_ready_device
+                and self._checked_device != self._offer_ready_device
+            )
+            identity_invalid = outcome.code in (
+                "account_mismatch", "account_unavailable", "account_unverified",
+                "wrong_account", "play_account_switch_failed",
+                "device_missing", "device_ambiguous", "adb_missing",
+            )
+            if account_changed or device_changed or identity_invalid:
+                # Only a known account/device problem revokes the read-only
+                # selection gate. Idle ADB monitoring also revokes it if the
+                # previously checked device disconnects.
+                self._offer_check_ready = False
                 self._offer_ready_device = None
                 self._offer_ready_account = None
         self._last_outcome = outcome
