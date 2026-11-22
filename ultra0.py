@@ -1149,7 +1149,10 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
         # Preserve the original checkout screen if amount or offer terms
         # are ambiguous; never navigate away before the user can inspect it.
         if rec["sheet"].get("confirmed"):
-            rec["subscription_page"] = verify()
+            # Do not navigate away automatically: Play can still display a
+            # delayed payment rejection or need additional user confirmation.
+            note("Subscribe was tapped, but the purchase is unverified. "
+                 "Leave Google Play open for manual review of its final status.")
         else:
             note("Checkout not confirmed; Google Play remains open for inspection.")
         # launchBillingFlow code 0 and seeing a product name on the Play page
