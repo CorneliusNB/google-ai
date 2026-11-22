@@ -301,7 +301,8 @@ def validate_step(step: int) -> int:
     return step
 
 
-def command_for_step(step: int, repo: Path, shell: str | None = None) -> list[str]:
+def command_for_step(step: int, repo: Path, shell: str | None = None,
+                     account: str | None = None) -> list[str]:
     validate_step(step)
     if sys.platform == "darwin":
         bridge = repo / "macos_runner.py"
@@ -314,6 +315,8 @@ def command_for_step(step: int, repo: Path, shell: str | None = None) -> list[st
             command.append("--confirmed")
         if step >= 3:
             command.append("--active-confirmed")
+        if step >= 2 and account:
+            command.extend(["--expected-account", account])
         return command
     executable = shell or shutil.which("powershell.exe") or shutil.which("pwsh")
     if not executable:
@@ -324,8 +327,11 @@ def command_for_step(step: int, repo: Path, shell: str | None = None) -> list[st
     # Single steps are non-interactive at the PowerShell approval layer.
     # Using the existing wrapper keeps ADB, Frida, Play-account, offer and
     # checkout validation in one place instead of copying billing code.
-    return [executable, "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass",
-            "-File", str(script), "-Step", str(step)]
+    command = [executable, "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass",
+               "-File", str(script), "-Step", str(step)]
+    if step >= 2 and account:
+        command.extend(["-Email", account])
+    return command
 
 
 def read_fresh_report(directory: Path, step: int, started_at: float,
