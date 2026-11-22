@@ -1063,6 +1063,21 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("✓", app.query_one("#stage_0", Static).render().plain)
                 self.assertIn("●", app.query_one("#stage_1", Static).render().plain)
 
+    async def test_startup_restores_attempted_steps_without_unlocking_checkout(self):
+        from tui import GoogleAITUI
+        from stage_history import record_history
+        from textual.widgets import Static
+
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            record_history(repo, "selected@example.com", 2, "checkout_requested")
+            app = GoogleAITUI(repo=repo)
+            async with app.run_test(size=(90, 20)):
+                self.assertIn("↺", app.query_one("#stage_2", Static).render().plain)
+                self.assertIn("Step 2", app.query_one("#history", Static).render().plain)
+                self.assertFalse(app._offer_check_ready)
+                self.assertIsNone(app._verified_account)
+
     async def test_account_history_survives_restart_without_unlocking_paid_steps(self):
         from tui import GoogleAITUI
         from stage_history import record_history

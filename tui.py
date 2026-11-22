@@ -29,7 +29,7 @@ from tui_core import STAGES, Outcome, command_for_step, mask_email, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
     readable_issue_line, report_summary, safe_launch_diagnostic, validate_step
 from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_connection, poll_connection
-from stage_history import read_history, record_history
+from stage_history import latest_history, read_history, record_history
 
 
 class Approval(ModalScreen[bool]):
@@ -375,6 +375,7 @@ class GoogleAITUI(App[None]):
         self._verified_account: str | None = None
         self._selected_account: str | None = None
         self._history_account: str | None = None
+        self._environment_checked = False
         self._offer_ready_account: str | None = None
         self._accounts_loading = False
         self._offer_check_ready = False
@@ -610,6 +611,8 @@ class GoogleAITUI(App[None]):
         self._update_run_mode()
 
     def on_mount(self) -> None:
+        self._render_history(latest_history(self.repo),
+                             "Previous run · select an account and run Step 1 to verify")
         self.set_interval(1, self._refresh_elapsed)
         self.set_interval(5, self._poll_connection)
         if self.macos_mode:
@@ -923,7 +926,10 @@ class GoogleAITUI(App[None]):
         self._confirm_stage(next_step, True, previous_verified=True)
 
     def _show_history(self, account: str) -> None:
-        entries = read_history(self.repo, account)[-6:]
+        self._render_history(read_history(self.repo, account),
+                             f"Recent history · {mask_email(account)}")
+
+    def _render_history(self, entries: list, title: str) -> None:
         labels = {
             "started": "Started; outcome unverified",
             "checkout_requested": "Checkout submitted; verify in Google Play",
@@ -932,21 +938,31 @@ class GoogleAITUI(App[None]):
             "account_unverified": "Account could not be verified",
             "wrong_account": "Account mismatch",
         }
-        lines = [f"Recent history · {mask_email(account)}"]
-        for entry in reversed(entries):
+        lines = [title, "↺ = previously attempted; verify current device and account."]
+        if not self.busy:
+            for stage in STAGES:
+                self._set_workflow(stage.number, "pending")
+            for entry in entries:
+                if isinstance(entry, dict) and entry.get("step") in range(6):
+                    step = entry["step"]
+                    self.query_one(f"#stage_{step}", Static).update(
+                        f"↺  {step}. {STAGES[step].label}")
+        for entry in reversed(entries[-6:]):
             if isinstance(entry, dict) and isinstance(entry.get("step"), int):
                 status = labels.get(entry.get("status"), "Stopped; review Google Play before retrying")
                 lines.append(f"Step {entry['step']} · {status} · {entry.get('at', '')}")
         if not entries:
-            lines.append("No saved runs for this account.")
+            lines.append("No saved runs.")
         self.query_one("#history", Static).update("\n".join(lines))
 
     def _save_history(self, account: str | None, step: int, status: str) -> None:
-        if not account:
-            return
         try:
-            record_history(self.repo, account, step, status)
-            self._show_history(account)
+            record_history(self.repo, account or "", step, status)
+            if account:
+                self._show_history(account)
+            else:
+                self._render_history(read_history(self.repo, ""),
+                                     "Recent history · account not verified")
         except OSError:
             self.notify("Could not save local step history.", severity="warning")
 
@@ -1053,6 +1069,7 @@ class GoogleAITUI(App[None]):
         self._save_history(self._history_account, step, "started")
         self._checked_device = None
         if step <= 1:
+            self._environment_checked = False
             self._set_workflow(0, "pending")
             self._offer_check_ready = False
             self._initial_offer_ready = False
@@ -1211,6 +1228,7 @@ class GoogleAITUI(App[None]):
             return
         if line.strip() == "EPLUS_STAGE_DONE:0":
             if self.busy:
+                self._environment_checked = True
                 self._set_workflow(0, "done")
             return
         # Keep the original marker for the parser, but never print raw
@@ -1278,7 +1296,11 @@ class GoogleAITUI(App[None]):
         history_account = self._history_account
         if step == 1:
             history_account = str((report or {}).get("detected_play_account") or "") or history_account
+            if self._environment_checked:
+                self._save_history(history_account, 0, "environment_ok")
         self._save_history(history_account, step, outcome.code)
+        if self._environment_checked:
+            self._set_workflow(0, "done")
         if step == 1:
             detected = str((report or {}).get("detected_play_account") or "").strip().lower()
             verified = (self._verified_account or "").strip().lower()

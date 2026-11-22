@@ -20,6 +20,19 @@ def read_history(repo: Path, account: str) -> list:
         return []
 
 
+def latest_history(repo: Path) -> list:
+    try:
+        paths = sorted((repo / "logs" / "stage-history").glob("*.json"),
+                       key=lambda path: path.stat().st_mtime_ns, reverse=True)
+        for path in paths:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(data, list) and data:
+                return data
+    except (OSError, ValueError):
+        pass
+    return []
+
+
 def record_history(repo: Path, account: str, step: int, status: str) -> None:
     path = history_path(repo, account)
     path.parent.mkdir(parents=True, exist_ok=True)
