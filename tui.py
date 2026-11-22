@@ -843,9 +843,8 @@ class GoogleAITUI(App[None]):
             return
         # Block a known device change immediately. The final _start gate also
         # rejects an unknown/undiscovered connection before any paid command.
-        if step >= 2 and self._connection_state and (
-                not self._offer_ready_device
-                or self._connection_state.state != "connected"
+        if step >= 2 and self._offer_ready_device and self._connection_state and (
+                self._connection_state.state != "connected"
                 or self._offer_ready_device not in self._connection_state.devices):
             self._offer_check_ready = False
             self._set_status("Android device changed")
