@@ -2,6 +2,7 @@
 import base64
 import importlib.util
 import io
+import json
 from pathlib import Path
 import sys
 import unittest
@@ -43,6 +44,17 @@ class RuntimeLookupTests(unittest.TestCase):
             status = module.main(["play-account", "--serial", "emulator-5554"])
         self.assertEqual(status, 0)
         self.assertEqual(output.getvalue().strip(), "RUNTIME_RESULT:")
+
+    def test_account_candidate_lookup_has_no_checkout_side_effects(self):
+        import ultra0
+        candidates = ["one@example.com", "two@example.com"]
+        with patch.object(ultra0, "find_adb", return_value="adb"), \
+             patch.object(ultra0, "pick_device"), \
+             patch.object(ultra0, "available_google_accounts", return_value=candidates), \
+             patch.object(ultra0, "run_trial") as billing:
+            encoded = module.resolve_value("play-accounts", "emulator-5554")
+        self.assertEqual(json.loads(encoded), candidates)
+        billing.assert_not_called()
 
     def test_account_lookup_requires_serial(self):
         with self.assertRaises(SystemExit):
