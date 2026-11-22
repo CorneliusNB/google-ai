@@ -263,7 +263,7 @@ class GoogleAITUI(App[None]):
     .section { color: #6cdbf8; text-style: bold; margin: 0 0 1 0; }
     #workflow { height: auto; margin-bottom: 1; }
     .workflow-step { color: #b4cbe0; height: 1; }
-    #nav_help, #diagnose, #debug, #exit {
+    #nav_help, #diagnose, #debug, #reload, #exit {
         width: 100%; height: 3; margin: 0;
     }
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
@@ -419,6 +419,7 @@ class GoogleAITUI(App[None]):
                     yield Button("Help & Guide", id="nav_help")
                     yield Button("Diagnose Android connection", id="diagnose")
                     yield Button("Show technical details", id="debug")
+                    yield Button("Reload toolkit", id="reload")
                     yield Button("Exit toolkit", id="exit")
                 with Vertical(id="results"):
                     yield RichLog(id="debug_log", wrap=True, highlight=False, markup=False)
@@ -479,6 +480,15 @@ class GoogleAITUI(App[None]):
     @on(Button.Pressed, "#nav_quick")
     def quick_pressed(self) -> None:
         self.quickstart_pressed()
+
+    @on(Button.Pressed, "#reload")
+    def reload_pressed(self) -> None:
+        if self.busy or self._diagnosing or self._accounts_loading:
+            return
+        try:
+            os.execv(sys.executable, [sys.executable, str(self.repo / "tui.py")])
+        except OSError:
+            self.notify("Could not reload toolkit. Close and reopen it.", severity="error")
 
     @on(Button.Pressed, "#nav_help")
     def help_pressed(self) -> None:
@@ -1052,6 +1062,7 @@ class GoogleAITUI(App[None]):
             self._initial_offer_ready = False
         self.query_one("#quickstart", Button).label = "Check Device & Offers"
         self.busy = True
+        self.query_one("#reload", Button).disabled = True
         self.query_one("#refresh_offers", Button).disabled = True
         self.sequence = sequence
         self.current_step = step
@@ -1261,6 +1272,7 @@ class GoogleAITUI(App[None]):
 
     def _finished(self, step: int, outcome: Outcome, report: dict | None) -> None:
         self.busy = False
+        self.query_one("#reload", Button).disabled = False
         self.query_one("#run", Button).remove_class("checking")
         self.query_one("#refresh_offers", Button).disabled = False
         history_account = self._history_account

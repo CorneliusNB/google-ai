@@ -1027,6 +1027,25 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 app._update_run_mode()
                 self.assertFalse(app.query_one("#refresh_offers", Button).display)
 
+    async def test_reload_restarts_idle_dashboard_and_is_blocked_during_stage(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button
+        import sys
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)):
+                with patch("tui.os.execv") as restart:
+                    app.reload_pressed()
+                    restart.assert_called_once_with(
+                        sys.executable, [sys.executable, str(app.repo / "tui.py")])
+                    restart.reset_mock()
+                    with patch.object(app, "run_stage"):
+                        app._start(1, False)
+                    self.assertTrue(app.query_one("#reload", Button).disabled)
+                    app.reload_pressed()
+                    restart.assert_not_called()
+
     async def test_environment_tick_requires_completion_marker_in_current_run(self):
         from tui import GoogleAITUI
         from textual.widgets import Static
