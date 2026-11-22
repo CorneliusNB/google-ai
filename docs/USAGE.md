@@ -22,6 +22,8 @@ On Windows, running the check locates ADB or attempts to download official Andro
 
 The sidebar lists the six stages. Android Device / Google Account cards update from observed output; account identifiers are masked. Original-author and maintainer credits link to their GitHub profiles in supported terminals.
 
+**Choose account** appears next to the Account card from startup. It reads the signed-in Android account candidates when clicked. During a stage it is disabled. Choose the matching profile in Google Play and run **Check Device & Offers** to verify the selection.
+
 After **Check Device & Offers** reads the Android device, the **Device** card shows the Android version, SDK level, CPU ABI and ADB serial when available. Hover over the card for the full details if the terminal clips the line.
 
 ### Additional run options

@@ -1009,6 +1009,24 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause()
                 self.assertNotIsInstance(app.screen, ConnectionNotice)
 
+    async def test_account_choice_is_next_to_account_and_locked_during_stage(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button
+
+        for size in ((90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    await pilot.pause()
+                    button = app.query_one("#choose_account", Button)
+                    account = app.query_one("#account")
+                    self.assertEqual(button.region.y, account.region.y)
+                    self.assertGreaterEqual(button.region.x, account.region.right)
+                    self.assertLessEqual(button.region.right, size[0])
+                    with patch.object(app, "run_stage"):
+                        app._start(1, False)
+                    self.assertTrue(button.disabled)
+
     async def test_live_status_uses_remaining_height_after_actions(self):
         from tui import GoogleAITUI
 

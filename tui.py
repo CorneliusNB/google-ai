@@ -266,7 +266,7 @@ class GoogleAITUI(App[None]):
         width: 100%; height: 3; margin: 0;
     }
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
-    #choose_account { width: 100%; height: 3; margin: 0; }
+    #choose_account { width: 18; min-width: 18; height: 3; margin: 0 0 0 1; }
     #quickstart { display: block; width: 100%; height: 3; margin: 0; }
     #quickstart.checking:disabled {
         background: #123b31; color: #e5fff2; text-style: bold;
@@ -322,6 +322,7 @@ class GoogleAITUI(App[None]):
     Screen.compact #credit, Screen.compact #hint { display: none; }
     Screen.compact #details { height: 1; }
     Screen.compact #device, Screen.compact #account { height: 1; border: none; }
+    Screen.compact #choose_account { height: 1; min-height: 1; border: none; padding: 0; }
     Screen.compact #welcome_panel { padding: 0 1; }
     Screen.compact #quick_hint, Screen.compact #read_only { display: none; }
     Screen.compact #welcome { display: none; }
@@ -404,6 +405,7 @@ class GoogleAITUI(App[None]):
             with Horizontal(id="details"):
                 yield Static("Device  •  Auto-detect", id="device")
                 yield Static("Account  •  Not checked", id="account")
+                yield Button("Choose account", id="choose_account")
             with Horizontal(id="content"):
                 with Vertical(id="controls"):
                     yield Static("STEPS", classes="section")
@@ -412,7 +414,6 @@ class GoogleAITUI(App[None]):
                             yield Static(f"○  {stage.number}. {stage.label}",
                                          id=f"stage_{stage.number}", classes="workflow-step")
                     yield Button("Help & Guide", id="nav_help")
-                    yield Button("Choose Google account", id="choose_account")
                     yield Button("Diagnose Android connection", id="diagnose")
                     yield Button("Show technical details", id="debug")
                     yield Button("Exit toolkit", id="exit")
@@ -519,7 +520,7 @@ class GoogleAITUI(App[None]):
 
     def _account_candidates_loaded(self, accounts: list[str]) -> None:
         self._accounts_loading = False
-        self.query_one("#choose_account", Button).disabled = False
+        self.query_one("#choose_account", Button).disabled = self.busy or self._diagnosing
         if not accounts:
             self._set_status("Account list unavailable")
             self._set_message("Android did not provide a readable account list. "
@@ -1033,6 +1034,7 @@ class GoogleAITUI(App[None]):
             quick_check.label = "Checking offers… 0s"
         self.query_one("#diagnose", Button).disabled = True
         self.query_one("#quickstart", Button).display = True
+        self.query_one("#choose_account", Button).disabled = True
         self.query_one("#run", Button).disabled = True
         self.query_one("#sequence", Button).disabled = True
         self.query_one("#mode", Select).disabled = True
@@ -1252,6 +1254,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True
         self.query_one("#quickstart", Button).remove_class("checking")
+        self.query_one("#choose_account", Button).disabled = self._accounts_loading
         self.query_one("#quickstart", Button).disabled = False
         self.query_one("#quickstart", Button).label = (
             "Continue to Step 2" if self._initial_offer_ready else "Check Device & Offers"
