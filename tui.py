@@ -274,6 +274,7 @@ class GoogleAITUI(App[None]):
         text-opacity: 1; opacity: 1;
     }
     #advanced_toggle { width: 100%; height: 3; margin: 0; }
+    #refresh_offers { display: none; width: 100%; height: 3; }
     #workflow_actions { display: none; height: auto; margin-top: 1; border-top: solid #285d83; padding-top: 1; }
     #status_panel { min-height: 8; overflow-y: auto; scrollbar-size: 1 1; }
 
@@ -428,6 +429,7 @@ class GoogleAITUI(App[None]):
                         yield Button("Verified in Google Play → Next", id="next", disabled=True)
                         yield Button("Choose another step  +", id="advanced_toggle")
                         with Vertical(id="workflow_actions"):
+                            yield Button("Check Device & Offers — Step 1", id="refresh_offers", variant="success")
                             with Horizontal(id="form_row"):
                                 with Vertical(classes="field", id="step_field"):
                                     yield Static("Choose a step", id="advanced_label")
@@ -765,9 +767,11 @@ class GoogleAITUI(App[None]):
             self.query_one("#run", Button).label = "Run this step"
             hint = "Only this step will run. Steps 2–5 can request payment."
         paid_selected = mode == "all" or (mode in ("single", "from") and step in (2, 3, 4, 5))
+        self.query_one("#refresh_offers", Button).display = paid_selected and not self._offer_check_ready
         self.query_one("#run", Button).disabled = paid_selected and not self._offer_check_ready
         if paid_selected and not self._offer_check_ready:
-            hint = "First run Check Device & Offers successfully to unlock Steps 2-5."
+            hint = "A fresh Step 1 check is required for this session, device and account. Use the green Step 1 button above."
+            self.query_one("#run", Button).label = "Step 1 check required"
         elif paid_selected and mode in ("single", "from"):
             hint = ("Steps 2-5 unlocked for selection. Each paid run rechecks "
                     "the Play account, device and selected offer.")
@@ -865,6 +869,10 @@ class GoogleAITUI(App[None]):
             self._confirm_stage(2, True)
         else:
             self._confirm_stage(1, False)
+
+    @on(Button.Pressed, "#refresh_offers")
+    def refresh_offers_pressed(self) -> None:
+        self._confirm_stage(1, False)
 
     @on(Button.Pressed, "#run")
     def selected_pressed(self) -> None:
@@ -1042,6 +1050,7 @@ class GoogleAITUI(App[None]):
             self._initial_offer_ready = False
         self.query_one("#quickstart", Button).label = "Check Device & Offers"
         self.busy = True
+        self.query_one("#refresh_offers", Button).disabled = True
         self.sequence = sequence
         self.current_step = step
         self._stop_after_step = False
@@ -1245,6 +1254,7 @@ class GoogleAITUI(App[None]):
 
     def _finished(self, step: int, outcome: Outcome, report: dict | None) -> None:
         self.busy = False
+        self.query_one("#refresh_offers", Button).disabled = False
         history_account = self._history_account
         if step == 1:
             history_account = str((report or {}).get("detected_play_account") or "") or history_account

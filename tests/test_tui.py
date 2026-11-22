@@ -1009,6 +1009,24 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause()
                 self.assertNotIsInstance(app.screen, ConnectionNotice)
 
+    async def test_paid_selection_without_fresh_check_offers_step_one_action(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button, Select
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)) as pilot:
+                app.query_one("#step", Select).value = 2
+                await pilot.pause()
+                self.assertTrue(app.query_one("#refresh_offers", Button).display)
+                self.assertTrue(app.query_one("#run", Button).disabled)
+                with patch.object(app, "_confirm_stage") as confirm:
+                    app.refresh_offers_pressed()
+                confirm.assert_called_once_with(1, False)
+                app._offer_check_ready = True
+                app._update_run_mode()
+                self.assertFalse(app.query_one("#refresh_offers", Button).display)
+
     async def test_environment_tick_requires_completion_marker_in_current_run(self):
         from tui import GoogleAITUI
         from textual.widgets import Static
