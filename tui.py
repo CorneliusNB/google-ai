@@ -1377,7 +1377,7 @@ class GoogleAITUI(App[None]):
             identity_invalid = outcome.code in (
                 "account_mismatch", "account_unavailable", "account_unverified",
                 "wrong_account", "play_account_switch_failed",
-                "device_missing", "device_ambiguous", "adb_missing",
+                "device_missing", "device_mismatch", "device_ambiguous", "adb_missing",
             )
             if account_changed or device_changed or identity_invalid:
                 # Only a known account/device problem revokes the read-only
