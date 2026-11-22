@@ -938,6 +938,7 @@ class GoogleAITUI(App[None]):
             self._offer_check_ready = False
             self._initial_offer_ready = False
             self._offer_ready_device = None
+            self._offer_ready_account = None
         else:
             self._initial_offer_ready = False
         self.query_one("#quickstart", Button).label = "Check Device & Offers"
@@ -1042,7 +1043,8 @@ class GoogleAITUI(App[None]):
                 self.call_from_thread(self._finished, step, Outcome("cancelled", "Check stopped", "Cancelled read-only check."), None)
                 return
             started = time.time()
-            command = command_for_step(step, self.repo)
+            command = command_for_step(
+                step, self.repo, account=self._selected_account or self._offer_ready_account)
             return_code = self._execute(command)
             if self._cancel_requested:
                 self.call_from_thread(self._finished, step, Outcome("cancelled", "Check stopped", "Cancelled read-only check."), None)
@@ -1126,9 +1128,11 @@ class GoogleAITUI(App[None]):
             self._offer_check_ready = bool(
                 outcome.code == "listed" and isinstance(offers, list) and offers
                 and verified and (not detected or detected == verified)
+                and (not self._selected_account or self._selected_account == verified)
                 and self._checked_device
             )
             self._offer_ready_device = self._checked_device if self._offer_check_ready else None
+            self._offer_ready_account = verified if self._offer_check_ready else None
             if self._offer_ready_device:
                 # The Stage 1 transport is authoritative; the previous idle
                 # poll may describe a different device from before the check.
@@ -1137,10 +1141,27 @@ class GoogleAITUI(App[None]):
                 isinstance(offer, dict) and offer.get("id") == "12months-eft"
                 and str(offer.get("micros")) == "0" for offer in offers
             ))
-        elif step == 0 or outcome.code != "checkout_requested":
+        elif step == 0:
             self._offer_check_ready = False
             self._initial_offer_ready = False
             self._offer_ready_device = None
+            self._offer_ready_account = None
+        elif outcome.code != "checkout_requested":
+            # A manual retry is allowed only for a recognized failure and a
+            # verified *same* device/account. Paid runner repeats its own Step
+            # 0/1 preflight before any subsequent purchase attempt.
+            retryable = outcome.code in (
+                "purchase_unavailable", "billing_flow_error",
+                "checkout_not_confirmed", "launch_failed",
+            )
+            same_context = bool(self._offer_ready_account and self._verified_account
+                                and self._verified_account == self._offer_ready_account
+                                and self._checked_device == self._offer_ready_device)
+            self._offer_check_ready = bool(retryable and same_context)
+            self._initial_offer_ready = False
+            if not self._offer_check_ready:
+                self._offer_ready_device = None
+                self._offer_ready_account = None
         self._last_outcome = outcome
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True
@@ -1163,7 +1184,9 @@ class GoogleAITUI(App[None]):
         self._set_status(outcome.title)
         instruction = outcome.instruction
         if step == 1 and outcome.code == "listed" and not self._offer_check_ready:
-            instruction += " Verify the Play account and run the check again before starting a paid step."
+            instruction += (" Verify the active Play account and run the check again "
+                            "before starting a paid step. A selected Android account "
+                            "is not proof of the Google Play billing account.")
         elif step == 1 and self._offer_check_ready and not self._initial_offer_ready:
             instruction += " The 12-month offer was not found with a zero-priced first phase; review available offers."
         if outcome.code in ("tool_error", "exception", "missing_report", "setup_failed"):
@@ -1212,7 +1235,8 @@ class GoogleAITUI(App[None]):
         if outcome.code == "checkout_requested":
             self.notify("Review the actual subscription in Google Play.", severity="warning")
         elif outcome.code not in ("listed", "environment_ok", "cancelled"):
-            self.notify("Step stopped; check the result before another attempt.", severity="warning")
+            self.notify("Step stopped; check Google Play charges and subscription status "
+                        "before a manual retry.", severity="warning")
 
 
 def main(argv: list[str] | None = None) -> int:
