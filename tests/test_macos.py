@@ -65,6 +65,13 @@ class MacStageAdapterTests(unittest.TestCase):
             self.assertIn("play-account", invoke.call_args.args[0])
             self.assertEqual(invoke.call_args.args[0][-2:], ["--serial", "device-1"])
 
+    def test_paid_stage_rejects_wrong_verified_device(self):
+        with patch("macos_runner.run_engine") as engine:
+            with self.assertRaisesRegex(RuntimeError, "device changed"):
+                macos_runner.run_stage(3, "device-b", {}, confirmed=True,
+                                       active_confirmed=True, expected_device="device-a")
+        engine.assert_not_called()
+
     def test_paid_stage_refuses_unconfirmed_or_wrong_account(self):
         report = {"status": "listed", "offers": [{"id": "12months-eft", "micros": "0"}],
                   "detected_play_account": "alice@example.com"}
@@ -103,6 +110,15 @@ class MacStageAdapterTests(unittest.TestCase):
             self.assertEqual(paid[paid.index("--account") + 1], "alice@example.com")
             with self.assertRaisesRegex(RuntimeError, "confirmations"):
                 macos_runner.run_stage(3, "device-1", {}, confirmed=True)
+
+    def test_tui_core_mac_passes_verified_device(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "macos_runner.py").write_text("# mock", encoding="utf-8")
+            with patch("tui_core.sys.platform", "darwin"):
+                command = command_for_step(3, root, account="alice@example.com", device="device-a")
+                self.assertEqual(command[command.index("--expected-device") + 1], "device-a")
+                self.assertEqual(command[command.index("--expected-account") + 1], "alice@example.com")
 
     def test_tui_core_mac_passes_explicit_checkout_approval(self):
         with tempfile.TemporaryDirectory() as temp:
