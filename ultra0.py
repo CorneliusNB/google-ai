@@ -821,6 +821,9 @@ def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_
             res["offers"].append({key: p.get(key) for key in
                                   ("product", "id", "micros", "period")})
             note(f"offer {p.get('id')} → {p.get('micros')} ({p.get('period','')})")
+        elif ev == "chosen":
+            res["chosen_offer"] = {key: p.get(key) for key in ("product", "id", "period")}
+            note(f"Selected Google Play offer ID: {p.get('id')}")
         elif ev == "activity_selected":
             res["activity"] = {"method": p.get("method"), "class": p.get("name")}
             note(f"Activity found via {p.get('method')}: {p.get('name')}")
@@ -1114,6 +1117,15 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
     fr = (query_offers_with_recovery(pid, **options) if list_only else
           run_trial(pid, list_only=False, **options))
     rec.update(fr)
+    if not list_only and plan in ("pro12", "pro6", "pro6b", "pro6c"):
+        expected = {"pro12": "12months-eft", "pro6": "6months-eft",
+                    "pro6b": "6months-eft-2", "pro6c": "6months-eft-ss-2026"}[plan]
+        chosen = fr.get("chosen_offer")
+        if not isinstance(chosen, dict) or chosen.get("id") != expected:
+            rec["status"] = "offer_not_available"
+            rec["error"] = "The requested Google Play offer could not be verified in the billing response."
+            warn("The selected offer did not match the requested step. No Subscribe tap was attempted.")
+            return rec
     if list_only:
         rec["status"] = "listed" if fr.get("offers") else "offer_query_failed"
         if not fr.get("offers"):
