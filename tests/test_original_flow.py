@@ -122,6 +122,19 @@ class OriginalFlowGuardrails(unittest.TestCase):
                 check.assert_not_called()
                 verify.assert_not_called()
 
+    def test_android_account_inventory_is_deduplicated_and_not_active_play_identity(self):
+        entries = [
+            "Account {name=First@Gmail.com, type=com.google}",
+            "Account {name=second@example.com, type=com.google}",
+            "Account {name=FIRST@gmail.com, type=com.google}",
+            "Account {name=third@example.com, type=com.other}",
+            "hidden Account {name=REDACTED, type=com.google}",
+        ]
+        with patch.object(mod, "accounts_on_device", return_value=entries):
+            self.assertEqual(mod.available_google_accounts(), [
+                "first@gmail.com", "second@example.com"
+            ])
+
     def test_play_account_refuses_ambiguous_multi_account_profile(self):
         def fake_nodes(xml):
             if 'com.android.vending' in xml:
