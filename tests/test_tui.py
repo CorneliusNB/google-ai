@@ -1129,7 +1129,10 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 app = GoogleAITUI(repo=Path(directory))
                 async with app.run_test(size=(90, 20)):
                     with patch.object(app, "run_stage") as run:
+                        from device_diagnostics import ConnectionStatus
                         app._offer_check_ready = True
+                        app._offer_ready_device = "emulator-5554"
+                        app._connection_state = ConnectionStatus("connected", ("emulator-5554",))
                         app._start(step, False)
                         button = app.query_one("#quickstart", Button)
                         self.assertTrue(button.disabled)
