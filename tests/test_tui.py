@@ -892,7 +892,10 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIsNone(app._verified_account)
                     app._received("  Account      Alice@Example.com")
                     self.assertEqual(app._verified_account, "alice@example.com")
+                    from device_diagnostics import ConnectionStatus
                     app._offer_check_ready = True
+                    app._offer_ready_device = "emulator-5554"
+                    app._connection_state = ConnectionStatus("connected", ("emulator-5554",))
                     app._start(3, True)
                     self.assertIsNone(app._verified_account)
 
