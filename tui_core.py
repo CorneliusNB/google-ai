@@ -208,6 +208,7 @@ CLI_ISSUES = {
         "Close MuMu and reopen it. Wait for Android to finish booting, then run Check Device & Offers again from Step 1.",
     ),
     "device_missing": ("Android device is not connected", "Start your Android device or emulator and enable ADB debugging, then run the device check."),
+    "device_mismatch": ("Android device changed since the offer check", "Reconnect the Android device verified in Step 1 and run Check Device & Offers again. No checkout started."),
     "device_ambiguous": ("More than one Android device is connected", "Disconnect extra Android devices, leaving only the intended device connected, then retry."),
     "app_missing": ("An Android app is missing or disabled", "Enable Google Play and Google One; install Google One from Play Store, or use a Google Play-enabled emulator image."),
     "adb_missing": ("ADB is unavailable", "Run setup_env.py on Windows or install Android SDK platform-tools."),
@@ -271,6 +272,7 @@ def runtime_error_outcome(message: str, step: int) -> Outcome:
     cases = (
         ("adb is missing", "adb_missing"),
         ("no online android device", "device_missing"),
+        ("android device changed since step 1", "device_mismatch"),
         ("multiple different android devices", "device_ambiguous"),
         ("frida ", "frida_missing"),
         ("google play account changed", "account_mismatch"),
