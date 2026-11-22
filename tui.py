@@ -221,7 +221,7 @@ class GoogleAITUI(App[None]):
     #status_panel { min-height: 8; overflow-y: auto; scrollbar-size: 1 1; }
 
     #welcome_panel {
-        height: 1fr; min-height: 8; overflow-y: auto; scrollbar-size: 1 1;
+        height: auto; max-height: 60%; min-height: 8; overflow-y: auto; scrollbar-size: 1 1;
         border: round #2b97bc; background: #112b49; padding: 0 2; margin-bottom: 1;
     }
     #welcome { color: #91e3ff; text-style: bold; height: 1; }
@@ -244,7 +244,7 @@ class GoogleAITUI(App[None]):
     }
     #next, #stop { display: none; width: 100%; height: 3; margin-top: 1; }
     #status_panel {
-        height: 8; min-height: 8; border: round #285a80;
+        height: 1fr; min-height: 8; border: round #285a80;
         background: #101f35; padding: 0 1;
     }
     #state { color: #f2f9ff; text-style: bold; margin: 1 0 0 0; }
@@ -272,7 +272,7 @@ class GoogleAITUI(App[None]):
     Screen.compact #debug_log { height: 5; }
     Screen.compact #welcome_panel { padding: 0 1; }
     Screen.compact #welcome_panel { min-height: 7; }
-    Screen.compact #status_panel { height: 5; min-height: 5; }
+    Screen.compact #status_panel { height: 1fr; min-height: 5; }
     Screen.compact #status_panel .section, Screen.compact #state { margin: 0; }
     Screen.compact #workflow_actions { margin-top: 0; padding-top: 0; border-top: none; }
     Screen.compact #mode_label, Screen.compact #advanced_label { margin-bottom: 0; }

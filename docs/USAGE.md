@@ -51,6 +51,7 @@ If Google Play already shows an active subscription, do **not** repeat Step 2. T
 
 While a stage is running, **Check Device & Offers**, Run, Run mode and Step selection are locked so another stage cannot be started. Help and technical details remain accessible.
 During Step 1, the **Check Device & Offers** button displays the elapsed time in seconds.
+The action panel fits its controls, and **Live Status** fills the remaining height. Expanding the step controls keeps them in a scrollable panel.
 
 - **Stop check (Steps 0–1):** requests cancellation of the local process tree. Cancellation can fail if a child process is stuck; inspect technical details.
 - **Stop after this step (Steps 2–5):** prevents further stages, but **does not force-kill a checkout in progress**. The remote payment outcome could otherwise become unknown.

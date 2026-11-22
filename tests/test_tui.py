@@ -986,6 +986,25 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         self.assertTrue(app.query_one("#quickstart").display)
                     launch.assert_not_called()
 
+    async def test_live_status_uses_remaining_height_after_actions(self):
+        from tui import GoogleAITUI
+
+        for size in ((90, 20), (110, 35), (150, 45)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    await pilot.pause()
+                    welcome = app.query_one("#welcome_panel")
+                    status = app.query_one("#status_panel")
+                    self.assertLessEqual(welcome.region.height, 11)
+                    self.assertGreaterEqual(status.region.height, 5)
+                    if size[1] >= 35:
+                        self.assertGreater(status.region.height, welcome.region.height)
+                    app.advanced_pressed()
+                    await pilot.pause()
+                    self.assertGreaterEqual(status.region.height, 5)
+                    self.assertTrue(app.query_one("#workflow_actions").display)
+
     async def test_live_status_shows_latest_activity_above_other_details(self):
         from textual.widgets import Static
         from tui import GoogleAITUI
