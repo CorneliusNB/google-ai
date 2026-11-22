@@ -131,7 +131,11 @@ MESSAGES = {
     ),
     "app_not_started": (
         "Google One could not be opened",
-        "Start Google One manually and confirm the device is connected. Then run the offer check.",
+        "Restart the Android device or emulator and wait for it to boot. Then run Check Device & Offers again from Step 1.",
+    ),
+    "play_store_not_started": (
+        "Google Play Store could not be opened",
+        "Restart the Android device or emulator and wait for it to boot. Then run Check Device & Offers again from Step 1.",
     ),
     "subscription_update_unavailable": (
         "Could not prepare the subscription change",
@@ -187,6 +191,14 @@ MESSAGES = {
 # These are fixed strings, rather than arbitrary child output, so the normal
 # status panel cannot expose account details or a payment token.
 CLI_ISSUES = {
+    "app_not_started": (
+        MESSAGES["app_not_started"][0],
+        "Close MuMu and reopen it. Wait for Android to finish booting, then run Check Device & Offers again from Step 1.",
+    ),
+    "play_store_not_started": (
+        MESSAGES["play_store_not_started"][0],
+        "Close MuMu and reopen it. Wait for Android to finish booting, then run Check Device & Offers again from Step 1.",
+    ),
     "device_missing": ("Android device is not connected", "Start your Android device or emulator and enable ADB debugging, then run the device check."),
     "device_ambiguous": ("More than one Android device is connected", "Disconnect extra Android devices, leaving only the intended device connected, then retry."),
     "app_missing": ("An Android app is missing or disabled", "Enable Google Play and Google One; install Google One from Play Store, or use a Google Play-enabled emulator image."),
@@ -259,6 +271,8 @@ def runtime_error_outcome(message: str, step: int) -> Outcome:
         ("could not verify google play account", "account_unavailable"),
         ("invalid google play account", "account_unavailable"),
         ("verified google play email", "account_unavailable"),
+        ("offer listing could not start: app_not_started", "app_not_started"),
+        ("offer listing could not start: play_store_not_started", "play_store_not_started"),
         ("offer listing", "offer_query_failed"),
         ("zero-priced first phase", "offer_not_available"),
         ("new matching report", "report_missing"),
@@ -268,7 +282,7 @@ def runtime_error_outcome(message: str, step: int) -> Outcome:
         ("confirmations required", "confirmation_required"),
     )
     code = next((name for fragment, name in cases if fragment in detail), "unknown")
-    entry = CLI_ISSUES.get(code) or MESSAGES.get(code) or (
+    entry = MESSAGES.get(code) or CLI_ISSUES.get(code) or (
         "Could not complete this step",
         "Check the Android screen and technical details. Verify Google Play payments before retrying.",
     )

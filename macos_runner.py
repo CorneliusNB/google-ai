@@ -137,6 +137,8 @@ def list_offers(serial: str, env: dict[str, str], plan: str = "pro12") -> dict:
     if run_engine(command, env):
         raise RuntimeError("Google Play offer listing failed; checkout not started")
     report = fresh_report("current.json", start_ns)
+    if report["status"] in ("app_not_started", "play_store_not_started"):
+        raise RuntimeError(f"Offer listing could not start: {report['status']}")
     if report["status"] != "listed" or not isinstance(report.get("offers"), list):
         raise RuntimeError("No successful offer listing; checkout not started")
     return report

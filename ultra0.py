@@ -378,11 +378,11 @@ def read_purchase_token(sku_short: str, expected_account: str = "") -> str:
             pass
 
 
-def ensure_vending(*, retry_startup: bool = False):
+def ensure_vending(*, retry_startup: bool = False) -> bool:
     """Google Play Store must be running for BillingClient queries to complete."""
     if sh("shell", f"pidof {VENDING}"):
         ok("Google Play Store process is running")
-        return
+        return True
     warn("Google Play Store is not running; attempting to start it...")
     for attempt in range(2 if retry_startup else 1):
         if attempt:
@@ -399,8 +399,9 @@ def ensure_vending(*, retry_startup: bool = False):
             if sh("shell", f"pidof {VENDING}"):
                 ok("Google Play Store started")
                 time.sleep(2)
-                return
+                return True
     warn("Google Play Store did not start. Open it manually or restart the emulator.")
+    return False
 
 
 def ensure_module_apk():
@@ -1300,7 +1301,7 @@ def main():
     ensure_network()
     ensure_frida_server()
     ensure_module_apk()
-    ensure_vending(retry_startup=a.list)
+    play_started = ensure_vending(retry_startup=a.list)
 
     REPORT_DIR.mkdir(exist_ok=True)
     rows = []
@@ -1322,9 +1323,12 @@ def main():
         card = parse_card(row)
         print(f"\n---- Progress {i}/{len(rows)} ----")
         try:
-            rec = process(email, pw, sec, add=(not a.no_add and not a.list), card=card, plan=a.plan,
-                          no_switch=a.no_switch, list_only=a.list, stack=a.stack, old_token=a.old_token,
-                          stack_mode=a.mode, activity_method=a.activity_method)
+            if a.list and not play_started:
+                rec = {"email": email, "status": "play_store_not_started"}
+            else:
+                rec = process(email, pw, sec, add=(not a.no_add and not a.list), card=card, plan=a.plan,
+                              no_switch=a.no_switch, list_only=a.list, stack=a.stack, old_token=a.old_token,
+                              stack_mode=a.mode, activity_method=a.activity_method)
         except Exception as e:
             warn(f"{type(e).__name__}: {str(e)[:320]}")
             rec = {"email": email, "status": "exception", "error": str(e)[:320],

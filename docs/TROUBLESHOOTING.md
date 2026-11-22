@@ -9,8 +9,7 @@
 | **MuMu / ADB not detected** | Install/start MuMu separately, enable root/ADB, verify the correct connected Android instance and authorization. |
 | **Frida setup failure** | Review technical details; Frida **16.5.9** must be compatible with the host and device. |
 | **No offers / `offer_query_failed`** | Open Google One and Google Play on the target Android instance and run Step 1 again. |
-| **Google One could not be opened** | If Google One does not start during the read-only offer check, the toolkit closes and reopens it once. If it still fails, open Google One manually and wait for its home screen before running Step 1 again. |
-| **Google Play Store did not start** | During a read-only offer check, the toolkit restarts Play Store once if its process does not appear after the first launch. If it still fails, open Play Store on the selected Android device and wait for it to load before running Step 1 again. |
+| **Google One or Google Play Store could not be opened** | The read-only offer check tries reopening the app once. If that fails in MuMu, close and reopen MuMu, wait for Android to finish booting, then run **Check Device & Offers** again from Step 1. On other devices, restart Android before running the check again. |
 | **Frida connection error during Step 1** | The read-only query reconnects Frida and restarts Google One once for certain transient connection failures. If it still fails, open Debug and check ADB, Frida and Google One on the selected device. Paid checkout is never retried automatically. |
 | **Item not available for purchase** | Google Play did not make the item available. Check the signed-in Play account, Play country and Google One availability; this message alone does not identify the cause. |
 | **Google One or Play Store missing** | Enable the app in Android settings. Install Google One from Google Play; if Play Store is missing, use an emulator image with Google Play included. |

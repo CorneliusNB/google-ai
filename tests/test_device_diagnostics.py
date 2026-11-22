@@ -1,6 +1,9 @@
 """No-device tests for Play Store account and Google One launch diagnostics."""
 import importlib.util
+import json
+import sys
 import unittest
+from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,6 +14,21 @@ spec.loader.exec_module(mod)
 
 
 class DeviceDiagnosticsTests(unittest.TestCase):
+    def test_offer_check_reports_play_store_startup_failure_without_querying(self):
+        with ExitStack() as mocks:
+            for name in ("find_adb", "pick_device", "ensure_root", "ensure_network",
+                         "ensure_frida_server", "ensure_module_apk"):
+                mocks.enter_context(patch.object(mod, name))
+            vending = mocks.enter_context(patch.object(mod, "ensure_vending", return_value=False))
+            query = mocks.enter_context(patch.object(mod, "process"))
+            mocks.enter_context(patch.object(Path, "mkdir"))
+            report = mocks.enter_context(patch.object(Path, "write_text"))
+            mocks.enter_context(patch.object(sys, "argv", ["ultra0.py", "--list"]))
+            self.assertEqual(mod.main(), 0)
+        vending.assert_called_once_with(retry_startup=True)
+        query.assert_not_called()
+        self.assertEqual(json.loads(report.call_args.args[0])["status"], "play_store_not_started")
+
     def test_play_store_startup_retry_is_limited_to_offer_checks(self):
         for retry, expected_launches in ((False, 1), (True, 2)):
             with self.subTest(retry=retry), \

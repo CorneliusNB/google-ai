@@ -43,6 +43,7 @@ $errors = @(
     @{ Message = "Cannot identify the active Google Play account. Open the Play Store profile."; Expected = "account_unavailable" },
     @{ Message = "Offer query did not complete: offer_query_failed"; Expected = "offer_query_failed" },
     @{ Message = "Offer query did not complete: app_not_started"; Expected = "app_not_started" },
+    @{ Message = "Offer query did not complete: play_store_not_started"; Expected = "play_store_not_started" },
     @{ Message = "No report produced at ..." ; Expected = "report_missing" },
     @{ Message = "Python not found"; Expected = "python_missing" },
     @{ Message = "Invalid Play Store account returned by Step 1"; Expected = "account_unavailable" }
@@ -51,6 +52,12 @@ foreach ($case in $errors) {
     $actual = Get-FailureCode -ErrorMessage $case.Message
     if ($actual -cne $case.Expected) {
         throw ("Error map mismatch: {0} -> {1}" -f $case.Message, $actual)
+    }
+}
+foreach ($code in @("app_not_started", "play_store_not_started")) {
+    $action = (Get-UserIssue -Code $code).Action
+    if ($action -notlike "*Close MuMu and reopen it*Check Device & Offers again from Step 1*") {
+        throw "Missing MuMu restart guidance for $code"
     }
 }
 # User-facing mode must not reveal internal status codes in its output.
