@@ -389,12 +389,22 @@ def outcome_for_stage(step: int, exit_code: int, report: dict | None) -> Outcome
     status = str(report.get("status", "unknown"))
     sheet = report.get("sheet")
     reason = str(sheet.get("reason", "")) if isinstance(sheet, dict) else ""
-    code = reason if status != "checkout_requested" and reason in MESSAGES else status
+    # A report may have a contradictory checkout_requested status but an
+    # unsuccessful or missing sheet. Never enable the next paid step in that case.
+    tapped_with_verified_terms = bool(
+        isinstance(sheet, dict) and sheet.get("confirmed") is True
+        and reason == "zero_today_and_duration_verified"
+    )
+    if status == "checkout_requested" and not tapped_with_verified_terms:
+        code = reason if reason in MESSAGES else "checkout_not_confirmed"
+    else:
+        code = reason if status != "checkout_requested" and reason in MESSAGES else status
     title, instruction = (CLI_ISSUES.get(code) or MESSAGES.get(
         code, ("Could not verify this step",
                "Check the Android screen and Debug before retrying.")))
     return Outcome(code, title, instruction,
-                   can_review=(step >= 2 and status == "checkout_requested"))
+                   can_review=(step >= 2 and status == "checkout_requested"
+                               and tapped_with_verified_terms))
 
 
 def mask_email(value: str) -> str:
