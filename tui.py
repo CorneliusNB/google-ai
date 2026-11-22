@@ -42,9 +42,9 @@ class Approval(ModalScreen[bool]):
         padding: 1 3; background: #15243a; border: round #3d6383;
     }
     #approval_title { text-style: bold; color: #ebf5ff; margin-bottom: 1; }
-    #approval_scroll { height: auto; max-height: 1fr; }
+    #approval_scroll { height: 1fr; min-height: 0; overflow-y: auto; }
     #approval_message { color: #c9d8e8; margin-bottom: 2; }
-    #approval_actions { height: auto; align-horizontal: right; }
+    #approval_actions { height: 3; min-height: 3; align-horizontal: right; }
     #approval_actions Button { margin-left: 1; }
     """
 
@@ -333,6 +333,7 @@ class GoogleAITUI(App[None]):
     Screen.compact #welcome_panel { min-height: 7; }
     Screen.compact #status_panel { height: 1fr; min-height: 5; }
     Screen.compact #status_panel .section, Screen.compact #state { margin: 0; }
+    Screen.compact #history { display: none; }
     Screen.compact #workflow_actions { margin-top: 0; padding-top: 0; border-top: none; }
     Screen.compact #mode_label, Screen.compact #advanced_label { margin-bottom: 0; }
     Screen.compact #run_row { margin-top: 0; margin-right: 1; offset: 1 0; }
