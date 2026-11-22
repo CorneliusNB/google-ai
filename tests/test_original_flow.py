@@ -65,6 +65,19 @@ class OriginalFlowGuardrails(unittest.TestCase):
         self.assertFalse(result["confirmed"])
         self.assertTrue(result["ineligible"])
 
+    def test_backup_payment_prompt_after_subscribe_is_not_success(self):
+        screens = iter([
+            "Google AI Pro Subscribe Today US$0 12-month free trial",
+            "Google Play Turn on backup payment methods? Manage Turn on",
+        ])
+        with patch.object(mod, "ui_xml", side_effect=lambda: next(screens)), \
+             patch.object(mod, "nodes", side_effect=lambda page: [{"text": page, "desc": ""}]), \
+             patch.object(mod, "tap_text", return_value=True), \
+             patch.object(mod.time, "sleep"):
+            result = mod.confirm_zero(wait=4, expected_plan="pro12")
+        self.assertEqual(result["reason"], "backup_payment_methods_prompt")
+        self.assertFalse(result["confirmed"])
+
     def test_posttap_error_status_is_preserved_without_verification_navigation(self):
         with patch.object(mod, "current_play_account", return_value="test@example.com"), \
              patch.object(mod, "launch_app", return_value=123), \
