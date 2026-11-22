@@ -152,7 +152,8 @@ def check_offer(report: dict, step: int) -> None:
 
 
 def run_stage(step: int, serial: str, env: dict[str, str],
-              confirmed: bool = False, active_confirmed: bool = False) -> int:
+              confirmed: bool = False, active_confirmed: bool = False,
+              expected_account: str = "") -> int:
     if step == 0:
         return run_engine(stage_command(0, serial), env)
     if step == 1:
@@ -169,6 +170,8 @@ def run_stage(step: int, serial: str, env: dict[str, str],
     plan, _offer, _stack = STAGES[step]
     report = list_offers(serial, env, plan)
     account = verified_account(serial, env, report)
+    if expected_account and account != expected_account.lower():
+        raise RuntimeError("Selected Google Play account does not match the current account; no checkout started")
     check_offer(report, step)
     # Verify the account once again immediately before entering checkout.
     if read_play_account(serial, env) != account:
@@ -186,11 +189,15 @@ def main(argv: list[str] | None = None) -> int:
                         help="Explicitly authorize the selected checkout stage")
     parser.add_argument("--active-confirmed", action="store_true",
                         help="Confirm existing active plan for Steps 3–5")
+    parser.add_argument("--expected-account", default="",
+                        help="Expected Google Play account selected in the toolkit")
     args = parser.parse_args(argv)
     if args.step >= 2 and not args.confirmed:
         parser.error("Steps 2–5 require explicit --confirmed; may initiate real charges")
     if args.step >= 3 and not args.active_confirmed:
         parser.error("Steps 3–5 also require --active-confirmed")
+    if args.expected_account and not EMAIL.fullmatch(args.expected_account.lower()):
+        parser.error("Expected Google Play account is invalid")
     try:
         adb, serial = preflight()
         env = os.environ.copy()
@@ -198,7 +205,8 @@ def main(argv: list[str] | None = None) -> int:
         env["PYTHONIOENCODING"] = "utf-8:backslashreplace"
         env["PYTHONUTF8"] = "1"
         print(f"Device {serial}", flush=True)
-        return run_stage(args.step, serial, env, args.confirmed, args.active_confirmed)
+        return run_stage(args.step, serial, env, args.confirmed, args.active_confirmed,
+                         args.expected_account)
     except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
         # Native CLI users receive a plain-language explanation. Only the
         # Textual parent gets the internal marker for structured status display.
