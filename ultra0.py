@@ -629,17 +629,29 @@ def current_play_account() -> str:
             time.sleep(3)
             opened_profile = True
             break
-    best = ""
+    # The profile popup may show multiple signed-in Google accounts. Its
+    # first email is NOT necessarily the account currently selected for
+    # billing. Never infer identity from the first arbitrary UI node.
+    emails = set()
     for n in nodes(ui_xml()):
-        m = re.search(r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+)", n["desc"] + " " + n["text"])
-        if m:
-            best = m.group(1).lower()
-            break
+        for email in re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}",
+                                n["desc"] + " " + n["text"]):
+            emails.add(email.lower())
     if opened_profile:
         sh("shell", "input keyevent 4")
-    if not best:
+    if len(emails) > 1:
+        warn("Multiple Google accounts are visible in Play Store; the active billing "
+             "account cannot be identified safely. Select the intended account "
+             "manually, then repeat the read-only check.")
+        return ""
+    if not emails:
         warn("Play account is not visible to UI automation; check the Play Store profile manually.")
-    return best
+        return ""
+    if not opened_profile:
+        warn("Play Store profile was not opened; a visible email does not prove "
+             "which account is active for billing.")
+        return ""
+    return next(iter(emails))
 
 
 def switch_play(email) -> bool:
