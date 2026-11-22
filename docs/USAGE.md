@@ -22,6 +22,8 @@ On Windows, running the check locates ADB or attempts to download official Andro
 
 The sidebar lists the six stages. Android Device / Google Account cards update from observed output; account identifiers are masked. Original-author and maintainer credits link to their GitHub profiles in supported terminals.
 
+After **Check Device & Offers** reads the Android device, the **Device** card shows the Android version, SDK level, CPU ABI and ADB serial when available. Hover over the card for the full details if the terminal clips the line.
+
 ### Additional run options
 
 By default, only the selected step runs. To choose a guided sequence, expand **Choose another step** and select **More run options…** at the bottom of the step dropdown. There is no third button in the default picker.
@@ -48,11 +50,12 @@ If Google Play already shows an active subscription, do **not** repeat Step 2. T
 ### Controls, Stop and Exit
 
 While a stage is running, **Check Device & Offers**, Run, Run mode and Step selection are locked so another stage cannot be started. Help and technical details remain accessible.
+During Step 1, the **Check Device & Offers** button displays the elapsed time in seconds.
 
 - **Stop check (Steps 0–1):** requests cancellation of the local process tree. Cancellation can fail if a child process is stuck; inspect technical details.
 - **Stop after this step (Steps 2–5):** prevents further stages, but **does not force-kill a checkout in progress**. The remote payment outcome could otherwise become unknown.
 - **Exit toolkit / Q:** exits immediately while idle; during Steps 0–1 it requests cancellation and exits afterward, and during Steps 2–5 it queues exit after the current stage.
-- **D** toggles technical details; **R** uses the selected advanced run mode. A **Next** button is available only for a reviewable checkout outcome in a guided sequence.
+- **D** toggles technical details. Opening the log jumps to the latest line and follows new output. **R** uses the selected advanced run mode. A **Next** button is available only for a reviewable checkout outcome in a guided sequence.
 
 Neither Stop nor closing the terminal reverses an existing Google Play transaction. Always verify the real transaction and subscription status directly.
 

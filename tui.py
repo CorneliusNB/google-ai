@@ -212,6 +212,10 @@ class GoogleAITUI(App[None]):
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
     #choose_account { width: 100%; height: 3; margin: 0; }
     #quickstart { display: block; width: 100%; height: 3; margin: 0; }
+    #quickstart.checking:disabled {
+        background: #123b31; color: #e5fff2; text-style: bold;
+        text-opacity: 1; opacity: 1;
+    }
     #advanced_toggle { width: 100%; height: 3; margin: 0; }
     #workflow_actions { display: none; height: auto; margin-top: 1; border-top: solid #285d83; padding-top: 1; }
     #status_panel { min-height: 8; overflow-y: auto; scrollbar-size: 1 1; }
@@ -222,11 +226,6 @@ class GoogleAITUI(App[None]):
     }
     #welcome { color: #91e3ff; text-style: bold; height: 1; }
     #quick_hint { color: #afcce3; height: auto; margin: 0; }
-    #payment_notice {
-        height: auto; margin: 0; padding: 0 1;
-        color: #e2ecf4; background: #233248; border-left: solid #d6a34f;
-    }
-    #payment_notice_compact { display: none; }
     #read_only { color: #81c6df; height: auto; margin-top: 1; }
     #workflow_actions { height: auto; }
     #form_row { height: auto; }
@@ -258,7 +257,7 @@ class GoogleAITUI(App[None]):
     }
     #elapsed, #activity { color: #95c4dd; }
     #debug_log {
-        display: none; height: 1fr; min-height: 3;
+        display: none; height: 7;
         border: round #294b67; background: #071528;
     }
     #manual { display: none; width: 100%; height: 3; }
@@ -270,11 +269,7 @@ class GoogleAITUI(App[None]):
     Screen.compact #welcome_panel { padding: 0 1; }
     Screen.compact #quick_hint, Screen.compact #read_only { display: none; }
     Screen.compact #welcome { display: none; }
-    Screen.compact #payment_notice { display: none; }
-    Screen.compact #payment_notice_compact {
-        display: block; height: 1; margin: 0;
-        color: #ffe0a0; background: #283047;
-    }
+    Screen.compact #debug_log { height: 5; }
     Screen.compact #welcome_panel { padding: 0 1; }
     Screen.compact #welcome_panel { min-height: 7; }
     Screen.compact #status_panel { height: 5; min-height: 5; }
@@ -366,6 +361,7 @@ class GoogleAITUI(App[None]):
                     yield Button("Show technical details", id="debug")
                     yield Button("Exit toolkit", id="exit")
                 with Vertical(id="results"):
+                    yield RichLog(id="debug_log", wrap=True, highlight=False, markup=False)
                     with Vertical(id="welcome_panel"):
                         yield Static("GET STARTED · READ-ONLY CHECK", id="welcome")
                         yield Static("Check MuMu connection and Google AI offers without opening checkout.", id="quick_hint")
@@ -394,18 +390,6 @@ class GoogleAITUI(App[None]):
                             yield Button("Run all", id="run_all")
                             yield Button("Stop after current step", id="stop", disabled=True)
                             yield Static("Steps 2–5 can open checkout and require confirmation.", id="read_only")
-                        yield Static(
-                            "24-month example: Step 2 (12 months) + Step 3 (6) + Step 4 (6).\n"
-                            "Have at least US$3 available: 3 separate US$1 card checks, "
-                            "not one US$3 payment.\n"
-                            "These may be temporary holds. Verify each step in Google Play; "
-                            "24 months is not guaranteed.",
-                            id="payment_notice",
-                        )
-                        yield Static(
-                            "3 separate US$1 checks (not one US$3); 24 months not guaranteed.",
-                            id="payment_notice_compact",
-                        )
                     with Vertical(id="status_panel"):
                         yield Static("LIVE STATUS", classes="section")
                         yield Static("Ready — no check started", id="state")
@@ -416,7 +400,6 @@ class GoogleAITUI(App[None]):
                         yield Static("Elapsed: --", id="elapsed")
                         yield Static("Waiting for your action.", id="activity")
                         yield Button("Completed action on Android", id="manual", disabled=True)
-                        yield RichLog(id="debug_log", wrap=True, highlight=False, markup=False)
                         yield Static("Review Google Play pricing and renewal terms "
                                      "before each checkout.", id="hint")
         yield Footer()
@@ -737,6 +720,8 @@ class GoogleAITUI(App[None]):
             return
         elapsed = int(time.monotonic() - self._started_at)
         self.query_one("#elapsed", Static).update(f"Elapsed: {elapsed // 60:02d}:{elapsed % 60:02d}")
+        if self.current_step == 1:
+            self.query_one("#quickstart", Button).label = f"Checking offers… {elapsed}s"
         if self._last_activity_at is not None:
             idle = int(time.monotonic() - self._last_activity_at)
             if idle >= 30:
@@ -788,6 +773,8 @@ class GoogleAITUI(App[None]):
                 "Verify the amount and renewal date in Google Play. "
                 "24 months is not guaranteed."
             )
+            if step == 2:
+                message += " Have at least US$3 available for the reported three-step sequence."
         elif step == 5:
             message += (
                 "\n\nStep 5 is optional, outside the 3 x US$1 / 24-month example. "
@@ -909,13 +896,15 @@ class GoogleAITUI(App[None]):
     def action_toggle_debug(self) -> None:
         self.debug_visible = not self.debug_visible
         log = self.query_one("#debug_log", RichLog)
+        log.display = self.debug_visible
         if self.debug_visible:
             # Rebuild from the bounded current-run buffer: lines received while
             # details were hidden must not disappear or be duplicated.
             log.clear()
-            for line in self._last_output:
-                log.write(line)
-        log.display = self.debug_visible
+            last_index = len(self._last_output) - 1
+            for index, line in enumerate(self._last_output):
+                log.write(line, scroll_end=index == last_index)
+            self.query_one("#results").scroll_home(animate=False)
         self.query_one("#debug", Button).label = (
             "Hide technical details" if self.debug_visible else "Show technical details"
         )
@@ -968,6 +957,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#offer_view", RichLog).clear()
         self.query_one("#offer_view", RichLog).display = False
         self.query_one("#offers_title", Static).display = False
+        self.query_one("#device", Static).tooltip = None
         self.query_one("#device", Static).update("Device  •  Auto-detect")
         self.query_one("#account", Static).update("Account  •  Not checked")
         self.query_one("#manual", Button).display = False
@@ -979,7 +969,11 @@ class GoogleAITUI(App[None]):
             "Connecting to Android diagnostics..." if self.macos_mode
             else "Connecting to MuMu and preparing tools..."
         )
-        self.query_one("#quickstart", Button).disabled = True
+        quick_check = self.query_one("#quickstart", Button)
+        quick_check.disabled = True
+        if step == 1:
+            quick_check.add_class("checking")
+            quick_check.label = "Checking offers… 0s"
         self.query_one("#diagnose", Button).disabled = True
         self.query_one("#quickstart", Button).display = True
         self.query_one("#run", Button).disabled = True
@@ -1083,7 +1077,7 @@ class GoogleAITUI(App[None]):
         # Do not add to _run_output: protocol parsing only accepts child output.
         self._last_output.append(diagnostic)
         if self.debug_visible:
-            self.query_one("#debug_log", RichLog).write(diagnostic)
+            self.query_one("#debug_log", RichLog).write(diagnostic, scroll_end=True)
 
     def _received(self, line: str) -> None:
         if not line:
@@ -1107,7 +1101,7 @@ class GoogleAITUI(App[None]):
             phase = "Process responding. Details available in technical log."
         self.query_one("#activity", Static).update(phase)
         if self.debug_visible:
-            self.query_one("#debug_log", RichLog).write(visible_line)
+            self.query_one("#debug_log", RichLog).write(visible_line, scroll_end=True)
         if re.search(r"Action required:|Press Enter to continue", line, re.I):
             btn = self.query_one("#manual", Button)
             btn.display = True
@@ -1118,7 +1112,19 @@ class GoogleAITUI(App[None]):
         )
         if selected_device:
             self._checked_device = selected_device.group(1)
-            self.query_one("#device", Static).update("Device  •  " + escape(self._checked_device))
+            card = self.query_one("#device", Static)
+            card.update("Device  •  " + escape(self._checked_device))
+            card.tooltip = self._checked_device
+        android = re.fullmatch(
+            r"\s*Android\s+([A-Za-z0-9._-]{1,16}) \(SDK ([0-9]{1,4})\), ABI ([A-Za-z0-9_-]{1,24})\s*",
+            line,
+        )
+        if android and self._checked_device:
+            release, sdk, abi = android.groups()
+            details = f"Android {release} · SDK {sdk} · {abi}"
+            card = self.query_one("#device", Static)
+            card.update(f"{details} · {escape(self._checked_device)}")
+            card.tooltip = f"{details}\nADB: {self._checked_device}"
         # Trust only the structured PowerShell "Account <email>" status line,
         # not arbitrary log messages containing an email address.
         account = re.match(
@@ -1188,6 +1194,7 @@ class GoogleAITUI(App[None]):
         self._last_outcome = outcome
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True
+        self.query_one("#quickstart", Button).remove_class("checking")
         self.query_one("#quickstart", Button).disabled = False
         self.query_one("#quickstart", Button).label = (
             "Continue to Step 2" if self._initial_offer_ready else "Check Device & Offers"
