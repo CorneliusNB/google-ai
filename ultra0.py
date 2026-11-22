@@ -634,7 +634,7 @@ def current_play_account() -> str:
     # billing. Never infer identity from the first arbitrary UI node.
     emails = set()
     for n in nodes(ui_xml()):
-        for email in re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}",
+        for email in re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
                                 n["desc"] + " " + n["text"]):
             emails.add(email.lower())
     if opened_profile:
