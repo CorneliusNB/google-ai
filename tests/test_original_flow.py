@@ -256,6 +256,35 @@ class OriginalFlowGuardrails(unittest.TestCase):
         self.assertNotIn("title", report["offers"][0])
         session.detach.assert_called_once()
 
+    def test_frida_remains_attached_during_subscribe_observation(self):
+        device = MagicMock()
+        session = MagicMock()
+        script = MagicMock()
+        device.attach.return_value = session
+        session.create_script.return_value = script
+        callbacks = {}
+        script.on.side_effect = lambda event, handler: callbacks.setdefault(event, handler)
+
+        def signal(_wait):
+            callbacks["message"]({"type": "send",
+                                  "payload": {"ev": "chosen", "id": "12months-eft"}}, None)
+            callbacks["message"]({"type": "send",
+                                  "payload": {"ev": "launched", "code": 0}}, None)
+
+        def observe():
+            session.detach.assert_not_called()
+            callbacks["message"]({"type": "send",
+                                  "payload": {"ev": "purchase_cb", "code": 4}}, None)
+            return {"confirmed": False, "reason": "purchase_unavailable"}
+
+        with patch.object(mod, "get_target_frida_device", return_value=device), \
+             patch.object(mod.time, "sleep", side_effect=signal):
+            report = mod.run_trial(123, wait=1, plan="pro12",
+                                   post_launch=observe)
+        self.assertEqual(report["sheet"]["reason"], "purchase_unavailable")
+        self.assertEqual(report["purchase"]["code"], 4)
+        session.detach.assert_called_once()
+
     def test_paid_stage_does_not_use_read_only_recovery(self):
         with patch.object(mod, "current_play_account", return_value="test@example.com"), \
              patch.object(mod, "launch_app", return_value=123), \
