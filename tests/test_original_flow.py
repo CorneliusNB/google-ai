@@ -109,6 +109,50 @@ class OriginalFlowGuardrails(unittest.TestCase):
                 check.assert_not_called()
                 verify.assert_not_called()
 
+    def test_play_account_refuses_ambiguous_multi_account_profile(self):
+        def fake_nodes(xml):
+            if xml == 'PLAY_STORE':
+                return [{"desc": "Account and settings", "text": "", "x": 10, "y": 20}]
+            return [
+                {"desc": "Primary one@example.com", "text": ""},
+                {"desc": "Other two@example.com", "text": ""},
+            ]
+
+        with patch.object(mod, "ui_xml", side_effect=[
+                 '<node package="com.android.vending"/>', 'PLAY_STORE', 'PROFILE'
+             ]), \
+             patch.object(mod, "nodes", side_effect=fake_nodes), \
+             patch.object(mod, "tap"), \
+             patch.object(mod.time, "sleep"), \
+             patch.object(mod, "sh") as shell:
+            self.assertEqual(mod.current_play_account(), "")
+        shell.assert_called_with("shell", "input keyevent 4")
+
+    def test_play_account_accepts_only_one_visible_profile_account(self):
+        with patch.object(mod, "ui_xml", side_effect=[
+                 '<node package="com.android.vending"/>', 'PROFILE'
+             ]), \
+             patch.object(mod, "nodes", side_effect=[
+                 [{"desc": "Account and settings", "text": "", "x": 10, "y": 20}],
+                 [{"desc": "one@example.com", "text": ""},
+                  {"desc": "one@example.com", "text": ""}]
+             ]), \
+             patch.object(mod, "tap"), \
+             patch.object(mod.time, "sleep"), \
+             patch.object(mod, "sh"):
+            self.assertEqual(mod.current_play_account(), "one@example.com")
+
+    def test_play_account_rejects_email_without_opening_profile(self):
+        with patch.object(mod, "ui_xml", side_effect=[
+                 '<node package="com.android.vending"/>', 'MAIN'
+             ]), \
+             patch.object(mod, "nodes", side_effect=[
+                 [{"desc": "Unrelated label", "text": "", "x": 10, "y": 20}],
+                 [{"desc": "one@example.com", "text": ""}]
+             ]), \
+             patch.object(mod, "sh"):
+            self.assertEqual(mod.current_play_account(), "")
+
     def test_offer_tokens_are_never_saved_in_reports(self):
         device = MagicMock()
         session = MagicMock()
