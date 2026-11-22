@@ -390,9 +390,13 @@ try {
         } else {
             Note "The -Force switch was explicitly supplied; no additional console confirmation in single-step mode."
         }
-    } elseif (-not $playAccount -or $playAccount -cne $Email) {
-        $accountMismatch = ("Play account mismatch or unverified. Detected '{0}', expected '{1}'. " +
-                            "Check the Play Store profile before proceeding.")
+    } elseif (-not $playAccount) {
+        # An unreadable account is not proof that the wrong account is active.
+        # Never guess or bypass this identity check on a paid stage.
+        Stop-Workflow "Cannot identify the active Google Play account. Open the Play Store profile, select the intended account, then repeat Step 1."
+    } elseif ($playAccount -cne $Email) {
+        $accountMismatch = ("Play account mismatch. Detected '{0}', expected '{1}'. " +
+                            "Select the correct Play Store account and repeat Step 1.")
         Stop-Workflow ($accountMismatch -f $playAccount, $Email)
     }
 
