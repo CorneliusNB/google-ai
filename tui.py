@@ -438,6 +438,72 @@ class GoogleAITUI(App[None]):
         self._set_message("Start with a read-only offer check. Steps 2-5 can request "
                           "real payments; verify the account, terms and renewal date.")
 
+    @on(Button.Pressed, "#choose_account")
+    def choose_account_pressed(self) -> None:
+        if self.busy or self._diagnosing or self._accounts_loading:
+            return
+        self._accounts_loading = True
+        self.query_one("#choose_account", Button).disabled = True
+        self._set_status("Reading Android accounts...")
+        self._set_message("Looking for accounts on the connected device. "
+                          "This does not open checkout or change the active Play Store account.")
+        self.discover_account_candidates()
+
+    @work(thread=True, exclusive=True, group="account-candidates")
+    def discover_account_candidates(self) -> None:
+        try:
+            lookup = self.repo / "scripts" / "runtime-lookup.py"
+            def read_value(command: str, serial: str = "") -> str:
+                args = [sys.executable, str(lookup), command]
+                if serial:
+                    args.extend(["--serial", serial])
+                result = subprocess.run(args, capture_output=True, text=True,
+                                        errors="replace", timeout=60, check=False)
+                line = result.stdout.strip()
+                match = re.fullmatch(r"RUNTIME_RESULT:([A-Za-z0-9+/=]*)", line)
+                if result.returncode or not match:
+                    raise RuntimeError("Android account lookup failed")
+                return base64.b64decode(match.group(1), validate=True).decode("utf-8")
+            serial = self._checked_device or read_value("device")
+            if not serial or not re.fullmatch(r"[A-Za-z0-9._:/-]{1,90}", serial):
+                raise RuntimeError("No unambiguous Android device was found")
+            raw = json.loads(read_value("play-accounts", serial))
+            if not isinstance(raw, list):
+                raise ValueError("Android account list was invalid")
+            accounts = sorted({x.lower() for x in raw if isinstance(x, str) and
+                               re.fullmatch(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}", x)})
+            self.call_from_thread(self._account_candidates_loaded, accounts)
+        except (OSError, UnicodeError, ValueError, RuntimeError, subprocess.TimeoutExpired):
+            self.call_from_thread(self._account_candidates_loaded, [])
+
+    def _account_candidates_loaded(self, accounts: list[str]) -> None:
+        self._accounts_loading = False
+        self.query_one("#choose_account", Button).disabled = False
+        if not accounts:
+            self._set_status("Account list unavailable")
+            self._set_message("Android did not provide a readable account list. "
+                              "Open Google Play, select the intended profile manually, "
+                              "then run Check Device & Offers.")
+            return
+        self.push_screen(AccountPicker(accounts), self._account_chosen)
+
+    def _account_chosen(self, account: str | None) -> None:
+        if not account or self.busy:
+            return
+        self._selected_account = account
+        self._verified_account = None
+        self._offer_ready_account = None
+        self._offer_check_ready = False
+        self._initial_offer_ready = False
+        self._offer_ready_device = None
+        self.query_one("#account", Static).update("Account  •  " + escape(mask_email(account)) + " (selected)")
+        self.query_one("#quickstart", Button).label = "Check Device & Offers"
+        self._update_run_mode()
+        self._set_status("Account selected — not yet verified")
+        self._set_message("In Google Play, switch to the selected account. "
+                          "Run Check Device & Offers. Selecting a candidate alone "
+                          "never authorizes a checkout.")
+
     @on(Button.Pressed, "#diagnose")
     def diagnose_pressed(self) -> None:
         if self.busy or self._diagnosing:
