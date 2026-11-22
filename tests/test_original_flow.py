@@ -49,6 +49,75 @@ class OriginalFlowGuardrails(unittest.TestCase):
         result = mod.assess_checkout_terms("Error The item you requested is not available for purchase. Got it")
         self.assertEqual(result["reason"], "purchase_unavailable")
 
+    def test_error_after_subscribe_is_not_reported_as_submitted(self):
+        # Google Play can present ITEM_UNAVAILABLE after the Subscribe tap.
+        pages = iter([
+            "Google AI Pro Subscribe Due today US$0 12-month trial",
+            "Error The item you requested is not available for purchase. Got it",
+        ])
+        with patch.object(mod, "ui_xml", side_effect=lambda: next(pages)), \
+             patch.object(mod, "nodes", side_effect=lambda page: [{"text": page, "desc": ""}]), \
+             patch.object(mod, "tap_text", return_value=True) as tapped, \
+             patch.object(mod.time, "sleep"):
+            result = mod.confirm_zero(wait=4, expected_plan="pro12")
+        tapped.assert_called_once()
+        self.assertEqual(result["reason"], "purchase_unavailable")
+        self.assertFalse(result["confirmed"])
+        self.assertTrue(result["ineligible"])
+
+    def test_posttap_error_status_is_preserved_without_verification_navigation(self):
+        with patch.object(mod, "current_play_account", return_value="test@example.com"), \
+             patch.object(mod, "launch_app", return_value=123), \
+             patch.object(mod, "run_trial", return_value={
+                 "offers": [{"id": "12months-eft", "micros": "0"}],
+                 "launched": {"code": 0}, "purchase": None, "errors": []}), \
+             patch.object(mod, "confirm_zero", return_value={
+                 "confirmed": False, "reason": "purchase_unavailable"}) as check, \
+             patch.object(mod, "verify") as verify:
+            report = mod.process("test@example.com", add=False, no_switch=True, plan="pro12")
+        self.assertEqual(report["status"], "purchase_unavailable")
+        check.assert_called_once()
+        verify.assert_not_called()
+
+    def test_purchase_callback_rejection_takes_priority_over_launch_ok(self):
+        with patch.object(mod, "current_play_account", return_value="test@example.com"), \
+             patch.object(mod, "launch_app", return_value=123), \
+             patch.object(mod, "run_trial", return_value={
+                 "offers": [], "launched": {"code": 0}, "purchase": {"code": 4},
+                 "errors": []}), \
+             patch.object(mod, "confirm_zero") as check, \
+             patch.object(mod, "verify") as verify:
+            report = mod.process("test@example.com", add=False, no_switch=True, plan="pro12")
+        self.assertEqual(report["status"], "purchase_unavailable")
+        check.assert_not_called()
+        verify.assert_not_called()
+
+    def test_offer_tokens_are_never_saved_in_reports(self):
+        device = MagicMock()
+        session = MagicMock()
+        script = MagicMock()
+        device.attach.return_value = session
+        session.create_script.return_value = script
+        callbacks = {}
+        script.on.side_effect = lambda event, handler: callbacks.setdefault(event, handler)
+
+        def simulate_offer(_wait):
+            callbacks["message"]({
+                "type": "send", "payload": {
+                    "ev": "offer", "product": "g1.2tb.ai.subs_variant",
+                    "id": "12months-eft", "micros": "0", "period": "P1Y",
+                    "token": "private-token", "title": "private-title",
+                },
+            }, None)
+
+        with patch.object(mod, "get_target_frida_device", return_value=device), \
+             patch.object(mod.time, "sleep", side_effect=simulate_offer):
+            report = mod.run_trial(123, list_only=True)
+        self.assertEqual(report["offers"][0]["id"], "12months-eft")
+        self.assertNotIn("token", report["offers"][0])
+        self.assertNotIn("title", report["offers"][0])
+        session.detach.assert_called_once()
+
     def test_paid_stage_does_not_use_read_only_recovery(self):
         with patch.object(mod, "current_play_account", return_value="test@example.com"), \
              patch.object(mod, "launch_app", return_value=123), \
