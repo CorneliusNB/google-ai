@@ -9,7 +9,7 @@
 While idle, the dashboard checks existing ADB connections roughly every five seconds. If Android is not connected, it shows a dismissible notice and checks again; connecting does not by itself unlock paid steps. Monitoring pauses during stages and other dialogs. It only reads `adb devices` (which can start the local ADB server); it does not scan ports, connect devices, or install ADB in the background.
 
 1. Click **Check Device & Offers** on the welcome screen. It invokes **Step 1 — Available offers**, intended to *list* offers rather than initiate checkout.
-2. Watch **Live Status** for the stage, elapsed time, current activity and result. **Show technical details** reveals execution output. A warning after 30 seconds without new output indicates inactivity, **not proof of a hang**.
+2. Watch the top line of **Live Status** for the latest activity. The stage, elapsed time and result appear below it. **Show technical details** reveals execution output. A warning after 30 seconds without new output indicates inactivity, **not proof of a hang**.
 3. Check the account and offer information on the Android screen. A listed offer is **not** a guarantee of eligibility or a successful subscription.
 4. If the verified account has a listed 12-month offer with a zero-priced first phase, choose **Continue to Step 2** in the completion dialog or on the main screen. A separate approval explains the payment risk before the step starts. If the offer is absent, review the listed offers instead.
 5. Expand **Choose another step** only when you deliberately need to select a different stage.

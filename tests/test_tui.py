@@ -986,6 +986,23 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         self.assertTrue(app.query_one("#quickstart").display)
                     launch.assert_not_called()
 
+    async def test_live_status_shows_latest_activity_above_other_details(self):
+        from textual.widgets import Static
+        from tui import GoogleAITUI
+
+        for size in ((90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    app._received("Preparing Frida")
+                    app._received("Querying offers")
+                    await pilot.pause()
+                    activity = app.query_one("#activity", Static)
+                    self.assertEqual(activity.render().plain, "Checking available offers...")
+                    self.assertLess(activity.region.y, app.query_one("#state").region.y)
+                    self.assertLess(activity.region.y, app.query_one("#elapsed").region.y)
+                    self.assertLess(activity.region.y, app.query_one("#status_panel").content_region.bottom)
+
     async def test_technical_log_reveals_and_follows_latest_output(self):
         from textual.widgets import RichLog
         from tui import GoogleAITUI

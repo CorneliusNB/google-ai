@@ -392,13 +392,13 @@ class GoogleAITUI(App[None]):
                             yield Static("Steps 2–5 can open checkout and require confirmation.", id="read_only")
                     with Vertical(id="status_panel"):
                         yield Static("LIVE STATUS", classes="section")
+                        yield Static("Waiting for your action.", id="activity")
                         yield Static("Ready — no check started", id="state")
                         yield Static("Check the device and offers to begin.", id="message")
                         yield Static("", id="step_result")
                         yield Static("AVAILABLE OFFERS · FIRST PHASE ONLY", id="offers_title")
                         yield RichLog(id="offer_view", wrap=True, highlight=False, markup=False)
                         yield Static("Elapsed: --", id="elapsed")
-                        yield Static("Waiting for your action.", id="activity")
                         yield Button("Completed action on Android", id="manual", disabled=True)
                         yield Static("Review Google Play pricing and renewal terms "
                                      "before each checkout.", id="hint")
@@ -965,6 +965,7 @@ class GoogleAITUI(App[None]):
         self._started_at = time.monotonic()
         self._last_activity_at = self._started_at
         self.query_one("#elapsed", Static).update("Elapsed: 00:00")
+        self.query_one("#status_panel").scroll_home(animate=False)
         self.query_one("#activity", Static).update(
             "Connecting to Android diagnostics..." if self.macos_mode
             else "Connecting to MuMu and preparing tools..."
@@ -1209,7 +1210,8 @@ class GoogleAITUI(App[None]):
         self.query_one("#stop", Button).display = False
         self.query_one("#exit", Button).disabled = False
         self._started_at = None
-        self.query_one("#activity", Static).update("Step finished. Review the result above.")
+        self.query_one("#activity", Static).update("Step finished. Review the result below.")
+        self.query_one("#status_panel").scroll_home(animate=False)
         self._set_workflow(step, "done" if outcome.code in ("listed", "environment_ok") else "review")
         self._set_status(outcome.title)
         instruction = outcome.instruction
