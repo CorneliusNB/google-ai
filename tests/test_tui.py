@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from tui_core import (
-    cli_issue_outcome, command_for_step, mask_email, needs_setup, outcome_for_stage,
+    Outcome, cli_issue_outcome, command_for_step, mask_email, needs_setup, outcome_for_stage,
     readable_issue_line, read_fresh_report, report_summary, runtime_error_outcome,
     safe_launch_diagnostic, validate_step,
 )
