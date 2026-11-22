@@ -841,9 +841,10 @@ class GoogleAITUI(App[None]):
             self._set_status("Check Device & Offers first")
             self._set_message("Connect Android and complete the offer check before starting a paid step.")
             return
-        if step >= 2 and (
+        # Block a known device change immediately. The final _start gate also
+        # rejects an unknown/undiscovered connection before any paid command.
+        if step >= 2 and self._connection_state and (
                 not self._offer_ready_device
-                or not self._connection_state
                 or self._connection_state.state != "connected"
                 or self._offer_ready_device not in self._connection_state.devices):
             self._offer_check_ready = False
