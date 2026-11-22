@@ -62,7 +62,8 @@ class CheckoutTests(unittest.TestCase):
         tapped.assert_not_called()
 
     def test_checkout_security_block_sets_distinct_status(self):
-        fr = {"launched": {"code": 0}, "offers": [{"id": "6months-eft", "micros": "0"}]}
+        fr = {"launched": {"code": 0}, "offers": [{"id": "6months-eft", "micros": "0"}],
+              "chosen_offer": {"id": "6months-eft"}}
         with patch.object(app, "current_play_account", return_value="test@example.com"), \
              patch.object(app, "launch_app", return_value=123), \
              patch.object(app, "run_trial", return_value=fr), \
@@ -126,7 +127,8 @@ class CheckoutTests(unittest.TestCase):
         self.assertEqual(out["reason"], "subscribe_button_not_found")
 
     def test_process_does_not_leave_checkout_when_unverified(self):
-        fr = {"launched": {"code": 0}, "offers": [{"id": "12months-eft", "micros": "0"}]}
+        fr = {"launched": {"code": 0}, "offers": [{"id": "12months-eft", "micros": "0"}],
+              "chosen_offer": {"id": "12months-eft"}}
         with patch.object(app, "current_play_account", return_value="test@example.com"), \
              patch.object(app, "launch_app", return_value=123), \
              patch.object(app, "run_trial", return_value=fr), \
