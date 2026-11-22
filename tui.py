@@ -841,6 +841,15 @@ class GoogleAITUI(App[None]):
             self._set_status("Check Device & Offers first")
             self._set_message("Connect Android and complete the offer check before starting a paid step.")
             return
+        if step >= 2 and (
+                not self._offer_ready_device
+                or not self._connection_state
+                or self._connection_state.state != "connected"
+                or self._offer_ready_device not in self._connection_state.devices):
+            self._offer_check_ready = False
+            self._set_status("Android device changed")
+            self._set_message("Reconnect the device checked in Step 1 and run Check Device & Offers again. No checkout started.")
+            return
         if step == 2:
             title = "Start initial 12-month checkout?"
             message = ("Confirm this Google Play account has NO active Google One subscription. "
@@ -1078,6 +1087,15 @@ class GoogleAITUI(App[None]):
             self._set_status("Check Device & Offers first")
             self._set_message("Connect Android and complete the offer check before starting a paid step.")
             return
+        if step >= 2 and (
+                not self._offer_ready_device
+                or not self._connection_state
+                or self._connection_state.state != "connected"
+                or self._offer_ready_device not in self._connection_state.devices):
+            self._offer_check_ready = False
+            self._set_status("Android device changed")
+            self._set_message("Reconnect the device checked in Step 1 and run Check Device & Offers again. No checkout started.")
+            return
         self._invalidate_connection_polls()
         self._history_account = self._selected_account or self._offer_ready_account
         self._save_history(self._history_account, step, "started")
@@ -1208,7 +1226,8 @@ class GoogleAITUI(App[None]):
                 return
             started = time.time()
             command = command_for_step(
-                step, self.repo, account=self._selected_account or self._offer_ready_account)
+                step, self.repo, account=self._selected_account or self._offer_ready_account,
+                device=self._offer_ready_device if step >= 2 else None)
             return_code = self._execute(command)
             if self._cancel_requested:
                 self.call_from_thread(self._finished, step, Outcome("cancelled", "Check stopped", "Cancelled read-only check."), None)
