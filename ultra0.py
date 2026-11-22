@@ -723,7 +723,8 @@ def launch_app() -> int:
     if not sh("shell", f"pm path {PKG}", timeout=15).strip():
         warn(f"Google One is not installed or enabled ({PKG}). Install/open it from Play Store.")
         return 0
-    sh("shell", f"am force-stop {PKG}")
+    step("Restarting Google One before querying offers")
+    sh("shell", f"am force-stop {PKG}", check=True)
     try:
         launch_output = sh("shell", f"monkey -p {PKG} -c android.intent.category.LAUNCHER 1", timeout=30)
     except subprocess.TimeoutExpired:

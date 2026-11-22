@@ -14,6 +14,19 @@ spec.loader.exec_module(mod)
 
 
 class DeviceDiagnosticsTests(unittest.TestCase):
+    def test_google_one_restart_failure_stops_before_relaunch(self):
+        def shell(*args, **kwargs):
+            if "pm path" in args[1]:
+                return "package:/data/app/base.apk"
+            if "force-stop" in args[1]:
+                self.assertTrue(kwargs.get("check"))
+                raise RuntimeError("Could not stop Google One")
+            self.fail("Application must not relaunch after a failed stop")
+
+        with patch.object(mod, "sh", side_effect=shell):
+            with self.assertRaisesRegex(RuntimeError, "Could not stop"):
+                mod.launch_app()
+
     def test_active_play_account_button_identifies_profile_with_multiple_accounts(self):
         with patch.object(mod, "ui_xml", return_value='<node package="com.android.vending"/>'), \
              patch.object(mod, "nodes", return_value=[

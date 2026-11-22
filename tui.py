@@ -1204,7 +1204,9 @@ class GoogleAITUI(App[None]):
         self._run_output.append(line)
         self._last_activity_at = time.monotonic()
         lower = line.lower()
-        if "frida" in lower or "setup" in lower:
+        if "restarting google one before querying offers" in lower:
+            phase = "Restarting Google One before querying offers..."
+        elif "frida" in lower or "setup" in lower:
             phase = "Preparing Android tools..."
         elif "adb" in lower or "device" in lower:
             phase = "Checking Android device..."
