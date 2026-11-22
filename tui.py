@@ -29,6 +29,7 @@ from tui_core import STAGES, Outcome, command_for_step, mask_email, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
     readable_issue_line, report_summary, safe_launch_diagnostic, validate_step
 from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_connection, poll_connection
+from stage_history import read_history, record_history
 
 
 class Approval(ModalScreen[bool]):
@@ -372,6 +373,7 @@ class GoogleAITUI(App[None]):
         self._last_outcome: Outcome | None = None
         self._verified_account: str | None = None
         self._selected_account: str | None = None
+        self._history_account: str | None = None
         self._offer_ready_account: str | None = None
         self._accounts_loading = False
         self._offer_check_ready = False
@@ -450,6 +452,7 @@ class GoogleAITUI(App[None]):
                     with Vertical(id="status_panel"):
                         yield Static("LIVE STATUS", classes="section")
                         yield Static("Waiting for your action.", id="activity")
+                        yield Static("History appears after selecting or verifying an account.", id="history", markup=False)
                         yield Static("Ready — no check started", id="state")
                         yield Static("Check the device and offers to begin.", id="message")
                         yield Static("", id="step_result")
@@ -533,6 +536,7 @@ class GoogleAITUI(App[None]):
         if not account or self.busy:
             return
         self._selected_account = account
+        self._show_history(account)
         self._verified_account = None
         self._offer_ready_account = None
         self._offer_check_ready = False
@@ -823,6 +827,9 @@ class GoogleAITUI(App[None]):
         else:
             self._start(step, sequence)
             return
+        account = self._selected_account or self._offer_ready_account
+        if step >= 2 and account:
+            message += f" Expected account: {mask_email(account)}. Check the checkout account."
         if step in (2, 3, 4):
             number = step - 1
             message += (
@@ -892,7 +899,36 @@ class GoogleAITUI(App[None]):
         next_step = self.current_step + 1
         if next_step > 5:
             return
+        self._save_history(self._history_account, self.current_step, "user_verified")
         self._confirm_stage(next_step, True, previous_verified=True)
+
+    def _show_history(self, account: str) -> None:
+        entries = read_history(self.repo, account)[-6:]
+        labels = {
+            "started": "Started; outcome unverified",
+            "checkout_requested": "Checkout submitted; verify in Google Play",
+            "user_verified": "User verified in Google Play",
+            "listed": "Offers loaded",
+            "account_unverified": "Account could not be verified",
+            "wrong_account": "Account mismatch",
+        }
+        lines = [f"Recent history · {mask_email(account)}"]
+        for entry in reversed(entries):
+            if isinstance(entry, dict) and isinstance(entry.get("step"), int):
+                status = labels.get(entry.get("status"), "Stopped; review Google Play before retrying")
+                lines.append(f"Step {entry['step']} · {status} · {entry.get('at', '')}")
+        if not entries:
+            lines.append("No saved runs for this account.")
+        self.query_one("#history", Static).update("\n".join(lines))
+
+    def _save_history(self, account: str | None, step: int, status: str) -> None:
+        if not account:
+            return
+        try:
+            record_history(self.repo, account, step, status)
+            self._show_history(account)
+        except OSError:
+            self.notify("Could not save local step history.", severity="warning")
 
     @on(Button.Pressed, "#stop")
     def stop_pressed(self) -> None:
@@ -993,6 +1029,8 @@ class GoogleAITUI(App[None]):
             self._set_message("Connect Android and complete the offer check before starting a paid step.")
             return
         self._invalidate_connection_polls()
+        self._history_account = self._selected_account or self._offer_ready_account
+        self._save_history(self._history_account, step, "started")
         self._checked_device = None
         if step <= 1:
             self._offer_check_ready = False
@@ -1202,6 +1240,10 @@ class GoogleAITUI(App[None]):
 
     def _finished(self, step: int, outcome: Outcome, report: dict | None) -> None:
         self.busy = False
+        history_account = self._history_account
+        if step == 1:
+            history_account = str((report or {}).get("detected_play_account") or "") or history_account
+        self._save_history(history_account, step, outcome.code)
         if step == 1:
             detected = str((report or {}).get("detected_play_account") or "").strip().lower()
             verified = (self._verified_account or "").strip().lower()

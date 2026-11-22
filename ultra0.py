@@ -1017,7 +1017,7 @@ def assess_checkout_terms(text: str, expected_plan: str = "auto") -> dict:
     return result
 
 
-def confirm_zero(wait=40, password="", expected_plan="auto") -> dict:
+def confirm_zero(wait=40, password="", expected_plan="auto", expected_account="") -> dict:
     step("Checking today's Google Play checkout total and trial duration")
     out = {"price": None, "confirmed": False, "ineligible": False,
            "text": "", "reason": "checkout_not_visible"}
@@ -1047,6 +1047,14 @@ def confirm_zero(wait=40, password="", expected_plan="auto") -> dict:
             warn("Google Play backup-payment prompt needs manual review; not enabling it automatically.")
             return out
         if reason == "zero_today_and_duration_verified":
+            if expected_account:
+                accounts = {email.lower() for email in re.findall(
+                    r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", visible)}
+                if accounts != {expected_account.strip().lower()}:
+                    out["reason"] = "wrong_account" if accounts else "account_unverified"
+                    warn("Checkout account could not be matched to the selected account. "
+                         "Review the account on the Google Play checkout screen before retrying.")
+                    return out
             if tap_text("\u8ba2\u9605", "Subscribe", "Đăng ký"):
                 out["confirmed"] = True
                 ok("Tapped Subscribe after verifying today's zero total and expected trial period.")
@@ -1188,7 +1196,7 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
                                 if purchase_code == 4 else
                                 f"Google Play purchase callback returned code {purchase_code}.")
                 return rec
-        rec["sheet"] = confirm_zero(password=password, expected_plan=plan)
+        rec["sheet"] = confirm_zero(password=password, expected_plan=plan, expected_account=email)
         # Preserve the original checkout screen if amount or offer terms
         # are ambiguous; never navigate away before the user can inspect it.
         if rec["sheet"].get("confirmed"):

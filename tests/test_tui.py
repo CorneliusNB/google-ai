@@ -1009,6 +1009,24 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause()
                 self.assertNotIsInstance(app.screen, ConnectionNotice)
 
+    async def test_account_history_survives_restart_without_unlocking_paid_steps(self):
+        from tui import GoogleAITUI
+        from stage_history import record_history
+        from textual.widgets import Static
+
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            record_history(repo, "selected@example.com", 2, "checkout_requested")
+            app = GoogleAITUI(repo=repo)
+            async with app.run_test(size=(90, 20)):
+                app._account_chosen("selected@example.com")
+                history = app.query_one("#history", Static).render().plain
+                self.assertIn("Step 2", history)
+                self.assertIn("verify in Google Play", history)
+                self.assertFalse(app._offer_check_ready)
+                app._account_chosen("other@example.com")
+                self.assertNotIn("Step 2", app.query_one("#history", Static).render().plain)
+
     async def test_paid_stage_button_shows_running_step_and_elapsed_seconds(self):
         from tui import GoogleAITUI
         from textual.widgets import Button

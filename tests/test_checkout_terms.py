@@ -11,6 +11,33 @@ spec.loader.exec_module(app)
 
 
 class CheckoutTests(unittest.TestCase):
+    def test_matching_checkout_account_allows_existing_price_and_duration_checks(self):
+        with patch.object(app, "ui_xml", return_value="screen"), \
+             patch.object(app, "nodes", return_value=[{
+                 "text": "Google AI Pro Subscribe Today US$0 12-month free trial selected@example.com",
+                 "desc": ""}]), \
+             patch.object(app, "tap_text", return_value=True) as tap, \
+             patch.object(app.time, "sleep"):
+            result = app.confirm_zero(wait=2, expected_plan="pro12",
+                                      expected_account="selected@example.com")
+        self.assertTrue(result["confirmed"])
+        tap.assert_called_once()
+
+    def test_checkout_requires_exact_visible_billing_account_before_subscribe(self):
+        for identity, expected in (("", "account_unverified"),
+                                   ("other@example.com", "wrong_account"),
+                                   ("selected@example.com other@example.com", "wrong_account")):
+            with self.subTest(identity=identity), \
+                 patch.object(app, "ui_xml", return_value="screen"), \
+                 patch.object(app, "nodes", return_value=[{
+                     "text": "Google AI Pro Subscribe Today US$0 12-month free trial " + identity,
+                     "desc": ""}]), \
+                 patch.object(app, "tap_text") as tap:
+                result = app.confirm_zero(wait=2, expected_plan="pro12",
+                                          expected_account="selected@example.com")
+                self.assertEqual(result["reason"], expected)
+                tap.assert_not_called()
+
     def test_future_renewal_price_does_not_mask_zero_due_today(self):
         result = app.assess_checkout_terms(
             "Google AI Pro Subscribe Today US$0.00 12-month free trial "

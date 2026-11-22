@@ -24,6 +24,10 @@ The sidebar lists the six stages. Android Device / Google Account cards update f
 
 **Choose account** appears next to the Account card from startup. It reads the signed-in Android account candidates when clicked. During a stage it is disabled. Choose the matching profile in Google Play and run **Check Device & Offers** to verify the selection.
 
+**Recent history** shows the last six saved events for the selected or freshly verified account, newest first. It records stage starts, results and the user's **Verified in Google Play → Next** action. Private history stays under `logs/stage-history/`, with hashed account filenames. Opening the toolkit requires a fresh device and offer check before paid stages.
+
+Before automatically tapping Subscribe, the toolkit requires the checkout screen to show exactly the expected email address. If the checkout account is missing, different or ambiguous, inspect the account in the Google Play checkout screen and repeat the device and offer check.
+
 After **Check Device & Offers** reads the Android device, the **Device** card shows the Android version, SDK level, CPU ABI and ADB serial when available. Hover over the card for the full details if the terminal clips the line.
 
 ### Additional run options
