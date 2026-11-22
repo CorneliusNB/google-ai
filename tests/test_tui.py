@@ -294,6 +294,28 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(mask_email("invalid"), "Not detected")
 
 
+class AccountCommandTests(unittest.TestCase):
+    def test_windows_paid_step_pins_selected_account(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "run-all.ps1").touch()
+            with patch("tui_core.sys.platform", "win32"):
+                cmd = command_for_step(3, root, shell="powershell.exe",
+                                       account="selected@example.com")
+                self.assertEqual(cmd[-2:], ["-Email", "selected@example.com"])
+                check = command_for_step(1, root, shell="powershell.exe",
+                                          account="selected@example.com")
+                self.assertNotIn("-Email", check)
+
+    def test_macos_paid_step_pins_selected_account(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "macos_runner.py").touch()
+            with patch("tui_core.sys.platform", "darwin"):
+                cmd = command_for_step(3, root, account="selected@example.com")
+                self.assertEqual(cmd[-2:], ["--expected-account", "selected@example.com"])
+
+
 class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         # Smoke tests must not depend on host ADB state or a five-second timer.
