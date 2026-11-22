@@ -458,6 +458,25 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         await pilot.pause(0.05)
                     self.assertTrue(app.query_one("#run", Button).disabled)
 
+    async def test_paid_retry_rejects_verified_device_replacement(self):
+        from textual.widgets import Static
+        from device_diagnostics import ConnectionStatus
+        from tui import Approval, GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._offer_check_ready = True
+                app._offer_ready_device = "device-a"
+                app._offer_ready_account = "alice@example.com"
+                app._connection_state = ConnectionStatus("connected", ("device-b",))
+                app._confirm_stage(3, False)
+                self.assertFalse(app._offer_check_ready)
+                self.assertNotIsInstance(app.screen, Approval)
+                self.assertIn("device changed", app.query_one("#state", Static).render().plain.lower())
+                app._start(3, False)
+                self.assertFalse(app.busy)
+
     async def test_failed_paid_stage_can_retry_only_on_same_account_and_device(self):
         from tui import Approval, GoogleAITUI
 
