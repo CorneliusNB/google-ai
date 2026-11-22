@@ -180,6 +180,15 @@ class CoreTests(unittest.TestCase):
             self.assertNotIn("-AllStages", command)
             self.assertNotIn("-Force", command)
 
+    def test_windows_paid_command_pins_verified_serial(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "run-all.ps1").write_text("# test", encoding="utf-8")
+            command = command_for_step(3, root, shell="pwsh",
+                                       account="alice@example.com", device="device-a")
+            self.assertEqual(command[-4:], ["-Email", "alice@example.com", "-Serial", "device-a"])
+            self.assertNotIn("-Force", command)
+
     def test_no_shell_or_script_fails_closed(self):
         with tempfile.TemporaryDirectory() as folder:
             with self.assertRaises(FileNotFoundError):
