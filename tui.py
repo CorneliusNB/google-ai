@@ -7,6 +7,8 @@ declares an activated subscription from launchBillingFlow or a Subscribe tap.
 from __future__ import annotations
 
 import argparse
+import base64
+import json
 import os
 import signal
 from collections import deque
@@ -115,6 +117,42 @@ class SetupNotice(ModalScreen[None]):
         self.dismiss(None)
 
 
+class AccountPicker(ModalScreen[str | None]):
+    """Choose a target from Android account candidates, not a billing identity."""
+    CSS = """
+    AccountPicker { align: center middle; background: #071526 80%; }
+    #account_picker { width: 64; max-width: 94%; height: auto; padding: 1 2;
+                      background: #15243a; border: round #3d6383; }
+    #account_choice { width: 100%; }
+    #account_picker_actions { height: 3; margin-top: 1; }
+    #account_picker_actions Button { width: 1fr; }
+    """
+    def __init__(self, accounts: list[str]) -> None:
+        super().__init__()
+        self.accounts = accounts
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="account_picker"):
+            yield Static("Choose a Google account on this device", classes="section")
+            yield Static("These are Android account candidates, NOT proof of which "
+                         "account Google Play uses. Switch accounts inside Play Store "
+                         "and run Check Device & Offers to verify.")
+            yield Select([(f"{i + 1}. {mask_email(email)}", email)
+                          for i, email in enumerate(self.accounts)],
+                         value=self.accounts[0], allow_blank=False, id="account_choice")
+            with Horizontal(id="account_picker_actions"):
+                yield Button("Cancel", id="account_cancel")
+                yield Button("Use selected account", id="account_accept", variant="primary")
+
+    @on(Button.Pressed, "#account_picker_actions Button")
+    def choose(self, event: Button.Pressed) -> None:
+        if event.button.id != "account_accept":
+            self.dismiss(None)
+            return
+        value = self.query_one("#account_choice", Select).value
+        self.dismiss(value if isinstance(value, str) and value in self.accounts else None)
+
+
 class ConnectionNotice(SetupNotice):
     """Dismissible warning for a missing Android connection."""
     CSS = SetupNotice.CSS + "\nConnectionNotice { align: center middle; background: #081424 75%; }"
@@ -170,6 +208,7 @@ class GoogleAITUI(App[None]):
         width: 100%; height: 3; margin: 0;
     }
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
+    #choose_account { width: 100%; height: 3; margin: 0; }
     #quickstart { display: block; width: 100%; height: 3; margin: 0; }
     #advanced_toggle { width: 100%; height: 3; margin: 0; }
     #workflow_actions { display: none; height: auto; margin-top: 1; border-top: solid #285d83; padding-top: 1; }
@@ -278,6 +317,9 @@ class GoogleAITUI(App[None]):
         self._exit_after_step = False
         self._last_outcome: Outcome | None = None
         self._verified_account: str | None = None
+        self._selected_account: str | None = None
+        self._offer_ready_account: str | None = None
+        self._accounts_loading = False
         self._offer_check_ready = False
         self._initial_offer_ready = False
         self._checked_device: str | None = None
@@ -317,6 +359,7 @@ class GoogleAITUI(App[None]):
                             yield Static(f"○  {stage.number}. {stage.label}",
                                          id=f"stage_{stage.number}", classes="workflow-step")
                     yield Button("Help & Guide", id="nav_help")
+                    yield Button("Choose Google account", id="choose_account")
                     yield Button("Diagnose Android connection", id="diagnose")
                     yield Button("Show technical details", id="debug")
                     yield Button("Exit toolkit", id="exit")
