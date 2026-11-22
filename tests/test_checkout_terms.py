@@ -14,7 +14,7 @@ class CheckoutTests(unittest.TestCase):
     def test_matching_checkout_account_allows_existing_price_and_duration_checks(self):
         with patch.object(app, "ui_xml", return_value="screen"), \
              patch.object(app, "nodes", return_value=[{
-                 "text": "Google AI Pro Subscribe Today US$0 12-month free trial selected@example.com",
+                 "text": "Google AI Pro Subscribe Today US$0 12-month free trial Google Play account: selected@example.com",
                  "desc": ""}]), \
              patch.object(app, "tap_text", return_value=True) as tap, \
              patch.object(app.time, "sleep"):
