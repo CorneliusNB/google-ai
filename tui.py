@@ -158,15 +158,21 @@ class AccountPicker(ModalScreen[str | None]):
 
 class ConnectionNotice(SetupNotice):
     """Dismissible warning for a missing Android connection."""
-    CSS = SetupNotice.CSS + "\nConnectionNotice { align: center middle; background: #081424 75%; }"
+    CSS = SetupNotice.CSS + """
+    ConnectionNotice { align: center middle; background: #081424 75%; }
+    #connection_actions { height: 3; }
+    #connection_actions Button { width: 1fr; min-width: 0; }
+    #connection_retry { margin-right: 1; }
+    """
 
     def compose(self) -> ComposeResult:
         with Vertical(id="notice_card"):
             with VerticalScroll(id="notice_scroll"):
                 yield Static(self.notice_title, classes="section")
                 yield Static(self.instruction, id="connection_instruction")
-            yield Button("Retry connection", id="connection_retry", variant="primary")
-            yield Button("Got it", id="notice_close")
+            with Horizontal(id="connection_actions"):
+                yield Button("Retry connection", id="connection_retry", variant="primary")
+                yield Button("Got it", id="notice_close")
 
     def on_mount(self) -> None:
         self._retry_started: float | None = None

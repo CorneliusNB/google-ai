@@ -1002,6 +1002,10 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 app.push_screen(notice)
                 await pilot.pause()
                 with patch.object(notice, "_retry_connection_worker") as worker:
+                    retry = notice.query_one("#connection_retry", Button)
+                    close = notice.query_one("#notice_close", Button)
+                    self.assertEqual(retry.region.y, close.region.y)
+                    self.assertLessEqual(abs(retry.region.width - close.region.width), 1)
                     notice.retry_connection()
                     self.assertTrue(notice.query_one("#connection_retry", Button).disabled)
                     self.assertEqual(str(notice.query_one("#connection_retry", Button).label), "Retrying… 0s")
