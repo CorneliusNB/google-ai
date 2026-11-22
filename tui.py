@@ -1052,13 +1052,19 @@ class GoogleAITUI(App[None]):
             for index, line in enumerate(self._last_output):
                 log.write(line, scroll_end=index == last_index)
             self.query_one("#results").scroll_home(animate=False)
-            # RichLog measures its content and viewport on the next refresh.
-            # On Windows an immediate scroll_end can run before max_scroll_y
-            # is updated, leaving the expanded log stuck at its first line.
-            self.call_after_refresh(
-                lambda: log.scroll_end(animate=False, immediate=True)
-                if self.debug_visible else None
-            )
+            # RichLog can defer its content reflow until after the first
+            # visible layout. One after-refresh callback may still see the old
+            # max_scroll_y, so follow again on the subsequent refresh.
+            log.refresh(layout=True)
+            def follow_after_layout() -> None:
+                if not self.debug_visible:
+                    return
+                log.scroll_end(animate=False, immediate=True)
+                self.call_after_refresh(
+                    lambda: log.scroll_end(animate=False, immediate=True)
+                    if self.debug_visible else None
+                )
+            self.call_after_refresh(follow_after_layout)
         self.query_one("#debug", Button).label = (
             "Hide technical details" if self.debug_visible else "Show technical details"
         )
