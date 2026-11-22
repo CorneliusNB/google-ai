@@ -137,7 +137,9 @@ class AccountPicker(ModalScreen[str | None]):
             yield Static("These are Android account candidates, NOT proof of which "
                          "account Google Play uses. Switch accounts inside Play Store "
                          "and run Check Device & Offers to verify.")
-            yield Select([(f"{i + 1}. {mask_email(email)}", email)
+            # Show complete addresses only in this local selection dialog so
+            # two similar aliases cannot be confused; cards/logs stay masked.
+            yield Select([(f"{i + 1}. {email}", email)
                           for i, email in enumerate(self.accounts)],
                          value=self.accounts[0], allow_blank=False, id="account_choice")
             with Horizontal(id="account_picker_actions"):
