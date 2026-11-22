@@ -791,6 +791,13 @@ class GoogleAITUI(App[None]):
         if previous_verified:
             message = ("Confirm the previous stage ACTUALLY changed the Google Play "
                        "subscription/renewal date. " + message)
+        if step >= 2 and step == self.current_step and self._last_outcome and self._last_outcome.code not in (
+                "listed", "environment_ok", "checkout_requested"):
+            message = ("RETRY SAFETY: Check Google Play subscriptions, pending transactions "
+                       "and payment history first. Do not repeat if a transaction is "
+                       "pending or the plan already changed. This retries only the "
+                       "selected step, with a fresh environment, account and offer check.\n\n"
+                       + message)
         self.push_screen(Approval(title, message),
                          lambda approved: self._start(step, sequence) if approved else None)
 
