@@ -70,7 +70,8 @@ class OriginalFlowGuardrails(unittest.TestCase):
              patch.object(mod, "launch_app", return_value=123), \
              patch.object(mod, "run_trial", return_value={
                  "offers": [{"id": "12months-eft", "micros": "0"}],
-                 "launched": {"code": 0}, "purchase": None, "errors": []}), \
+                 "launched": {"code": 0}, "purchase": None, "errors": [],
+                 "chosen_offer": {"id": "12months-eft"}}), \
              patch.object(mod, "confirm_zero", return_value={
                  "confirmed": False, "reason": "purchase_unavailable"}) as check, \
              patch.object(mod, "verify") as verify:
@@ -84,13 +85,29 @@ class OriginalFlowGuardrails(unittest.TestCase):
              patch.object(mod, "launch_app", return_value=123), \
              patch.object(mod, "run_trial", return_value={
                  "offers": [], "launched": {"code": 0}, "purchase": {"code": 4},
-                 "errors": []}), \
+                 "chosen_offer": {"id": "12months-eft"}, "errors": []}), \
              patch.object(mod, "confirm_zero") as check, \
              patch.object(mod, "verify") as verify:
             report = mod.process("test@example.com", add=False, no_switch=True, plan="pro12")
         self.assertEqual(report["status"], "purchase_unavailable")
         check.assert_not_called()
         verify.assert_not_called()
+
+    def test_wrong_or_missing_selected_offer_stops_before_subscribe(self):
+        for chosen in (None, {"id": "12months-eft"}, {"id": "other"}):
+            with self.subTest(chosen=chosen):
+                with patch.object(mod, "current_play_account", return_value="test@example.com"), \
+                     patch.object(mod, "launch_app", return_value=123), \
+                     patch.object(mod, "run_trial", return_value={
+                         "offers": [{"id": "6months-eft", "micros": "0"}],
+                         "chosen_offer": chosen, "launched": {"code": 0},
+                         "purchase": None, "errors": []}), \
+                     patch.object(mod, "confirm_zero") as check, \
+                     patch.object(mod, "verify") as verify:
+                    report = mod.process("test@example.com", add=False, no_switch=True, plan="pro6")
+                self.assertEqual(report["status"], "offer_not_available")
+                check.assert_not_called()
+                verify.assert_not_called()
 
     def test_offer_tokens_are_never_saved_in_reports(self):
         device = MagicMock()
@@ -198,7 +215,7 @@ class OriginalFlowGuardrails(unittest.TestCase):
              patch.object(mod, "launch_app", return_value=123), \
              patch.object(mod, "run_trial", return_value={
                  "offers": [{"id": "12months-eft", "micros": "0"}], "launched": {"code": 0}, "errors": [],
-                 "purchase": None}), \
+                 "purchase": None, "chosen_offer": {"id": "12months-eft"}}), \
              patch.object(mod, "confirm_zero", return_value={"confirmed": True}), \
              patch.object(mod, "verify", return_value="Google AI Pro subscription"):
             result = mod.process("current@device", add=False, list_only=True)
@@ -207,7 +224,7 @@ class OriginalFlowGuardrails(unittest.TestCase):
              patch.object(mod, "launch_app", return_value=123), \
              patch.object(mod, "run_trial", return_value={
                  "offers": [{"id": "12months-eft", "micros": "0"}], "launched": {"code": 0}, "errors": [],
-                 "purchase": None}), \
+                 "purchase": None, "chosen_offer": {"id": "12months-eft"}}), \
              patch.object(mod, "confirm_zero", return_value={"confirmed": True}), \
              patch.object(mod, "verify", return_value="Google AI Pro subscription"):
             result = mod.process("test@example.com", add=False, no_switch=True)
