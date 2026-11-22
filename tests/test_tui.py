@@ -314,6 +314,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     app._update_run_mode()
 
     async def test_choose_account_requires_new_read_only_check(self):
+        from textual.widgets import Select
         from tui import AccountPicker, GoogleAITUI
 
         with tempfile.TemporaryDirectory() as directory:
