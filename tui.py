@@ -159,6 +159,62 @@ class ConnectionNotice(SetupNotice):
     """Dismissible warning for a missing Android connection."""
     CSS = SetupNotice.CSS + "\nConnectionNotice { align: center middle; background: #081424 75%; }"
 
+    def compose(self) -> ComposeResult:
+        with Vertical(id="notice_card"):
+            with VerticalScroll(id="notice_scroll"):
+                yield Static(self.notice_title, classes="section")
+                yield Static(self.instruction, id="connection_instruction")
+            yield Button("Retry connection", id="connection_retry", variant="primary")
+            yield Button("Got it", id="notice_close")
+
+    def on_mount(self) -> None:
+        self._retry_started: float | None = None
+        self.set_interval(1, self._update_retry_time)
+
+    def _update_retry_time(self) -> None:
+        if self._retry_started is not None:
+            elapsed = int(time.monotonic() - self._retry_started)
+            self.query_one("#connection_retry", Button).label = f"Retrying… {elapsed}s"
+
+    @on(Button.Pressed, "#connection_retry")
+    def retry_connection(self) -> None:
+        if self._retry_started is not None or self.app.busy:
+            return
+        self._retry_started = time.monotonic()
+        self.query_one("#connection_retry", Button).disabled = True
+        self.query_one("#notice_close", Button).disabled = True
+        self._update_retry_time()
+        self._retry_connection_worker()
+
+    @work(thread=True, exclusive=True, group="connection-retry")
+    def _retry_connection_worker(self) -> None:
+        try:
+            if sys.platform == "win32":
+                from device_diagnostics import locate_adb
+                from setup_env import connect_emulator
+                adb = locate_adb()
+                if adb:
+                    connect_emulator(adb)
+            result = poll_connection()
+        except Exception:
+            result = ConnectionStatus("adb_error")
+        self.app.call_from_thread(self._retry_finished, result)
+
+    def _retry_finished(self, result: ConnectionStatus) -> None:
+        if not self.is_mounted:
+            return
+        self._retry_started = None
+        self.query_one("#connection_retry", Button).disabled = False
+        self.query_one("#connection_retry", Button).label = "Retry connection"
+        self.query_one("#notice_close", Button).disabled = False
+        if result.state == "connected":
+            self.app._connection_polled(result)
+        else:
+            self.query_one("#connection_instruction", Static).update(
+                "Still unable to connect. Close and reopen MuMu, wait for Android to boot, "
+                "enable ADB debugging, then press Retry connection."
+            )
+
 
 def is_macos_platform() -> bool:
     return sys.platform == "darwin"

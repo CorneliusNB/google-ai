@@ -986,6 +986,29 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         self.assertTrue(app.query_one("#quickstart").display)
                     launch.assert_not_called()
 
+    async def test_connection_popup_retry_shows_timer_and_recovers(self):
+        from tui import ConnectionNotice, GoogleAITUI
+        from device_diagnostics import ConnectionStatus
+        from textual.widgets import Button
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)) as pilot:
+                notice = ConnectionNotice("Disconnected", "Retry the connection.")
+                app.push_screen(notice)
+                await pilot.pause()
+                with patch.object(notice, "_retry_connection_worker") as worker:
+                    notice.retry_connection()
+                    self.assertTrue(notice.query_one("#connection_retry", Button).disabled)
+                    self.assertEqual(str(notice.query_one("#connection_retry", Button).label), "Retrying… 0s")
+                    notice.retry_connection()
+                    worker.assert_called_once()
+                notice._retry_finished(ConnectionStatus("disconnected"))
+                self.assertFalse(notice.query_one("#connection_retry", Button).disabled)
+                notice._retry_finished(ConnectionStatus("connected", ("emulator-5554",)))
+                await pilot.pause()
+                self.assertNotIsInstance(app.screen, ConnectionNotice)
+
     async def test_live_status_uses_remaining_height_after_actions(self):
         from tui import GoogleAITUI
 
