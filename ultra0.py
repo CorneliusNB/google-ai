@@ -1080,8 +1080,8 @@ def confirm_zero(wait=40, password="", expected_plan="auto", expected_account=""
                 # Require the checkout itself to explicitly identify the payer,
                 # otherwise leave the sheet open for manual confirmation.
                 payer_label = (
-                    r"(?:paying\\s+(?:with|as)|billed\\s+to|purchase\\s+account|"
-                    r"google\\s+play\\s+account)\\s*[:：\\-]?\\s*" +
+                    r"(?:paying\s+(?:with|as)|billed\s+to|purchase\s+account|"
+                    r"google\s+play\s+account)\s*[:：\-]?\s*" +
                     re.escape(expected_account.strip().lower())
                 )
                 if not re.search(payer_label, visible, re.I):
