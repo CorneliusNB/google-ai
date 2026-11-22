@@ -1139,6 +1139,9 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
             warn("No purchase token found; falling back to queryPurchases (may fail)")
 
     pid = launch_app()
+    if not pid and list_only:
+        warn("Google One did not start during the offer check; restarting it once.")
+        pid = launch_app()
     if not pid:
         rec["status"] = "app_not_started"
         return rec

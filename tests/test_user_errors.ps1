@@ -42,6 +42,7 @@ $errors = @(
     @{ Message = "Play account mismatch. Detected 'one@example.com', expected 'two@example.com'."; Expected = "account_mismatch" },
     @{ Message = "Cannot identify the active Google Play account. Open the Play Store profile."; Expected = "account_unavailable" },
     @{ Message = "Offer query did not complete: offer_query_failed"; Expected = "offer_query_failed" },
+    @{ Message = "Offer query did not complete: app_not_started"; Expected = "app_not_started" },
     @{ Message = "No report produced at ..." ; Expected = "report_missing" },
     @{ Message = "Python not found"; Expected = "python_missing" },
     @{ Message = "Invalid Play Store account returned by Step 1"; Expected = "account_unavailable" }

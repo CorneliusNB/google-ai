@@ -262,6 +262,7 @@ function Get-FailureCode {
     if ($ErrorMessage -match '(?i)Android package missing|Android package.*unavailable') { return "app_missing" }
     if ($ErrorMessage -match '(?i)Play account mismatch|Play Store account changed') { return "account_mismatch" }
     if ($ErrorMessage -match '(?i)Cannot identify the active Google Play account|No valid email|Invalid Play Store account') { return "account_unavailable" }
+    if ($ErrorMessage -match '(?i)Offer query did not complete: app_not_started\s*$') { return "app_not_started" }
     if ($ErrorMessage -match '(?i)Offer query did not complete|Could not refresh the offer list') { return "offer_query_failed" }
     if ($ErrorMessage -match '(?i)No report produced') { return "report_missing" }
     if ($ErrorMessage -match '(?i)Runtime lookup failed|No machine-readable runtime result') { return "runtime_lookup_failed" }

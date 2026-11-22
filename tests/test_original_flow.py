@@ -21,6 +21,32 @@ def mock_dev(device_id, name="com.google.android.apps.subscriptions.red"):
 
 
 class OriginalFlowGuardrails(unittest.TestCase):
+    def test_offer_check_restarts_google_one_once_when_startup_fails(self):
+        for pid, status in ((456, "listed"), (0, "app_not_started")):
+            with self.subTest(pid=pid), \
+                 patch.object(mod, "current_play_account", return_value="test@example.com"), \
+                 patch.object(mod, "launch_app", side_effect=[0, pid]) as launch, \
+                 patch.object(mod, "query_offers_with_recovery",
+                              return_value={"offers": [{"id": "test"}]}) as offers, \
+                 patch.object(mod, "confirm_zero") as checkout:
+                result = mod.process("current@device", add=False, list_only=True)
+                self.assertEqual(result["status"], status)
+                self.assertEqual(launch.call_count, 2)
+                if pid:
+                    self.assertEqual(offers.call_args.args[0], pid)
+                else:
+                    offers.assert_not_called()
+                checkout.assert_not_called()
+
+    def test_paid_stage_does_not_retry_google_one_startup(self):
+        with patch.object(mod, "current_play_account", return_value="test@example.com"), \
+             patch.object(mod, "launch_app", return_value=0) as launch, \
+             patch.object(mod, "run_trial") as checkout:
+            result = mod.process("test@example.com", add=False, no_switch=True)
+        self.assertEqual(result["status"], "app_not_started")
+        launch.assert_called_once()
+        checkout.assert_not_called()
+
     def test_read_only_transient_frida_failure_restarts_once(self):
         class TransportError(Exception):
             pass
