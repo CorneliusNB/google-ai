@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: 36ba1d28c6270324f676a8d29133d211758275a3 -->
+<!-- Source README.md git-blob: 79b738b48e22a56864da8896cb6c377a9b06b62a -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -156,6 +156,18 @@ Trước **mỗi bước thanh toán trên giao diện**, bạn phải xác nh�
 Khi một bước đang chạy, các nút **Check Device & Offers**, **Run** và các tùy chọn chế độ hoặc bước sẽ tạm khóa để tránh chạy nhiều thao tác cùng lúc. Bạn vẫn có thể xem trợ giúp và nhật ký kỹ thuật. Nút **Next** chỉ xuất hiện khi kết quả thanh toán có thể được kiểm tra trước khi tiếp tục; nếu xảy ra lỗi hoặc chưa rõ kết quả, công cụ không cho chuyển sang bước kế tiếp.
 
 **Dừng hoặc thoát:** Với Steps 0–1, bạn có thể yêu cầu dừng tiến trình trên máy. Với Steps 2–5, **Stop after this step** chỉ ngăn công cụ chạy tiếp bước sau, **không buộc dừng giao dịch đang xử lý**. Nếu nhấn **Q / Exit** trong lúc thanh toán, công cụ sẽ đợi bước hiện tại kết thúc rồi mới thoát. Phím **D** bật/tắt nhật ký kỹ thuật, còn **R** chạy theo chế độ đã chọn.
+
+### Thông tin thiết bị, tài khoản và lịch sử
+
+Ô Device hiển thị phiên bản Android, SDK, ABI và kết nối ADB khi đọc được; rê chuột để xem đầy đủ. **Choose account** nằm cạnh ô Account và liệt kê tài khoản đã đăng nhập trên Android. Chọn đúng hồ sơ trong cả Play Store và Google One rồi chạy lại Step 1. Công cụ dùng email hồ sơ đang hoạt động khi Play Store cung cấp thông tin rõ ràng.
+
+Khung thao tác vừa nội dung; **Live Status** dùng phần chiều cao còn lại và đặt hoạt động mới nhất ở đầu. **Show technical details** mở nhật ký tự cuộn theo dòng mới. Nút chính và **Run this step** hiển thị bước đang chạy cùng số giây. Trên Windows, Step 0 có dấu ✓ sau khi kiểm tra môi trường hoàn tất trong luồng kiểm tra ưu đãi. Khi chưa có kết quả mới đã xác minh, phần chọn bước hiện nút xanh **Check Device & Offers — Step 1**.
+
+**Recent history** lưu lần bắt đầu, kết quả và thao tác **Verified in Google Play → Next** tại `logs/stage-history/`. Khi mở lại, giao diện khôi phục lịch sử gần nhất; chọn tài khoản sẽ xem lịch sử riêng. **↺** đánh dấu bước từng chạy. Lịch sử chưa chứng minh gói đã kích hoạt và không tự mở khóa thanh toán. Mở lại toolkit hoặc đổi tài khoản cần chạy Step 1 mới. Các lượt trước khi bổ sung lưu lịch sử không có dữ liệu khôi phục.
+
+Popup mất kết nối có **Retry connection**, hiển thị **Retrying…** cùng số giây; **Got it** đóng popup. Trên Windows, nút thử nối lại máy ảo cục bộ; khi bắt đầu bước mà ADB chưa có thiết bị, công cụ cũng thử nối lại. Trong lượt tra cứu, nếu ứng dụng chưa khởi động, công cụ thử mở lại một lần. Nếu vẫn lỗi, đóng MuMu, mở lại, đợi Android khởi động xong rồi chạy Step 1. Google One được khởi động lại trước khi truy vấn; Play Store tiếp tục chạy nếu đã sẵn sàng. **Reload toolkit** nạp lại giao diện bằng code cục bộ khi rảnh và tạo phiên mới.
+
+Trước khi tự bấm **Subscribe**, màn hình thanh toán phải có đúng email dự kiến, tổng tiền hôm nay bằng 0 và đúng thời hạn dùng thử; ưu đãi được yêu cầu cũng phải khớp. Thiếu hoặc sai email sẽ dừng thao tác tự bấm để bạn kiểm tra. Mỗi bước thanh toán cần xác nhận riêng. Sau khi gửi yêu cầu, tự kiểm tra gói, ngày gia hạn và khoản phí trong Google Play. Nội dung nhắc ba lần xác minh thẻ nằm trong hộp xác nhận thanh toán.
 
 ## 4. PowerShell CLI (nâng cao)
 

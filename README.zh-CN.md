@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: 36ba1d28c6270324f676a8d29133d211758275a3 -->
+<!-- Source README.md git-blob: 79b738b48e22a56864da8896cb6c377a9b06b62a -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -153,6 +153,18 @@ sh run-macos.sh
 TUI 中**每个结账步骤均需单独批准**。当工具提示已尝试提交结账时，请到 [Google Play Subscriptions](https://play.google.com/store/account/subscriptions) 亲自确认实际套餐、收费与续订日期。只有确认订阅确实改变后才能选择 **Verified in Google Play → Next**；工具本身**无法独立证明激活成功**。
 
 **停止与退出：**Step 0–1 的 Stop 会请求终止本地检查。Step 2–5 的 **Stop after this step** 只阻止后续步骤，**不会强制中断正在进行的支付**。**Q / Exit** 在结账期间会等当前步骤结束；**D** 切换技术日志，**R** 执行当前选择。
+
+### 设备、账号与历史记录
+
+Device 卡片显示读取到的 Android 版本、SDK、ABI 和 ADB 连接信息，悬停可查看完整内容。Account 旁的 **Choose account** 会列出 Android 已登录的账号。请在 Play Store 和 Google One 中选择目标账号，然后重新运行 Step 1。若 Play Store 明确提供当前个人资料的邮箱，工具会据此识别正在使用的账号。
+
+操作面板按内容调整高度，**Live Status** 使用剩余空间，最新活动显示在顶部。**Show technical details** 的日志会自动跟随新行。主按钮和 **Run this step** 均显示正在运行的步骤及已用秒数。Windows 的优惠查询流程完成环境检查后，Step 0 会出现勾选标记。缺少新的已验证检查结果时，会显示绿色 **Check Device & Offers — Step 1** 按钮。
+
+**Recent history** 将开始、结果和 **Verified in Google Play → Next** 操作保存到本地 `logs/stage-history/`。启动时恢复最近保存的记录，选择账号后显示该账号的历史。**↺** 表示曾尝试运行的步骤。历史本身不能证明订阅成功，也不会解锁付款。重新打开工具或更换账号后，需要重新运行 Step 1。加入历史记录功能之前的运行无法恢复。
+
+断开连接的弹窗提供 **Retry connection**，处理时显示 **Retrying…** 和已用秒数；**Got it** 关闭弹窗。Windows 会尝试重新连接本地模拟器，启动步骤时找不到在线 ADB 设备也会尝试连接。只读查询期间，应用启动失败会重启一次。若仍失败，请关闭并重新打开 MuMu，等待 Android 启动完成后重跑 Step 1。查询优惠前会重启 Google One；已正常运行的 Play Store 会保持运行。空闲时点击 **Reload toolkit** 可使用本地代码重新打开界面并开始新会话。
+
+自动点击 **Subscribe** 前，付款画面必须显示准确匹配的邮箱、今天应付总额为零及预期试用期，所请求的优惠也必须匹配。邮箱缺失或不匹配时，会停止自动点击并要求人工核对。每个付款步骤都需要单独批准。提交后仍需在 Google Play 核实订阅、续费日期和扣款。三次银行卡验证的提醒显示在付款确认框中。
 
 ## 4. PowerShell 命令行操作（高级）
 

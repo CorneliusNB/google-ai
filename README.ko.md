@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 한국어
 
-<!-- Source README.md git-blob: 36ba1d28c6270324f676a8d29133d211758275a3 -->
+<!-- Source README.md git-blob: 79b738b48e22a56864da8896cb6c377a9b06b62a -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -153,6 +153,18 @@ Windows에서 **Check Device & Offers**를 실행하면 ADB를 찾고, 필요한
 TUI에서 **각 결제 단계는 별도 승인이 필요합니다**. 도구가 결제 제출을 시도했다고 표시해도 [Google Play 구독 관리](https://play.google.com/store/account/subscriptions)에서 실제 구독, 요금과 갱신일을 확인하세요. 직접 변경 사항을 확인한 경우에만 **Verified in Google Play → Next**를 선택하세요. 도구는 구독 성공을 독립적으로 증명할 수 없습니다.
 
 **중지/종료:** Step 0–1에서는 Stop이 로컬 검사를 종료하도록 요청합니다. Step 2–5의 **Stop after this step**은 이후 단계를 막을 뿐 **진행 중인 결제를 강제 종료하지 않습니다**. 결제 중 **Q / Exit**는 현재 단계 종료 후 종료합니다. **D**는 기술 로그, **R**은 선택한 모드 실행입니다.
+
+### 기기 정보, 계정 및 기록
+
+Device 카드에는 확인된 Android 버전, SDK, ABI 및 ADB 연결 정보가 표시됩니다. 마우스를 올리면 전체 정보를 볼 수 있습니다. Account 옆의 **Choose account**는 Android에 로그인된 계정을 나열합니다. Play Store와 Google One에서 원하는 계정을 선택한 뒤 Step 1을 다시 실행하세요. Play Store가 현재 사용 중인 프로필의 이메일을 명시하면 그 정보로 계정을 구분합니다.
+
+작업 패널은 내용에 맞게 줄어들고 **Live Status**가 남은 높이를 사용하며 최신 작업을 맨 위에 표시합니다. **Show technical details**의 로그는 새 줄을 따라 자동으로 스크롤됩니다. 기본 버튼과 **Run this step**에는 실행 중인 단계와 경과 초가 표시됩니다. Windows에서는 혜택 확인 과정의 환경 점검이 끝나면 Step 0에 체크 표시가 붙습니다. 새로운 확인 결과가 없으면 초록색 **Check Device & Offers — Step 1** 버튼이 나타납니다.
+
+**Recent history**는 시작, 결과 및 **Verified in Google Play → Next** 동작을 `logs/stage-history/`에 저장합니다. 시작 시 가장 최근 기록을 복원하며, 계정을 선택하면 해당 계정의 기록이 표시됩니다. **↺**는 이전에 실행을 시도한 단계입니다. 기록만으로 구독 성공을 확인하거나 결제를 활성화할 수는 없습니다. 도구를 다시 열거나 계정을 바꾸면 Step 1을 새로 실행해야 합니다. 기록 저장 기능이 추가되기 전의 실행은 복원할 수 없습니다.
+
+연결 끊김 창의 **Retry connection**은 처리 중 **Retrying…**와 경과 초를 표시합니다. **Got it**으로 창을 닫습니다. Windows에서는 로컬 에뮬레이터 재연결을 시도하며, 단계 시작 시 연결된 ADB 기기가 없을 때도 동일하게 처리합니다. 조회 중 앱이 시작되지 않으면 한 번 다시 시작합니다. 실패하면 MuMu를 닫았다가 다시 열고 Android 부팅이 끝난 뒤 Step 1을 실행하세요. 혜택 조회 전에 Google One을 다시 시작하며, Play Store가 이미 실행 중이면 계속 사용합니다. **Reload toolkit**은 대기 중인 화면을 로컬 코드로 다시 시작하고 새 세션을 엽니다.
+
+**Subscribe**를 자동으로 누르려면 결제 화면의 이메일이 예상 계정과 정확히 일치하고, 오늘 결제할 합계가 0이며, 체험 기간과 요청한 혜택도 일치해야 합니다. 이메일이 없거나 다르면 자동 누르기를 중단하고 직접 확인하도록 안내합니다. 결제 단계마다 별도 승인이 필요합니다. 제출 후에는 Google Play에서 구독, 갱신일 및 청구 내역을 확인하세요. 세 번의 카드 확인 안내는 결제 승인 화면에 표시됩니다.
 
 ## 4. PowerShell 명령어 (고급)
 

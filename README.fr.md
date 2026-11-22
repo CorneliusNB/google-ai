@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Français
 
-<!-- Source README.md git-blob: 36ba1d28c6270324f676a8d29133d211758275a3 -->
+<!-- Source README.md git-blob: 79b738b48e22a56864da8896cb6c377a9b06b62a -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
@@ -154,6 +154,18 @@ Les durées sont les **anciens noms des étapes** et ne garantissent aucune prol
 Dans le TUI, **chaque étape de paiement exige une approbation distincte**. Même si un envoi de paiement est signalé, vérifiez le forfait actif, les frais et le renouvellement dans les [abonnements Google Play](https://play.google.com/store/account/subscriptions). Ne sélectionnez **Verified in Google Play → Next** que si vous avez confirmé personnellement la modification. L'outil **ne prouve pas à lui seul** l'activation.
 
 **Arrêt/sortie :** Stop pour les étapes 0–1 demande l'arrêt du processus local. Pour les étapes 2–5, **Stop after this step** bloque les étapes suivantes, mais **n'interrompt pas de force un paiement en cours**. Pendant un paiement, **Q / Exit** attend la fin de l'étape actuelle. **D** affiche/masque le journal technique ; **R** lance le mode choisi.
+
+### Appareil, compte et historique
+
+La carte Device affiche la version d’Android, le SDK, l’ABI et la connexion ADB lorsqu’ils sont disponibles; survolez-la pour voir tous les détails. **Choose account**, à côté de Account, liste les comptes connectés à Android. Sélectionnez le profil voulu dans Play Store et Google One, puis relancez Step 1. L’outil utilise l’adresse du profil actif lorsque Play Store l’identifie explicitement.
+
+Le panneau d’actions s’adapte à son contenu et **Live Status** occupe la hauteur restante, avec l’activité la plus récente en tête. **Show technical details** ouvre un journal qui suit les nouvelles lignes. Le bouton principal et **Run this step** affichent l’étape en cours et les secondes écoulées. Sous Windows, Step 0 reçoit une coche lorsque la vérification de l’environnement intégrée à la recherche d’offres se termine. Sans vérification récente validée, le bouton vert **Check Device & Offers — Step 1** apparaît.
+
+**Recent history** enregistre les démarrages, les résultats et l’action **Verified in Google Play → Next** dans `logs/stage-history/`. Au démarrage, le dernier historique est restauré; le choix d’un compte affiche son historique propre. **↺** indique une étape déjà tentée. L’historique ne confirme pas un abonnement et ne débloque pas les paiements. Après un redémarrage de l’outil ou un changement de compte, relancez Step 1. Les exécutions antérieures à cette fonction ne peuvent pas être restaurées.
+
+La fenêtre de déconnexion propose **Retry connection**, qui affiche **Retrying…** et les secondes; **Got it** ferme la fenêtre. Sous Windows, l’outil tente de reconnecter l’émulateur local, également au lancement d’une étape sans appareil ADB connecté. Lors des consultations, une application qui ne démarre pas fait l’objet d’une seule tentative de redémarrage. Si elle échoue, fermez puis rouvrez MuMu, attendez le démarrage complet d’Android et relancez Step 1. Google One redémarre avant la consultation; Play Store reste ouvert s’il est déjà disponible. **Reload toolkit** relance l’interface au repos avec le code local et crée une nouvelle session.
+
+Avant d’appuyer automatiquement sur **Subscribe**, l’écran de paiement doit afficher exactement l’adresse attendue, un total nul pour aujourd’hui et la durée d’essai prévue; l’offre demandée doit aussi correspondre. Si l’adresse manque ou diffère, l’action automatique s’arrête pour permettre une vérification manuelle. Chaque étape de paiement exige son accord propre. Après l’envoi, vérifiez l’abonnement, la date de renouvellement et les frais dans Google Play. Le rappel des trois vérifications de carte figure dans les confirmations de paiement.
 
 ## 4. Commandes PowerShell (utilisateurs avancés)
 
