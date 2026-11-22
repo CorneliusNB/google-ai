@@ -111,7 +111,7 @@ class OriginalFlowGuardrails(unittest.TestCase):
 
     def test_play_account_refuses_ambiguous_multi_account_profile(self):
         def fake_nodes(xml):
-            if xml == 'PLAY_STORE':
+            if 'com.android.vending' in xml:
                 return [{"desc": "Account and settings", "text": "", "x": 10, "y": 20}]
             return [
                 {"desc": "Primary one@example.com", "text": ""},
@@ -119,7 +119,7 @@ class OriginalFlowGuardrails(unittest.TestCase):
             ]
 
         with patch.object(mod, "ui_xml", side_effect=[
-                 '<node package="com.android.vending"/>', 'PLAY_STORE', 'PROFILE'
+                 '<node package="com.android.vending"/>', 'PROFILE'
              ]), \
              patch.object(mod, "nodes", side_effect=fake_nodes), \
              patch.object(mod, "tap"), \
