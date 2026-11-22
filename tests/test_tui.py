@@ -313,6 +313,74 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 with patch.object(app, "query", return_value=[]):
                     app._update_run_mode()
 
+    async def test_choose_account_requires_new_read_only_check(self):
+        from tui import AccountPicker, GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._offer_check_ready = True
+                app._offer_ready_account = "old@example.com"
+                app._account_candidates_loaded(["first@example.com", "second@example.com"])
+                await pilot.pause()
+                self.assertIsInstance(app.screen, AccountPicker)
+                app.screen.query_one("#account_choice", Select).value = "second@example.com"
+                await pilot.click("#account_accept")
+                await pilot.pause()
+                self.assertEqual(app._selected_account, "second@example.com")
+                self.assertFalse(app._offer_check_ready)
+                self.assertIsNone(app._offer_ready_account)
+
+    async def test_selected_account_must_match_read_only_check(self):
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._selected_account = "second@example.com"
+                app._checked_device = "emulator-5554"
+                app._verified_account = "first@example.com"
+                app._finished(1, Outcome("listed", "Offers listed", "Review first phase."), {
+                    "status": "listed", "detected_play_account": "first@example.com",
+                    "offers": [{"id": "6months-eft", "micros": "0"}],
+                })
+                self.assertFalse(app._offer_check_ready)
+                self.assertIsNone(app._offer_ready_account)
+
+    async def test_failed_paid_stage_can_retry_only_on_same_account_and_device(self):
+        from tui import Approval, GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._offer_check_ready = True
+                app._offer_ready_account = "first@example.com"
+                app._offer_ready_device = "emulator-5554"
+                app._verified_account = "first@example.com"
+                app._checked_device = "emulator-5554"
+                app.current_step = 3
+                app._finished(3, Outcome("purchase_unavailable",
+                                         "Purchase unavailable", "Check Google Play."), {
+                    "status": "purchase_unavailable",
+                })
+                self.assertTrue(app._offer_check_ready)
+                app._confirm_stage(3, False)
+                await pilot.pause()
+                self.assertIsInstance(app.screen, Approval)
+                self.assertIn("RETRY SAFETY", app.screen.message_text)
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._offer_check_ready = True
+                app._offer_ready_account = "first@example.com"
+                app._offer_ready_device = "emulator-5554"
+                app._verified_account = "other@example.com"
+                app._checked_device = "emulator-5554"
+                app._finished(3, Outcome("purchase_unavailable",
+                                         "Purchase unavailable", "Check Google Play."), None)
+                self.assertFalse(app._offer_check_ready)
+
     async def test_start_screen_shows_status_and_primary_action(self):
         from tui import GoogleAITUI
         for size in ((90, 20), (110, 35)):
