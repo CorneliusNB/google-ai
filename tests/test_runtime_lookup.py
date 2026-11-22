@@ -15,6 +15,13 @@ spec.loader.exec_module(module)
 
 
 class RuntimeLookupTests(unittest.TestCase):
+    def test_connection_lookup_reuses_existing_emulator_connector(self):
+        import setup_env
+        with patch.object(setup_env, "find_adb", return_value="adb"), \
+             patch.object(setup_env, "connect_emulator", return_value="emulator-5554") as connect:
+            self.assertEqual(module.resolve_value("connect-device"), "emulator-5554")
+        connect.assert_called_once_with("adb")
+
     def test_unicode_logs_are_suppressed_when_resolving_adb(self):
         import setup_env
         expected = r"D:\laragon\www\dev\google-ai\platform-tools\adb.exe"

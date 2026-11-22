@@ -235,6 +235,17 @@ try {
         }
     )
     if ($online.Count -eq 0) {
+        Show-Status "Connection" "Trying local emulator ADB ports..."
+        $null = Get-RuntimeValue -LookupArgs @("connect-device")
+        $deviceLines = @(& $Adb devices)
+        if ($LASTEXITCODE -ne 0) { Stop-Workflow "ADB device discovery failed after reconnect." }
+        $online = @(
+            foreach ($line in $deviceLines) {
+                if ($line -match '^\s*(\S+)\s+device\s*$') { $Matches[1] }
+            }
+        )
+    }
+    if ($online.Count -eq 0) {
         Note ($deviceLines -join [Environment]::NewLine)
         Stop-Workflow "No online ADB devices. Start MuMu, enable ADB debugging and wait for status 'device'."
     }
