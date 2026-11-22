@@ -1009,6 +1009,23 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause()
                 self.assertNotIsInstance(app.screen, ConnectionNotice)
 
+    async def test_environment_tick_requires_completion_marker_in_current_run(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Static
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)):
+                app._received("EPLUS_STAGE_DONE:0")
+                self.assertNotIn("✓", app.query_one("#stage_0", Static).render().plain)
+                with patch.object(app, "run_stage"):
+                    app._start(1, False)
+                app._received("Device emulator-5554")
+                self.assertNotIn("✓", app.query_one("#stage_0", Static).render().plain)
+                app._received("EPLUS_STAGE_DONE:0")
+                self.assertIn("✓", app.query_one("#stage_0", Static).render().plain)
+                self.assertIn("●", app.query_one("#stage_1", Static).render().plain)
+
     async def test_account_history_survives_restart_without_unlocking_paid_steps(self):
         from tui import GoogleAITUI
         from stage_history import record_history

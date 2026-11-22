@@ -300,6 +300,7 @@ try {
     Stage "Original Step 0: Environment check"
     Note "The original ultra0.py may repair Frida and change emulator proxy/network settings."
     Run-Command $Python @("ultra0.py", "--check", "--serial", $Serial)
+    Write-Host "EPLUS_STAGE_DONE:0"
 
     if ($SetupOnly -or ($Step -eq 0 -and -not $AllStages)) {
         Note "Original Step 0 complete. No checkout or purchase requested."

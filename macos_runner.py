@@ -184,6 +184,7 @@ def run_stage(step: int, serial: str, env: dict[str, str],
     print("Checking Android environment before paid stage...", flush=True)
     if run_engine(stage_command(0, serial), env):
         raise RuntimeError("Android environment checks failed; no checkout started")
+    print("EPLUS_STAGE_DONE:0", flush=True)
     plan, _offer, _stack = STAGES[step]
     report = list_offers(serial, env, plan)
     account = verified_account(serial, env, report)

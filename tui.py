@@ -1033,6 +1033,7 @@ class GoogleAITUI(App[None]):
         self._save_history(self._history_account, step, "started")
         self._checked_device = None
         if step <= 1:
+            self._set_workflow(0, "pending")
             self._offer_check_ready = False
             self._initial_offer_ready = False
             self._offer_ready_device = None
@@ -1182,6 +1183,10 @@ class GoogleAITUI(App[None]):
 
     def _received(self, line: str) -> None:
         if not line:
+            return
+        if line.strip() == "EPLUS_STAGE_DONE:0":
+            if self.busy:
+                self._set_workflow(0, "done")
             return
         # Keep the original marker for the parser, but never print raw
         # EPLUS_ISSUE codes in the visible RichLog, even when Debug is open.
