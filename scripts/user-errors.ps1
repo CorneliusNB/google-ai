@@ -214,6 +214,18 @@ function Get-UserIssue {
                 Action = "Close MuMu and reopen it. Wait for Android to finish booting, then run Check Device & Offers again from Step 1."
             }
         }
+        "checkout_account_mismatch" {
+            return [pscustomobject]@{
+                Title = "Checkout is using a different account"
+                Action = "Close checkout, select the intended account in Play Store and Google One, then run Check Device & Offers again. Verify earlier purchases in Google Play."
+            }
+        }
+        "checkout_account_unverified" {
+            return [pscustomobject]@{
+                Title = "Checkout account could not be read"
+                Action = "Expand the Google Play checkout account details and verify the email. Close checkout and run Check Device & Offers again before another attempt."
+            }
+        }
         "play_store_not_started" {
             return [pscustomobject]@{
                 Title = "Google Play Store could not be opened"

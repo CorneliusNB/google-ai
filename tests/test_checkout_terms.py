@@ -24,9 +24,9 @@ class CheckoutTests(unittest.TestCase):
         tap.assert_called_once()
 
     def test_checkout_requires_exact_visible_billing_account_before_subscribe(self):
-        for identity, expected in (("", "account_unverified"),
-                                   ("other@example.com", "wrong_account"),
-                                   ("selected@example.com other@example.com", "wrong_account")):
+        for identity, expected in (("", "checkout_account_unverified"),
+                                   ("other@example.com", "checkout_account_mismatch"),
+                                   ("selected@example.com other@example.com", "checkout_account_mismatch")):
             with self.subTest(identity=identity), \
                  patch.object(app, "ui_xml", return_value="screen"), \
                  patch.object(app, "nodes", return_value=[{

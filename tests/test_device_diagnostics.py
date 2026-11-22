@@ -14,6 +14,15 @@ spec.loader.exec_module(mod)
 
 
 class DeviceDiagnosticsTests(unittest.TestCase):
+    def test_active_play_account_button_identifies_profile_with_multiple_accounts(self):
+        with patch.object(mod, "ui_xml", return_value='<node package="com.android.vending"/>'), \
+             patch.object(mod, "nodes", return_value=[
+                 {"desc": "Google Account: Test selected@example.com", "text": ""},
+                 {"desc": "", "text": "other@example.com"}]), \
+             patch.object(mod, "tap") as tap:
+            self.assertEqual(mod.current_play_account(), "selected@example.com")
+        tap.assert_not_called()
+
     def test_offer_check_reports_play_store_startup_failure_without_querying(self):
         with ExitStack() as mocks:
             for name in ("find_adb", "pick_device", "ensure_root", "ensure_network",

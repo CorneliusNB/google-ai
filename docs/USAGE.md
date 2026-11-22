@@ -27,6 +27,7 @@ The sidebar lists the six stages. Android Device / Google Account cards update f
 **Recent history** shows the last six saved events for the selected or freshly verified account, newest first. It records stage starts, results and the user's **Verified in Google Play → Next** action. Private history stays under `logs/stage-history/`, with hashed account filenames. Opening the toolkit requires a fresh device and offer check before paid stages.
 
 Before automatically tapping Subscribe, the toolkit requires the checkout screen to show exactly the expected email address. If the checkout account is missing, different or ambiguous, inspect the account in the Google Play checkout screen and repeat the device and offer check.
+For devices with multiple signed-in accounts, the Play Store account button can identify the active profile when its accessibility label includes an explicit email. An expanded account list with no active-profile indicator requires manual selection. A checkout-account error refers to the billing screen, and includes instructions to check Play Store and Google One before running Step 1 again.
 
 After **Check Device & Offers** reads the Android device, the **Device** card shows the Android version, SDK level, CPU ABI and ADB serial when available. Hover over the card for the full details if the terminal clips the line.
 

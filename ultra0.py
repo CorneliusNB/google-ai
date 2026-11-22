@@ -650,6 +650,14 @@ def current_play_account() -> str:
 
     opened_profile = False
     for n in nodes(xml):
+        # Play Store exposes the active profile on its account button in
+        # some versions. Other signed-in accounts in the expanded menu
+        # must not override that explicit identity.
+        if re.match(r"^(?:Google Account|T\u00e0i kho\u1ea3n Google|Google \u5e10\u53f7|Google \u8d26\u53f7)\s*[:\uff1a]", n["desc"], re.I):
+            active = {value.lower() for value in re.findall(
+                r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", n["desc"])}
+            if len(active) == 1:
+                return next(iter(active))
         if ("\u8d26\u53f7\u548c\u8bbe\u7f6e" in n["desc"] or "Account and settings" in n["desc"]
                 or "T\u00e0i kho\u1ea3n v\u00e0 ch\u1ebf \u0111\u1ed9 c\u00e0i \u0111\u1eb7t" in n["desc"]):
             tap(n["x"], n["y"])
@@ -1051,7 +1059,7 @@ def confirm_zero(wait=40, password="", expected_plan="auto", expected_account=""
                 accounts = {email.lower() for email in re.findall(
                     r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", visible)}
                 if accounts != {expected_account.strip().lower()}:
-                    out["reason"] = "wrong_account" if accounts else "account_unverified"
+                    out["reason"] = "checkout_account_mismatch" if accounts else "checkout_account_unverified"
                     warn("Checkout account could not be matched to the selected account. "
                          "Review the account on the Google Play checkout screen before retrying.")
                     return out
@@ -1218,7 +1226,8 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
                 "purchase_unavailable", "ineligible", "already_subscribed",
                 "processing", "backup_payment_methods_prompt",
                 "today_price_unverified", "trial_duration_unverified",
-                "subscribe_button_not_found", "checkout_not_visible"):
+                "subscribe_button_not_found", "checkout_not_visible",
+                "checkout_account_mismatch", "checkout_account_unverified"):
             rec["status"] = reason
         else:
             rec["status"] = "checkout_not_confirmed"

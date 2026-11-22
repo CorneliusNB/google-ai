@@ -51,6 +51,14 @@ class Outcome:
 
 
 MESSAGES = {
+    "checkout_account_mismatch": (
+        "Checkout is using a different account",
+        "Review the account shown in Google Play checkout. Close checkout, select the intended account in Play Store and Google One, then run Check Device & Offers again. Verify any earlier purchase in Google Play.",
+    ),
+    "checkout_account_unverified": (
+        "Checkout account could not be read",
+        "Expand the account details in Google Play checkout and verify the email matches the account selected in the toolkit. Close checkout and run Check Device & Offers again before another attempt.",
+    ),
     "listed": ("Offers loaded", "Offer metadata is not proof of eligibility."),
     "checkout_requested": (
         "Checkout submitted - not yet verified",
