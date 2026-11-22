@@ -227,7 +227,8 @@ class CoreTests(unittest.TestCase):
             p = Path(folder)
             started_at = time.time() - 10
             (p / "account.json").write_text(
-                json.dumps({"status": "checkout_requested", "email": "alice@example.com"}))
+                json.dumps({"status": "checkout_requested", "email": "alice@example.com",
+                            "sheet": {"confirmed": True, "reason": "zero_today_and_duration_verified"}}))
             report = read_fresh_report(p, 3, started_at, expected_account="alice@example.com")
             self.assertIsNotNone(report)
             self.assertTrue(outcome_for_stage(3, 0, report).can_review)
@@ -263,10 +264,26 @@ class CoreTests(unittest.TestCase):
             self.assertFalse(result.can_review)
 
     def test_requested_is_not_claimed_active(self):
-        result = outcome_for_stage(3, 0, {"status": "checkout_requested"})
+        result = outcome_for_stage(3, 0, {
+            "status": "checkout_requested",
+            "sheet": {"confirmed": True, "reason": "zero_today_and_duration_verified"},
+        })
         self.assertTrue(result.can_review)
         self.assertNotIn("activated", result.title.lower())
         self.assertIn("Check Google Play", result.instruction)
+
+    def test_incomplete_or_conflicting_checkout_report_cannot_continue(self):
+        for sheet in (
+            None,
+            {"reason": "purchase_unavailable", "confirmed": True},
+            {"reason": "zero_today_and_duration_verified", "confirmed": False},
+        ):
+            with self.subTest(sheet=sheet):
+                result = outcome_for_stage(3, 0, {
+                    "status": "checkout_requested", "sheet": sheet,
+                })
+                self.assertFalse(result.can_review)
+                self.assertNotEqual(result.code, "checkout_requested")
 
     def test_exit_error_never_allows_next(self):
         result = outcome_for_stage(3, 1, {"status": "checkout_requested"})
