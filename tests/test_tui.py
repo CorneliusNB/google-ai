@@ -443,7 +443,10 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNone(app._offer_ready_account)
                 for step in (2, 3, 4, 5):
                     app.query_one("#step", Select).value = step
-                    await pilot.pause()
+                    for _ in range(20):
+                        if app.query_one("#run", Button).disabled:
+                            break
+                        await pilot.pause(0.05)
                     self.assertTrue(app.query_one("#run", Button).disabled)
 
     async def test_failed_paid_stage_can_retry_only_on_same_account_and_device(self):
@@ -772,7 +775,8 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                             break
                         await pilot.pause(0.05)
                     self.assertTrue(app.query_one("#step", Select).disabled)
-                    self.assertIn("Start Step 2", str(app.query_one("#run", Button).label))
+                    self.assertEqual(str(app.query_one("#run", Button).label), "Step 1 check required")
+                    self.assertTrue(app.query_one("#run", Button).disabled)
                 popen.assert_not_called()
 
     async def test_run_controls_use_wide_content_not_sidebar(self):
@@ -1017,7 +1021,10 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory))
             async with app.run_test(size=(90, 20)) as pilot:
                 app.query_one("#step", Select).value = 2
-                await pilot.pause()
+                for _ in range(20):
+                    if app.query_one("#refresh_offers", Button).display:
+                        break
+                    await pilot.pause(0.05)
                 self.assertTrue(app.query_one("#refresh_offers", Button).display)
                 self.assertTrue(app.query_one("#run", Button).disabled)
                 with patch.object(app, "_confirm_stage") as confirm:
