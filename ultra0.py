@@ -817,9 +817,10 @@ def run_trial(pid: int, wait=90, plan="auto", list_only=False, stack=False, old_
             return
         ev = p.get("ev")
         if ev == "offer":
-            res["offers"].append(p)
+            # Never store private offer tokens or product titles in exported reports.
+            res["offers"].append({key: p.get(key) for key in
+                                  ("product", "id", "micros", "period")})
             note(f"offer {p.get('id')} → {p.get('micros')} ({p.get('period','')})")
-            # Offer tokens are private checkout inputs; do not print them in terminal.
         elif ev == "activity_selected":
             res["activity"] = {"method": p.get("method"), "class": p.get("name")}
             note(f"Activity found via {p.get('method')}: {p.get('name')}")
@@ -1007,6 +1008,23 @@ def confirm_zero(wait=40, password="", expected_plan="auto") -> dict:
             if tap_text("\u8ba2\u9605", "Subscribe", "Đăng ký"):
                 out["confirmed"] = True
                 ok("Tapped Subscribe after verifying today's zero total and expected trial period.")
+                # A tap is not a purchase. Play can reject it *after* the button
+                # was pressed. Inspect the real Play UI before navigating away.
+                for _ in range(4):
+                    time.sleep(1)
+                    after = " ".join(n["text"] or n["desc"] for n in nodes(ui_xml())
+                                     if n["text"] or n["desc"])
+                    observed = assess_checkout_terms(after, expected_plan)
+                    if observed["reason"] in (
+                            "purchase_unavailable", "ineligible", "already_subscribed",
+                            "payment_security_blocked", "processing"):
+                        out["confirmed"] = False
+                        out["reason"] = observed["reason"]
+                        out["text"] = observed["text"]
+                        out["ineligible"] = observed["reason"] in ("purchase_unavailable", "ineligible")
+                        warn("Google Play rejected or held checkout after the tap; "
+                             "no subscription or renewal was verified.")
+                        return out
             else:
                 out["reason"] = "subscribe_button_not_found"
                 warn("Subscribe control not found; no transaction confirmed.")
@@ -1102,6 +1120,19 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
             rec["error"] = "No offer data returned; inspect BillingClient and Frida errors."
         return rec
     if fr["launched"] and fr["launched"].get("code") == 0:
+        # A rejection callback takes precedence over an OK launch response.
+        callback = fr.get("purchase")
+        if isinstance(callback, dict):
+            try:
+                purchase_code = int(callback.get("code"))
+            except (TypeError, ValueError):
+                purchase_code = None
+            if purchase_code not in (None, 0):
+                rec["status"] = "purchase_unavailable" if purchase_code == 4 else "billing_flow_error"
+                rec["error"] = ("Google Play rejected the purchase (ITEM_UNAVAILABLE)."
+                                if purchase_code == 4 else
+                                f"Google Play purchase callback returned code {purchase_code}.")
+                return rec
         rec["sheet"] = confirm_zero(password=password, expected_plan=plan)
         # Preserve the original checkout screen if amount or offer terms
         # are ambiguous; never navigate away before the user can inspect it.
@@ -1111,11 +1142,20 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
             note("Checkout not confirmed; Google Play remains open for inspection.")
         # launchBillingFlow code 0 and seeing a product name on the Play page
         # DO NOT prove the subscription is active or a free trial is applied.
-        if rec["sheet"].get("reason") == "payment_security_blocked":
+        reason = rec["sheet"].get("reason")
+        if reason == "payment_security_blocked":
             rec["status"] = "checkout_security_blocked"
+        elif rec["sheet"].get("confirmed"):
+            # Button tap means submitted, not paid or subscription activated.
+            rec["status"] = "checkout_requested"
+        elif reason in (
+                "purchase_unavailable", "ineligible", "already_subscribed",
+                "processing", "backup_payment_methods_prompt",
+                "today_price_unverified", "trial_duration_unverified",
+                "subscribe_button_not_found", "checkout_not_visible"):
+            rec["status"] = reason
         else:
-            rec["status"] = ("checkout_requested" if rec["sheet"].get("confirmed")
-                             else "checkout_not_confirmed")
+            rec["status"] = "checkout_not_confirmed"
     else:
         rec["status"], rec["error"] = diagnose_launch_failure(fr)
         warn(f"Checkout not opened: {rec['status']}: {rec['error']}")
