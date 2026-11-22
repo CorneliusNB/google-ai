@@ -1123,7 +1123,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         run_button = app.query_one("#run", Button)
                         self.assertEqual(str(run_button.label), f"Running Step {step}… 0s")
                         self.assertTrue(run_button.has_class("checking"))
-                        with patch("tui.time.monotonic", return_value=app._started_at + 92):
+                        with patch("tui.time.monotonic", return_value=app._started_at + 92.5):
                             app._refresh_elapsed()
                         self.assertEqual(str(button.label), f"Running Step {step}… 92s")
                         self.assertEqual(str(run_button.label), f"Running Step {step}… 92s")
