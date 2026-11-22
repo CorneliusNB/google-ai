@@ -1032,7 +1032,8 @@ def confirm_zero(wait=40, password="", expected_plan="auto") -> dict:
                     observed = assess_checkout_terms(after, expected_plan)
                     if observed["reason"] in (
                             "purchase_unavailable", "ineligible", "already_subscribed",
-                            "payment_security_blocked", "processing"):
+                            "payment_security_blocked", "processing",
+                            "backup_payment_methods_prompt"):
                         out["confirmed"] = False
                         out["reason"] = observed["reason"]
                         out["text"] = observed["text"]
