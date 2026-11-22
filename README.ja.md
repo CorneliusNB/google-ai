@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 日本語
 
-<!-- Source README.md git-blob: 36ba1d28c6270324f676a8d29133d211758275a3 -->
+<!-- Source README.md git-blob: 4e4e7fb0cee059f91a74b1aab5d7daa323e74968 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -153,6 +153,18 @@ Windows で **Check Device & Offers** を実行すると ADB を探し、必要�
 TUI では**購入ステップごとに明示的な承認**が必要です。チェックアウトを送信した旨が表示されても、[Google Play の定期購入](https://play.google.com/store/account/subscriptions)で現在の契約、料金、更新日を確認してください。実際に変更を確認した場合のみ **Verified in Google Play → Next** を選びます。ツール単体では契約成立を証明できません。
 
 **Stop / Exit：**Step 0〜1 の Stop はローカル処理の中止を要求します。Step 2〜5 の **Stop after this step** は後続ステップを止めますが、**処理中の決済を強制終了しません**。決済中の **Q / Exit** は現在の処理終了後に終了します。**D** は詳細ログ、**R** は選択中のモード実行です。
+
+### 端末情報、アカウント、履歴
+
+Device 欄には、取得できた Android のバージョン、SDK、ABI、ADB 接続情報が表示されます。マウスを重ねると詳細を確認できます。Account 欄の横にある **Choose account** は Android にログイン済みのアカウントを一覧表示します。Play Store と Google One の両方で目的のアカウントを選び、Step 1 を再実行してください。Play Store が使用中のプロフィールのメールアドレスを明示している場合、その情報で識別します。
+
+操作欄は内容に合わせた高さになり、残りを **Live Status** が使用します。最新の処理状況が先頭に表示されます。**Show technical details** のログは新しい行まで自動スクロールします。メインボタンと **Run this step** には実行中のステップと経過秒数が表示されます。Windows では、特典確認中の環境チェックが完了すると Step 0 にチェックが付きます。新しい確認結果が不足している場合は、緑色の **Check Device & Offers — Step 1** が表示されます。
+
+**Recent history** は開始、結果、**Verified in Google Play → Next** の操作を `logs/stage-history/` に保存します。起動時には最新の保存履歴が表示され、アカウントを選ぶとそのアカウントの履歴になります。**↺** は以前に実行を試みたステップです。履歴だけでは契約成立を確認できず、支払い操作も有効になりません。再起動後やアカウント変更後には Step 1 を再実行してください。履歴保存機能の追加前の実行は復元できません。
+
+接続切れの画面には **Retry connection** があり、処理中は **Retrying…** と経過秒数を表示します。**Got it** で閉じられます。Windows ではローカルのエミュレーターへの再接続を試みます。ステップ開始時に ADB 端末が見つからない場合も同様です。参照処理でアプリが起動しない場合は一度だけ再起動を試みます。失敗した場合は MuMu を閉じて開き直し、Android の起動完了後に Step 1 を再実行してください。特典照会前には Google One を再起動します。Play Store が既に利用可能なら、そのまま使用します。**Reload toolkit** は処理待機中の画面をローカルのコードで再起動し、新しいセッションを開始します。
+
+**Subscribe** を自動で押す前に、支払い画面のメールアドレス、本日の合計がゼロであること、試用期間が予定どおりであることを確認します。要求した特典も一致する必要があります。メールがない場合や異なる場合は自動操作を止め、手動確認を求めます。支払いステップごとに個別の承認が必要です。送信後は Google Play で契約、更新日、請求を確認してください。3 回のカード確認に関する案内は支払い承認画面に表示されます。
 
 ## 4. PowerShell コマンド（上級者向け）
 

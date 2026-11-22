@@ -235,6 +235,17 @@ try {
         }
     )
     if ($online.Count -eq 0) {
+        Show-Status "Connection" "Trying local emulator ADB ports..."
+        $null = Get-RuntimeValue -LookupArgs @("connect-device")
+        $deviceLines = @(& $Adb devices)
+        if ($LASTEXITCODE -ne 0) { Stop-Workflow "ADB device discovery failed after reconnect." }
+        $online = @(
+            foreach ($line in $deviceLines) {
+                if ($line -match '^\s*(\S+)\s+device\s*$') { $Matches[1] }
+            }
+        )
+    }
+    if ($online.Count -eq 0) {
         Note ($deviceLines -join [Environment]::NewLine)
         Stop-Workflow "No online ADB devices. Start MuMu, enable ADB debugging and wait for status 'device'."
     }
@@ -272,7 +283,10 @@ try {
     $AndroidVersion = ((& $Adb -s $Serial shell getprop ro.build.version.release) | Out-String).Trim()
     $AndroidSdk = ((& $Adb -s $Serial shell getprop ro.build.version.sdk) | Out-String).Trim()
     $AndroidAbi = ((& $Adb -s $Serial shell getprop ro.product.cpu.abi) | Out-String).Trim()
-    Note ("Android {0} (SDK {1}), ABI {2}, activity lookup {3}" -f $AndroidVersion, $AndroidSdk, $AndroidAbi, $ActivityMethod)
+    if ($AndroidVersion -and $AndroidSdk -and $AndroidAbi) {
+        Show-Status "Android" ("{0} (SDK {1}), ABI {2}" -f $AndroidVersion, $AndroidSdk, $AndroidAbi)
+    }
+    Note ("Activity lookup: {0}" -f $ActivityMethod)
 
     Stage "Preflight: Verify required Android apps"
     foreach ($package in @("com.android.vending", "com.google.android.apps.subscriptions.red")) {
@@ -286,6 +300,7 @@ try {
     Stage "Original Step 0: Environment check"
     Note "The original ultra0.py may repair Frida and change emulator proxy/network settings."
     Run-Command $Python @("ultra0.py", "--check", "--serial", $Serial)
+    Write-Host "EPLUS_STAGE_DONE:0"
 
     if ($SetupOnly -or ($Step -eq 0 -and -not $AllStages)) {
         Note "Original Step 0 complete. No checkout or purchase requested."
@@ -390,9 +405,13 @@ try {
         } else {
             Note "The -Force switch was explicitly supplied; no additional console confirmation in single-step mode."
         }
-    } elseif (-not $playAccount -or $playAccount -cne $Email) {
-        $accountMismatch = ("Play account mismatch or unverified. Detected '{0}', expected '{1}'. " +
-                            "Check the Play Store profile before proceeding.")
+    } elseif (-not $playAccount) {
+        # An unreadable account is not proof that the wrong account is active.
+        # Never guess or bypass this identity check on a paid stage.
+        Stop-Workflow "Cannot identify the active Google Play account. Open the Play Store profile, select the intended account, then repeat Step 1."
+    } elseif ($playAccount -cne $Email) {
+        $accountMismatch = ("Play account mismatch. Detected '{0}', expected '{1}'. " +
+                            "Select the correct Play Store account and repeat Step 1.")
         Stop-Workflow ($accountMismatch -f $playAccount, $Email)
     }
 

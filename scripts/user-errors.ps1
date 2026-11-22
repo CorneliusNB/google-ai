@@ -211,7 +211,25 @@ function Get-UserIssue {
         "app_not_started" {
             return [pscustomobject]@{
                 Title = "Google One could not be opened"
-                Action = "Start Google One manually and check the Android connection before retrying."
+                Action = "Close MuMu and reopen it. Wait for Android to finish booting, then run Check Device & Offers again from Step 1."
+            }
+        }
+        "checkout_account_mismatch" {
+            return [pscustomobject]@{
+                Title = "Checkout is using a different account"
+                Action = "Close checkout, select the intended account in Play Store and Google One, then run Check Device & Offers again. Verify earlier purchases in Google Play."
+            }
+        }
+        "checkout_account_unverified" {
+            return [pscustomobject]@{
+                Title = "Checkout account could not be read"
+                Action = "Expand the Google Play checkout account details and verify the email. Close checkout and run Check Device & Offers again before another attempt."
+            }
+        }
+        "play_store_not_started" {
+            return [pscustomobject]@{
+                Title = "Google Play Store could not be opened"
+                Action = "Close MuMu and reopen it. Wait for Android to finish booting, then run Check Device & Offers again from Step 1."
             }
         }
         "subscription_update_unavailable" {
@@ -262,6 +280,7 @@ function Get-FailureCode {
     if ($ErrorMessage -match '(?i)Android package missing|Android package.*unavailable') { return "app_missing" }
     if ($ErrorMessage -match '(?i)Play account mismatch|Play Store account changed') { return "account_mismatch" }
     if ($ErrorMessage -match '(?i)Cannot identify the active Google Play account|No valid email|Invalid Play Store account') { return "account_unavailable" }
+    if ($ErrorMessage -match '(?i)(?:Offer query did not complete|Could not refresh the offer list for Step [2-5]): (app_not_started|play_store_not_started)\s*$') { return $Matches[1].ToLowerInvariant() }
     if ($ErrorMessage -match '(?i)Offer query did not complete|Could not refresh the offer list') { return "offer_query_failed" }
     if ($ErrorMessage -match '(?i)No report produced') { return "report_missing" }
     if ($ErrorMessage -match '(?i)Runtime lookup failed|No machine-readable runtime result') { return "runtime_lookup_failed" }

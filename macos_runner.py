@@ -56,7 +56,7 @@ def stage_command(step: int, serial: str, account: str = "",
     return result
 
 
-def preflight() -> tuple[str, str]:
+def preflight(expected_serial: str = "") -> tuple[str, str]:
     adb = os.environ.get("ADB_PATH") or shutil.which("adb")
     if not adb:
         raise RuntimeError("ADB is missing. Install Android SDK Platform-Tools.")
@@ -72,10 +72,27 @@ def preflight() -> tuple[str, str]:
     devices = online_serials(adb)
     if not devices:
         raise RuntimeError("No online Android device. Check adb devices.")
-    serial = auto_select_device(adb, serials=devices)
+    if expected_serial and expected_serial not in devices:
+        raise RuntimeError("Android device changed since Step 1; no checkout started")
+    serial = expected_serial or auto_select_device(adb, serials=devices)
     if not serial:
         raise RuntimeError("Multiple different Android devices detected. Disconnect extras.")
     return adb, serial
+
+
+def show_android_details(adb: str, serial: str) -> None:
+    try:
+        result = subprocess.run(
+            [adb, "-s", serial, "shell",
+             "getprop ro.build.version.release; getprop ro.build.version.sdk; getprop ro.product.cpu.abi"],
+            capture_output=True, text=True, errors="replace", timeout=5, check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return
+    properties = [line.strip() for line in result.stdout.splitlines()]
+    if len(properties) == 3 and all(properties):
+        release, sdk, abi = properties
+        print(f"Android {release} (SDK {sdk}), ABI {abi}", flush=True)
 
 
 def run_engine(command: list[str], env: dict[str, str]) -> int:
@@ -122,6 +139,8 @@ def list_offers(serial: str, env: dict[str, str], plan: str = "pro12") -> dict:
     if run_engine(command, env):
         raise RuntimeError("Google Play offer listing failed; checkout not started")
     report = fresh_report("current.json", start_ns)
+    if report["status"] in ("app_not_started", "play_store_not_started"):
+        raise RuntimeError(f"Offer listing could not start: {report['status']}")
     if report["status"] != "listed" or not isinstance(report.get("offers"), list):
         raise RuntimeError("No successful offer listing; checkout not started")
     return report
@@ -152,7 +171,10 @@ def check_offer(report: dict, step: int) -> None:
 
 
 def run_stage(step: int, serial: str, env: dict[str, str],
-              confirmed: bool = False, active_confirmed: bool = False) -> int:
+              confirmed: bool = False, active_confirmed: bool = False,
+              expected_account: str = "", expected_device: str = "") -> int:
+    if step >= 2 and expected_device and serial != expected_device:
+        raise RuntimeError("Android device changed since Step 1; no checkout started")
     if step == 0:
         return run_engine(stage_command(0, serial), env)
     if step == 1:
@@ -166,9 +188,12 @@ def run_stage(step: int, serial: str, env: dict[str, str],
     print("Checking Android environment before paid stage...", flush=True)
     if run_engine(stage_command(0, serial), env):
         raise RuntimeError("Android environment checks failed; no checkout started")
+    print("EPLUS_STAGE_DONE:0", flush=True)
     plan, _offer, _stack = STAGES[step]
     report = list_offers(serial, env, plan)
     account = verified_account(serial, env, report)
+    if expected_account and account != expected_account.lower():
+        raise RuntimeError("Selected Google Play account does not match the current account; no checkout started")
     check_offer(report, step)
     # Verify the account once again immediately before entering checkout.
     if read_play_account(serial, env) != account:
@@ -186,19 +211,27 @@ def main(argv: list[str] | None = None) -> int:
                         help="Explicitly authorize the selected checkout stage")
     parser.add_argument("--active-confirmed", action="store_true",
                         help="Confirm existing active plan for Steps 3–5")
+    parser.add_argument("--expected-account", default="",
+                        help="Expected Google Play account selected in the toolkit")
+    parser.add_argument("--expected-device", default="",
+                        help="ADB serial verified by the Step 1 offer check")
     args = parser.parse_args(argv)
     if args.step >= 2 and not args.confirmed:
         parser.error("Steps 2–5 require explicit --confirmed; may initiate real charges")
     if args.step >= 3 and not args.active_confirmed:
         parser.error("Steps 3–5 also require --active-confirmed")
+    if args.expected_account and not EMAIL.fullmatch(args.expected_account.lower()):
+        parser.error("Expected Google Play account is invalid")
     try:
-        adb, serial = preflight()
+        adb, serial = preflight(args.expected_device if args.step >= 2 else "")
         env = os.environ.copy()
         env["ADB_PATH"] = adb
         env["PYTHONIOENCODING"] = "utf-8:backslashreplace"
         env["PYTHONUTF8"] = "1"
         print(f"Device {serial}", flush=True)
-        return run_stage(args.step, serial, env, args.confirmed, args.active_confirmed)
+        show_android_details(adb, serial)
+        return run_stage(args.step, serial, env, args.confirmed, args.active_confirmed,
+                         args.expected_account, args.expected_device)
     except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
         # Native CLI users receive a plain-language explanation. Only the
         # Textual parent gets the internal marker for structured status display.

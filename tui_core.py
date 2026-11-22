@@ -51,6 +51,14 @@ class Outcome:
 
 
 MESSAGES = {
+    "checkout_account_mismatch": (
+        "Checkout is using a different account",
+        "Review the account shown in Google Play checkout. Close checkout, select the intended account in Play Store and Google One, then run Check Device & Offers again. Verify any earlier purchase in Google Play.",
+    ),
+    "checkout_account_unverified": (
+        "Checkout account could not be read",
+        "Expand the account details in Google Play checkout and verify the email matches the account selected in the toolkit. Close checkout and run Check Device & Offers again before another attempt.",
+    ),
     "listed": ("Offers loaded", "Offer metadata is not proof of eligibility."),
     "checkout_requested": (
         "Checkout submitted - not yet verified",
@@ -131,7 +139,11 @@ MESSAGES = {
     ),
     "app_not_started": (
         "Google One could not be opened",
-        "Start Google One manually and confirm the device is connected. Then run the offer check.",
+        "Restart the Android device or emulator and wait for it to boot. Then run Check Device & Offers again from Step 1.",
+    ),
+    "play_store_not_started": (
+        "Google Play Store could not be opened",
+        "Restart the Android device or emulator and wait for it to boot. Then run Check Device & Offers again from Step 1.",
     ),
     "subscription_update_unavailable": (
         "Could not prepare the subscription change",
@@ -187,7 +199,16 @@ MESSAGES = {
 # These are fixed strings, rather than arbitrary child output, so the normal
 # status panel cannot expose account details or a payment token.
 CLI_ISSUES = {
+    "app_not_started": (
+        MESSAGES["app_not_started"][0],
+        "Close MuMu and reopen it. Wait for Android to finish booting, then run Check Device & Offers again from Step 1.",
+    ),
+    "play_store_not_started": (
+        MESSAGES["play_store_not_started"][0],
+        "Close MuMu and reopen it. Wait for Android to finish booting, then run Check Device & Offers again from Step 1.",
+    ),
     "device_missing": ("Android device is not connected", "Start your Android device or emulator and enable ADB debugging, then run the device check."),
+    "device_mismatch": ("Android device changed since the offer check", "Reconnect the Android device verified in Step 1 and run Check Device & Offers again. No checkout started."),
     "device_ambiguous": ("More than one Android device is connected", "Disconnect extra Android devices, leaving only the intended device connected, then retry."),
     "app_missing": ("An Android app is missing or disabled", "Enable Google Play and Google One; install Google One from Play Store, or use a Google Play-enabled emulator image."),
     "adb_missing": ("ADB is unavailable", "Run setup_env.py on Windows or install Android SDK platform-tools."),
@@ -251,6 +272,7 @@ def runtime_error_outcome(message: str, step: int) -> Outcome:
     cases = (
         ("adb is missing", "adb_missing"),
         ("no online android device", "device_missing"),
+        ("android device changed since step 1", "device_mismatch"),
         ("multiple different android devices", "device_ambiguous"),
         ("frida ", "frida_missing"),
         ("google play account changed", "account_mismatch"),
@@ -259,6 +281,8 @@ def runtime_error_outcome(message: str, step: int) -> Outcome:
         ("could not verify google play account", "account_unavailable"),
         ("invalid google play account", "account_unavailable"),
         ("verified google play email", "account_unavailable"),
+        ("offer listing could not start: app_not_started", "app_not_started"),
+        ("offer listing could not start: play_store_not_started", "play_store_not_started"),
         ("offer listing", "offer_query_failed"),
         ("zero-priced first phase", "offer_not_available"),
         ("new matching report", "report_missing"),
@@ -268,7 +292,7 @@ def runtime_error_outcome(message: str, step: int) -> Outcome:
         ("confirmations required", "confirmation_required"),
     )
     code = next((name for fragment, name in cases if fragment in detail), "unknown")
-    entry = CLI_ISSUES.get(code) or MESSAGES.get(code) or (
+    entry = MESSAGES.get(code) or CLI_ISSUES.get(code) or (
         "Could not complete this step",
         "Check the Android screen and technical details. Verify Google Play payments before retrying.",
     )
@@ -301,7 +325,8 @@ def validate_step(step: int) -> int:
     return step
 
 
-def command_for_step(step: int, repo: Path, shell: str | None = None) -> list[str]:
+def command_for_step(step: int, repo: Path, shell: str | None = None,
+                     account: str | None = None, device: str | None = None) -> list[str]:
     validate_step(step)
     if sys.platform == "darwin":
         bridge = repo / "macos_runner.py"
@@ -314,6 +339,10 @@ def command_for_step(step: int, repo: Path, shell: str | None = None) -> list[st
             command.append("--confirmed")
         if step >= 3:
             command.append("--active-confirmed")
+        if step >= 2 and account:
+            command.extend(["--expected-account", account])
+        if step >= 2 and device:
+            command.extend(["--expected-device", device])
         return command
     executable = shell or shutil.which("powershell.exe") or shutil.which("pwsh")
     if not executable:
@@ -324,8 +353,13 @@ def command_for_step(step: int, repo: Path, shell: str | None = None) -> list[st
     # Single steps are non-interactive at the PowerShell approval layer.
     # Using the existing wrapper keeps ADB, Frida, Play-account, offer and
     # checkout validation in one place instead of copying billing code.
-    return [executable, "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass",
-            "-File", str(script), "-Step", str(step)]
+    command = [executable, "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass",
+               "-File", str(script), "-Step", str(step)]
+    if step >= 2 and account:
+        command.extend(["-Email", account])
+    if step >= 2 and device:
+        command.extend(["-Serial", device])
+    return command
 
 
 def read_fresh_report(directory: Path, step: int, started_at: float,
@@ -389,12 +423,22 @@ def outcome_for_stage(step: int, exit_code: int, report: dict | None) -> Outcome
     status = str(report.get("status", "unknown"))
     sheet = report.get("sheet")
     reason = str(sheet.get("reason", "")) if isinstance(sheet, dict) else ""
-    code = reason if status != "checkout_requested" and reason in MESSAGES else status
+    # A report may have a contradictory checkout_requested status but an
+    # unsuccessful or missing sheet. Never enable the next paid step in that case.
+    tapped_with_verified_terms = bool(
+        isinstance(sheet, dict) and sheet.get("confirmed") is True
+        and reason == "zero_today_and_duration_verified"
+    )
+    if status == "checkout_requested" and not tapped_with_verified_terms:
+        code = reason if reason in MESSAGES else "checkout_not_confirmed"
+    else:
+        code = reason if status != "checkout_requested" and reason in MESSAGES else status
     title, instruction = (CLI_ISSUES.get(code) or MESSAGES.get(
         code, ("Could not verify this step",
                "Check the Android screen and Debug before retrying.")))
     return Outcome(code, title, instruction,
-                   can_review=(step >= 2 and status == "checkout_requested"))
+                   can_review=(step >= 2 and status == "checkout_requested"
+                               and tapped_with_verified_terms))
 
 
 def mask_email(value: str) -> str:

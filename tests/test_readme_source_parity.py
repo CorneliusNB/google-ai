@@ -101,6 +101,15 @@ class ReadmeSourceParityTests(unittest.TestCase):
                               "Verified in Google Play → Next", "More run options"):
                     self.assertIn(label, content)
 
+    def test_current_dashboard_controls_and_history_documented_in_all_locales(self):
+        for name in ("README.md", *(f"README.{locale}.md" for locale in LOCALES)):
+            with self.subTest(name=name):
+                content = (ROOT / name).read_text(encoding="utf-8")
+                for detail in ("Choose account", "Recent history", "logs/stage-history/",
+                               "Retry connection", "Retrying…", "Reload toolkit",
+                               "Run this step", "↺"):
+                    self.assertIn(detail, content)
+
     def test_english_alias_links_to_root_source(self):
         self.assertIn("(README.md)", (ROOT / "README.en.md").read_text(encoding="utf-8"))
 

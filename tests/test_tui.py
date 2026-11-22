@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from tui_core import (
-    cli_issue_outcome, command_for_step, mask_email, needs_setup, outcome_for_stage,
+    Outcome, cli_issue_outcome, command_for_step, mask_email, needs_setup, outcome_for_stage,
     readable_issue_line, read_fresh_report, report_summary, runtime_error_outcome,
     safe_launch_diagnostic, validate_step,
 )
@@ -116,6 +116,7 @@ class CoreTests(unittest.TestCase):
         examples = {
             "ADB is missing. Install Android SDK Platform-Tools.": "adb_missing",
             "No online Android device. Check adb devices.": "device_missing",
+            "Android device changed since Step 1; no checkout started": "device_mismatch",
             "Multiple different Android devices detected. Disconnect extras.": "device_ambiguous",
             "Frida 16.5.9 required (found none).": "frida_missing",
             "Google Play account changed during checks; stop before checkout": "account_mismatch",
@@ -180,6 +181,15 @@ class CoreTests(unittest.TestCase):
             self.assertNotIn("-AllStages", command)
             self.assertNotIn("-Force", command)
 
+    def test_windows_paid_command_pins_verified_serial(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "run-all.ps1").write_text("# test", encoding="utf-8")
+            command = command_for_step(3, root, shell="pwsh",
+                                       account="alice@example.com", device="device-a")
+            self.assertEqual(command[-4:], ["-Email", "alice@example.com", "-Serial", "device-a"])
+            self.assertNotIn("-Force", command)
+
     def test_no_shell_or_script_fails_closed(self):
         with tempfile.TemporaryDirectory() as folder:
             with self.assertRaises(FileNotFoundError):
@@ -227,7 +237,8 @@ class CoreTests(unittest.TestCase):
             p = Path(folder)
             started_at = time.time() - 10
             (p / "account.json").write_text(
-                json.dumps({"status": "checkout_requested", "email": "alice@example.com"}))
+                json.dumps({"status": "checkout_requested", "email": "alice@example.com",
+                            "sheet": {"confirmed": True, "reason": "zero_today_and_duration_verified"}}))
             report = read_fresh_report(p, 3, started_at, expected_account="alice@example.com")
             self.assertIsNotNone(report)
             self.assertTrue(outcome_for_stage(3, 0, report).can_review)
@@ -263,10 +274,26 @@ class CoreTests(unittest.TestCase):
             self.assertFalse(result.can_review)
 
     def test_requested_is_not_claimed_active(self):
-        result = outcome_for_stage(3, 0, {"status": "checkout_requested"})
+        result = outcome_for_stage(3, 0, {
+            "status": "checkout_requested",
+            "sheet": {"confirmed": True, "reason": "zero_today_and_duration_verified"},
+        })
         self.assertTrue(result.can_review)
         self.assertNotIn("activated", result.title.lower())
         self.assertIn("Check Google Play", result.instruction)
+
+    def test_incomplete_or_conflicting_checkout_report_cannot_continue(self):
+        for sheet in (
+            None,
+            {"reason": "purchase_unavailable", "confirmed": True},
+            {"reason": "zero_today_and_duration_verified", "confirmed": False},
+        ):
+            with self.subTest(sheet=sheet):
+                result = outcome_for_stage(3, 0, {
+                    "status": "checkout_requested", "sheet": sheet,
+                })
+                self.assertFalse(result.can_review)
+                self.assertNotEqual(result.code, "checkout_requested")
 
     def test_exit_error_never_allows_next(self):
         result = outcome_for_stage(3, 1, {"status": "checkout_requested"})
@@ -275,6 +302,28 @@ class CoreTests(unittest.TestCase):
     def test_account_mask(self):
         self.assertEqual(mask_email("example@gmail.com"), "ex***@gmail.com")
         self.assertEqual(mask_email("invalid"), "Not detected")
+
+
+class AccountCommandTests(unittest.TestCase):
+    def test_windows_paid_step_pins_selected_account(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "run-all.ps1").touch()
+            with patch("tui_core.sys.platform", "win32"):
+                cmd = command_for_step(3, root, shell="powershell.exe",
+                                       account="selected@example.com")
+                self.assertEqual(cmd[-2:], ["-Email", "selected@example.com"])
+                check = command_for_step(1, root, shell="powershell.exe",
+                                          account="selected@example.com")
+                self.assertNotIn("-Email", check)
+
+    def test_macos_paid_step_pins_selected_account(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "macos_runner.py").touch()
+            with patch("tui_core.sys.platform", "darwin"):
+                cmd = command_for_step(3, root, account="selected@example.com")
+                self.assertEqual(cmd[-2:], ["--expected-account", "selected@example.com"])
 
 
 class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
@@ -295,6 +344,173 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 # after Textual has removed its widgets.
                 with patch.object(app, "query", return_value=[]):
                     app._update_run_mode()
+
+    async def test_choose_account_requires_new_read_only_check(self):
+        from textual.widgets import Select
+        from tui import AccountPicker, GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._offer_check_ready = True
+                app._offer_ready_account = "old@example.com"
+                app._account_candidates_loaded(["first@example.com", "second@example.com"])
+                await pilot.pause()
+                self.assertIsInstance(app.screen, AccountPicker)
+                app.screen.query_one("#account_choice", Select).value = "second@example.com"
+                await pilot.click("#account_accept")
+                await pilot.pause()
+                self.assertEqual(app._selected_account, "second@example.com")
+                self.assertFalse(app._offer_check_ready)
+                self.assertIsNone(app._offer_ready_account)
+
+    async def test_selected_account_must_match_read_only_check(self):
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._selected_account = "second@example.com"
+                app._checked_device = "emulator-5554"
+                app._verified_account = "first@example.com"
+                app._finished(1, Outcome("listed", "Offers listed", "Review first phase."), {
+                    "status": "listed", "detected_play_account": "first@example.com",
+                    "offers": [{"id": "6months-eft", "micros": "0"}],
+                })
+                self.assertFalse(app._offer_check_ready)
+                self.assertIsNone(app._offer_ready_account)
+
+    async def test_unlocking_step_two_also_unlocks_steps_three_through_five(self):
+        from textual.widgets import Button, Select, Static
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app.query_one("#step", Select).value = 3
+                # The Select.Changed message may be queued behind layout
+                # events on Windows. Synchronize the guard deterministically
+                # before asserting a state transition caused by the selector.
+                app._update_run_mode()
+                await pilot.pause()
+                self.assertEqual(app.query_one("#step", Select).value, 3)
+                self.assertTrue(app.query_one("#run", Button).disabled)
+
+                # The single successful read-only Step 1 check unlocks every
+                # independent paid choice, not only the initial 12-month step.
+                app._checked_device = "emulator-5554"
+                app._verified_account = "first@example.com"
+                app._finished(1, Outcome("listed", "Offers listed", "Review first phase."), {
+                    "status": "listed",
+                    "detected_play_account": "first@example.com",
+                    "offers": [{"id": "12months-eft", "micros": "0"}],
+                })
+                await pilot.pause()
+                self.assertTrue(app._offer_check_ready)
+                self.assertEqual(app._offer_ready_account, "first@example.com")
+                self.assertEqual(app._offer_ready_device, "emulator-5554")
+                if app.screen is not app:
+                    app.screen.dismiss(False)
+                    await pilot.pause()
+
+                for step in (2, 3, 4, 5):
+                    with self.subTest(step=step):
+                        app.query_one("#step", Select).value = step
+                        await pilot.pause()
+                        self.assertFalse(app.query_one("#run", Button).disabled)
+                        self.assertIn("unlocked", str(app.query_one("#mode_hint", Static).render()))
+
+                # A paid stage may fail before its runner emits fresh account
+                # details. That uncertainty is not evidence of a changed
+                # account: leave all choices open and let the NEXT paid run
+                # revalidate the identity/offer before billing.
+                app.current_step = 2
+                app._checked_device = None
+                app._verified_account = None
+                app._finished(2, Outcome("tool_error", "Step failed", "Review Google Play."), None)
+                await pilot.pause()
+                self.assertTrue(app._offer_check_ready)
+                for step in (2, 3, 4, 5):
+                    with self.subTest(step_after_failure=step):
+                        app.query_one("#step", Select).value = step
+                        await pilot.pause()
+                        self.assertFalse(app.query_one("#run", Button).disabled)
+
+    async def test_verified_identity_failure_relocks_every_paid_step(self):
+        from textual.widgets import Button, Select
+        from tui import GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._offer_check_ready = True
+                app._offer_ready_device = "emulator-5554"
+                app._offer_ready_account = "first@example.com"
+                app.current_step = 3
+                app._finished(3, Outcome("account_mismatch",
+                                         "Wrong account", "Check Play Store."), None)
+                self.assertFalse(app._offer_check_ready)
+                self.assertIsNone(app._offer_ready_account)
+                for step in (2, 3, 4, 5):
+                    app.query_one("#step", Select).value = step
+                    for _ in range(20):
+                        if app.query_one("#run", Button).disabled:
+                            break
+                        await pilot.pause(0.05)
+                    self.assertTrue(app.query_one("#run", Button).disabled)
+
+    async def test_paid_retry_rejects_verified_device_replacement(self):
+        from textual.widgets import Static
+        from device_diagnostics import ConnectionStatus
+        from tui import Approval, GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._offer_check_ready = True
+                app._offer_ready_device = "device-a"
+                app._offer_ready_account = "alice@example.com"
+                app._connection_state = ConnectionStatus("connected", ("device-b",))
+                app._confirm_stage(3, False)
+                self.assertFalse(app._offer_check_ready)
+                self.assertNotIsInstance(app.screen, Approval)
+                self.assertIn("device changed", app.query_one("#state", Static).render().plain.lower())
+                app._start(3, False)
+                self.assertFalse(app.busy)
+
+    async def test_failed_paid_stage_can_retry_only_on_same_account_and_device(self):
+        from tui import Approval, GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._offer_check_ready = True
+                app._offer_ready_account = "first@example.com"
+                app._offer_ready_device = "emulator-5554"
+                app._verified_account = "first@example.com"
+                app._checked_device = "emulator-5554"
+                app.current_step = 3
+                app._finished(3, Outcome("purchase_unavailable",
+                                         "Purchase unavailable", "Check Google Play."), {
+                    "status": "purchase_unavailable",
+                })
+                self.assertTrue(app._offer_check_ready)
+                app._confirm_stage(3, False)
+                await pilot.pause()
+                self.assertIsInstance(app.screen, Approval)
+                self.assertIn("RETRY SAFETY", app.screen.message_text)
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._offer_check_ready = True
+                app._offer_ready_account = "first@example.com"
+                app._offer_ready_device = "emulator-5554"
+                app._verified_account = "other@example.com"
+                app._checked_device = "emulator-5554"
+                app._finished(3, Outcome("purchase_unavailable",
+                                         "Purchase unavailable", "Check Google Play."), None)
+                self.assertFalse(app._offer_check_ready)
 
     async def test_start_screen_shows_status_and_primary_action(self):
         from tui import GoogleAITUI
@@ -588,7 +804,8 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                             break
                         await pilot.pause(0.05)
                     self.assertTrue(app.query_one("#step", Select).disabled)
-                    self.assertIn("Start Step 2", str(app.query_one("#run", Button).label))
+                    self.assertEqual(str(app.query_one("#run", Button).label), "Step 1 check required")
+                    self.assertTrue(app.query_one("#run", Button).disabled)
                 popen.assert_not_called()
 
     async def test_run_controls_use_wide_content_not_sidebar(self):
@@ -695,7 +912,10 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIsNone(app._verified_account)
                     app._received("  Account      Alice@Example.com")
                     self.assertEqual(app._verified_account, "alice@example.com")
+                    from device_diagnostics import ConnectionStatus
                     app._offer_check_ready = True
+                    app._offer_ready_device = "emulator-5554"
+                    app._connection_state = ConnectionStatus("connected", ("emulator-5554",))
                     app._start(3, True)
                     self.assertIsNone(app._verified_account)
 
@@ -788,8 +1008,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 app.advanced_pressed()
                 self.assertFalse(app.query_one("#workflow_actions").display)
 
-    async def test_reported_payment_notice_is_visible_without_checkout(self):
-        from textual.widgets import Static
+    async def test_welcome_keeps_checkout_notice_out_of_the_read_only_view(self):
         from tui import GoogleAITUI
 
         for size in ((110, 35), (90, 20)):
@@ -798,30 +1017,286 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 with patch("tui.subprocess.Popen") as launch:
                     async with app.run_test(size=size) as pilot:
                         await pilot.pause()
-                        notice = app.query_one("#payment_notice", Static)
-                        compact = app.query_one("#payment_notice_compact", Static)
-                        if size[1] < 27:
-                            self.assertFalse(notice.display)
-                            self.assertTrue(compact.display)
-                            wording = str(compact.render())
-                            self.assertIn("3 separate US$1 checks", wording)
-                            self.assertIn("not one US$3", wording)
-                            self.assertIn("24 months not guaranteed", wording)
-                            self.assertGreater(app.query_one("#status_panel").region.height, 3)
-                        else:
-                            self.assertTrue(notice.display)
-                            self.assertFalse(compact.display)
-                            wording = str(notice.render())
-                            self.assertIn("Step 2 (12 months)", wording)
-                            self.assertIn("Step 3 (6)", wording)
-                            self.assertIn("Step 4 (6)", wording)
-                            self.assertIn("at least US$3 available", wording)
-                            self.assertIn("3 separate US$1 card checks", wording)
-                            self.assertIn("not one US$3 payment", wording)
-                            self.assertIn("temporary holds", wording)
-                            self.assertIn("24 months is not guaranteed", wording)
+                        self.assertFalse(app.query("#payment_notice, #payment_notice_compact"))
+                        self.assertGreater(app.query_one("#status_panel").region.height, 3)
                         self.assertTrue(app.query_one("#quickstart").display)
                     launch.assert_not_called()
+
+    async def test_connection_popup_retry_shows_timer_and_recovers(self):
+        from tui import ConnectionNotice, GoogleAITUI
+        from device_diagnostics import ConnectionStatus
+        from textual.widgets import Button
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)) as pilot:
+                notice = ConnectionNotice("Disconnected", "Retry the connection.")
+                app.push_screen(notice)
+                await pilot.pause()
+                with patch.object(notice, "_retry_connection_worker") as worker:
+                    retry = notice.query_one("#connection_retry", Button)
+                    close = notice.query_one("#notice_close", Button)
+                    self.assertEqual(retry.region.y, close.region.y)
+                    self.assertLessEqual(abs(retry.region.width - close.region.width), 1)
+                    notice.retry_connection()
+                    self.assertTrue(notice.query_one("#connection_retry", Button).disabled)
+                    self.assertEqual(str(notice.query_one("#connection_retry", Button).label), "Retrying… 0s")
+                    notice.retry_connection()
+                    worker.assert_called_once()
+                notice._retry_finished(ConnectionStatus("disconnected"))
+                self.assertFalse(notice.query_one("#connection_retry", Button).disabled)
+                notice._retry_finished(ConnectionStatus("connected", ("emulator-5554",)))
+                await pilot.pause()
+                self.assertNotIsInstance(app.screen, ConnectionNotice)
+
+    async def test_paid_selection_without_fresh_check_offers_step_one_action(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button, Select
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)) as pilot:
+                app.query_one("#step", Select).value = 2
+                for _ in range(20):
+                    if app.query_one("#refresh_offers", Button).display:
+                        break
+                    await pilot.pause(0.05)
+                self.assertTrue(app.query_one("#refresh_offers", Button).display)
+                self.assertTrue(app.query_one("#run", Button).disabled)
+                with patch.object(app, "_confirm_stage") as confirm:
+                    app.refresh_offers_pressed()
+                confirm.assert_called_once_with(1, False)
+                app._offer_check_ready = True
+                app._update_run_mode()
+                self.assertFalse(app.query_one("#refresh_offers", Button).display)
+
+    async def test_reload_restarts_idle_dashboard_and_is_blocked_during_stage(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button
+        import sys
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)):
+                with patch("tui.os.execv") as restart:
+                    app.reload_pressed()
+                    restart.assert_called_once_with(
+                        sys.executable, [sys.executable, str(app.repo / "tui.py")])
+                    restart.reset_mock()
+                    with patch.object(app, "run_stage"):
+                        app._start(1, False)
+                    self.assertTrue(app.query_one("#reload", Button).disabled)
+                    app.reload_pressed()
+                    restart.assert_not_called()
+
+    async def test_environment_tick_requires_completion_marker_in_current_run(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Static
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)):
+                app._received("EPLUS_STAGE_DONE:0")
+                self.assertNotIn("✓", app.query_one("#stage_0", Static).render().plain)
+                with patch.object(app, "run_stage"):
+                    app._start(1, False)
+                app._received("Device emulator-5554")
+                self.assertNotIn("✓", app.query_one("#stage_0", Static).render().plain)
+                app._received("EPLUS_STAGE_DONE:0")
+                self.assertIn("✓", app.query_one("#stage_0", Static).render().plain)
+                self.assertIn("●", app.query_one("#stage_1", Static).render().plain)
+
+    async def test_startup_restores_attempted_steps_without_unlocking_checkout(self):
+        from tui import GoogleAITUI
+        from stage_history import record_history
+        from textual.widgets import Static
+
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            record_history(repo, "selected@example.com", 2, "checkout_requested")
+            app = GoogleAITUI(repo=repo)
+            async with app.run_test(size=(90, 20)):
+                self.assertIn("↺", app.query_one("#stage_2", Static).render().plain)
+                self.assertIn("Step 2", app.query_one("#history", Static).render().plain)
+                self.assertFalse(app._offer_check_ready)
+                self.assertIsNone(app._verified_account)
+
+    async def test_account_history_survives_restart_without_unlocking_paid_steps(self):
+        from tui import GoogleAITUI
+        from stage_history import record_history
+        from textual.widgets import Static
+
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            record_history(repo, "selected@example.com", 2, "checkout_requested")
+            app = GoogleAITUI(repo=repo)
+            async with app.run_test(size=(90, 20)):
+                app._account_chosen("selected@example.com")
+                history = app.query_one("#history", Static).render().plain
+                self.assertIn("Step 2", history)
+                self.assertIn("verify in Google Play", history)
+                self.assertFalse(app._offer_check_ready)
+                app._account_chosen("other@example.com")
+                self.assertNotIn("Step 2", app.query_one("#history", Static).render().plain)
+
+    async def test_paid_stage_button_shows_running_step_and_elapsed_seconds(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button
+        from tui_core import Outcome
+
+        for step in range(2, 6):
+            with self.subTest(step=step), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=(90, 20)):
+                    with patch.object(app, "run_stage") as run:
+                        from device_diagnostics import ConnectionStatus
+                        app._offer_check_ready = True
+                        app._offer_ready_device = "emulator-5554"
+                        app._connection_state = ConnectionStatus("connected", ("emulator-5554",))
+                        app._start(step, False)
+                        button = app.query_one("#quickstart", Button)
+                        self.assertTrue(button.disabled)
+                        self.assertTrue(button.display)
+                        self.assertTrue(button.has_class("checking"))
+                        self.assertEqual(str(button.label), f"Running Step {step}… 0s")
+                        run_button = app.query_one("#run", Button)
+                        self.assertEqual(str(run_button.label), f"Running Step {step}… 0s")
+                        self.assertTrue(run_button.has_class("checking"))
+                        with patch("tui.time.monotonic", return_value=app._started_at + 92.5):
+                            app._refresh_elapsed()
+                        self.assertEqual(str(button.label), f"Running Step {step}… 92s")
+                        self.assertEqual(str(run_button.label), f"Running Step {step}… 92s")
+                        app.quickstart_pressed()
+                        run.assert_called_once_with(step)
+                    app._finished(step, Outcome("cancelled", "Stopped", ""), None)
+                    self.assertFalse(button.has_class("checking"))
+                    self.assertNotIn("Running Step", str(button.label))
+                    self.assertFalse(run_button.has_class("checking"))
+                    self.assertNotIn("Running Step", str(run_button.label))
+
+    async def test_account_choice_is_next_to_account_and_locked_during_stage(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button
+
+        for size in ((90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    await pilot.pause()
+                    button = app.query_one("#choose_account", Button)
+                    account = app.query_one("#account")
+                    self.assertEqual(button.region.y, account.region.y)
+                    self.assertGreaterEqual(button.region.x, account.region.right)
+                    self.assertLessEqual(button.region.right, size[0])
+                    with patch.object(app, "run_stage"):
+                        app._start(1, False)
+                    self.assertTrue(button.disabled)
+
+    async def test_live_status_uses_remaining_height_after_actions(self):
+        from tui import GoogleAITUI
+
+        for size in ((90, 20), (110, 35), (150, 45)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    await pilot.pause()
+                    welcome = app.query_one("#welcome_panel")
+                    status = app.query_one("#status_panel")
+                    self.assertLessEqual(welcome.region.height, 11)
+                    self.assertGreaterEqual(status.region.height, 5)
+                    if size[1] >= 35:
+                        self.assertGreater(status.region.height, welcome.region.height)
+                    app.advanced_pressed()
+                    await pilot.pause()
+                    self.assertGreaterEqual(status.region.height, 5)
+                    self.assertTrue(app.query_one("#workflow_actions").display)
+
+    async def test_live_status_shows_latest_activity_above_other_details(self):
+        from textual.widgets import Static
+        from tui import GoogleAITUI
+
+        for size in ((90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    app._received("Preparing Frida")
+                    app._received("Querying offers")
+                    await pilot.pause()
+                    activity = app.query_one("#activity", Static)
+                    self.assertEqual(activity.render().plain, "Checking available offers...")
+                    self.assertLess(activity.region.y, app.query_one("#state").region.y)
+                    self.assertLess(activity.region.y, app.query_one("#elapsed").region.y)
+                    self.assertLess(activity.region.y, app.query_one("#status_panel").content_region.bottom)
+
+    async def test_technical_log_reveals_and_follows_latest_output(self):
+        from textual.widgets import RichLog
+        from tui import GoogleAITUI
+
+        for size in ((90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    for number in range(40):
+                        app._received(f"Log line {number}")
+                    app.action_toggle_debug()
+                    await pilot.pause(0.2)
+                    log = app.query_one("#debug_log", RichLog)
+                    results = app.query_one("#results")
+                    self.assertGreater(log.max_scroll_y, 0)
+                    self.assertEqual(log.scroll_y, log.max_scroll_y)
+                    self.assertGreaterEqual(results.content_region.bottom, log.region.bottom)
+                    self.assertIn("Log line 39", log.lines[-1].text)
+                    log.scroll_home(animate=False, immediate=True)
+                    app._received("Newest log line")
+                    await pilot.pause(0.2)
+                    self.assertEqual(log.scroll_y, log.max_scroll_y)
+                    self.assertIn("Newest log line", log.lines[-1].text)
+
+    async def test_quick_check_shows_elapsed_seconds_while_disabled(self):
+        from textual.widgets import Button
+        from tui import GoogleAITUI
+        from tui_core import Outcome
+
+        for size in ((90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    button = app.query_one("#quickstart", Button)
+                    with patch.object(app, "run_stage") as run_stage:
+                        app._start(1, False)
+                        self.assertTrue(button.disabled)
+                        self.assertEqual(str(button.label), "Checking offers… 0s")
+                        with patch("tui.time.monotonic", return_value=app._started_at + 42.5):
+                            app._refresh_elapsed()
+                        self.assertEqual(str(button.label), "Checking offers… 42s")
+                        await pilot.click("#quickstart")
+                        run_stage.assert_called_once_with(1)
+                    app._finished(1, Outcome("cancelled", "Check stopped", ""), None)
+                    self.assertFalse(button.disabled)
+                    self.assertFalse(button.has_class("checking"))
+                    self.assertEqual(str(button.label), "Check Device & Offers")
+
+    async def test_android_details_are_visible_and_reset_on_new_check(self):
+        from textual.widgets import Static
+        from tui import GoogleAITUI
+
+        for size in ((90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    card = app.query_one("#device", Static)
+                    app._received("  Device      emulator-5554")
+                    app._received("  Android     12 (SDK 31), ABI x86_64")
+                    await pilot.pause()
+                    self.assertIn("Android 12 · SDK 31 · x86_64", card.render().plain)
+                    self.assertEqual(card.tooltip, "Android 12 · SDK 31 · x86_64\nADB: emulator-5554")
+                    self.assertGreaterEqual(card.content_region.width, len("Android 12 · SDK 31 · x86_64"))
+                    with patch.object(app, "run_stage"):
+                        app._start(1, False)
+                    self.assertIsNone(card.tooltip)
+                    self.assertNotIn("Android 12", card.render().plain)
+                    app._received("Device emulator-5556")
+                    self.assertEqual(card.tooltip, "emulator-5556")
 
     async def test_checkout_confirmations_explain_each_one_dollar_event(self):
         from textual.widgets import Static

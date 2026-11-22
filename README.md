@@ -133,6 +133,16 @@ Steps 2–5 stay locked until a fresh Step 1 check returns offers and verifies t
 
 The sidebar lists the six stages. Android Device / Google Account cards update from observed output; account identifiers are masked. Original-author and maintainer credits link to their GitHub profiles in supported terminals.
 
+The Device card shows the Android release, SDK, CPU ABI and ADB transport when read; hover for full details. **Choose account**, beside the Account card, lists signed-in Android account candidates. Select the intended profile in both Play Store and Google One, then repeat Step 1. When Play Store exposes an explicit active-profile email, the toolkit can distinguish it from other signed-in accounts.
+
+The action panel fits its controls and **Live Status** uses the remaining height, with the latest activity first. **Show technical details** opens a log that follows new output. Both the main button and **Run this step** show the running step and elapsed seconds. On Windows, Step 0 receives a checkmark once its environment check completes within the offer-check flow. If a paid step lacks a fresh verified check, the green **Check Device & Offers — Step 1** button appears in step selection.
+
+**Recent history** saves stage starts, results and the user's **Verified in Google Play → Next** action locally under `logs/stage-history/`. Startup restores the latest saved history; selecting an account loads its own history. **↺** marks a previously attempted step. History alone cannot verify a subscription or unlock checkout. A fresh Step 1 check is required after reopening the toolkit or changing accounts. Runs before history recording was added are unavailable.
+
+**Retry connection** in the disconnected-device popup shows **Retrying…** and elapsed seconds. On Windows it tries the existing local emulator connection routine; Windows stages also attempt reconnection when no ADB device is online. **Got it** dismisses the popup. During read-only checks, a failed app startup gets one restart attempt. If recovery fails, close and reopen MuMu, wait for Android to boot and repeat Step 1. The engine restarts Google One before querying offers; Play Store stays running when already available. **Reload toolkit** restarts the idle dashboard with local code and begins a new session.
+
+Before automatically tapping **Subscribe**, checkout must show exactly the expected email, today's zero total and the expected trial duration, with the requested offer already matched. Missing or different checkout accounts stop the automatic tap and require manual review. The submitted checkout still needs independent subscription, renewal-date and charge verification in Google Play. Each paid stage requires its own approval. The three-card-event reminder appears in the payment approvals.
+
 ### Additional run options
 
 By default, only the selected step runs. In **Choose another step**, select **More run options…** at the bottom of the step dropdown to show guided-sequence modes.
