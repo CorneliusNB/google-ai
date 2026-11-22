@@ -324,7 +324,7 @@ def validate_step(step: int) -> int:
 
 
 def command_for_step(step: int, repo: Path, shell: str | None = None,
-                     account: str | None = None) -> list[str]:
+                     account: str | None = None, device: str | None = None) -> list[str]:
     validate_step(step)
     if sys.platform == "darwin":
         bridge = repo / "macos_runner.py"
@@ -339,6 +339,8 @@ def command_for_step(step: int, repo: Path, shell: str | None = None,
             command.append("--active-confirmed")
         if step >= 2 and account:
             command.extend(["--expected-account", account])
+        if step >= 2 and device:
+            command.extend(["--expected-device", device])
         return command
     executable = shell or shutil.which("powershell.exe") or shutil.which("pwsh")
     if not executable:
@@ -353,6 +355,8 @@ def command_for_step(step: int, repo: Path, shell: str | None = None,
                "-File", str(script), "-Step", str(step)]
     if step >= 2 and account:
         command.extend(["-Email", account])
+    if step >= 2 and device:
+        command.extend(["-Serial", device])
     return command
 
 
