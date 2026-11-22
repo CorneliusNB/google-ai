@@ -378,7 +378,12 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory))
             async with app.run_test(size=(110, 35)) as pilot:
                 app.query_one("#step", Select).value = 3
+                # The Select.Changed message may be queued behind layout
+                # events on Windows. Synchronize the guard deterministically
+                # before asserting a state transition caused by the selector.
+                app._update_run_mode()
                 await pilot.pause()
+                self.assertEqual(app.query_one("#step", Select).value, 3)
                 self.assertTrue(app.query_one("#run", Button).disabled)
 
                 # The single successful read-only Step 1 check unlocks every
