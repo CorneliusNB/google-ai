@@ -30,7 +30,7 @@ Example (offline only, Python 3.10+):
 ```sh
 python research/one-sku-study/sku_research.py --candidates
 python research/one-sku-study/sku_research.py --input research/one-sku-study/sample-offers.json
-python -m unittest tests.test_one_sku_research -v
+python -m unittest discover -s tests -p 'test_one_sku_research.py' -v
 ```
 
 ## Integration design — not implemented yet
