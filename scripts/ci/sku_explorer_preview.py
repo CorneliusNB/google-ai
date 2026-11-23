@@ -24,35 +24,35 @@ class SKUExplorerPreview(ModalScreen[None]):
         width: 100;
         max-width: 97%;
         height: auto;
-        max-height: 94%;
+        max-height: 96%;
         background: #10243c;
         border: round #4f9cc0;
-        padding: 1 2;
+        padding: 0 2;
     }
     #sku_header { height: 1; color: #eaf6ff; text-style: bold; }
-    #sku_note { height: auto; color: #91c8e3; margin: 1 0; }
-    #sku_toolbar { height: 3; margin: 1 0 0 0; }
+    #sku_note { height: auto; color: #91c8e3; margin: 0; }
+    #sku_toolbar { height: 3; margin: 0; }
     #sku_toolbar Button { width: 1fr; margin-right: 1; }
     #sku_toolbar #sku_pro { background: #205779; color: #f1faff; }
     #sku_toolbar #sku_ultra, #sku_toolbar #sku_custom {
         background: #192f49; color: #c3d8ea;
     }
-    #sku_form { height: 3; margin: 1 0; }
+    #sku_form { height: 3; margin: 0; }
     #sku_form Input { width: 1fr; background: #081a2d; color: #f3f9ff; }
-    #sku_actions { height: 3; margin: 0 0 1 0; }
+    #sku_actions { height: 3; margin: 0; }
     #sku_actions Button { margin-right: 1; }
     #sku_check { width: 23; background: #275c73; color: #ffffff; }
     #sku_clear { width: 12; }
     #sku_result {
-        min-height: 8; height: auto; max-height: 13;
+        min-height: 9; height: 9; max-height: 9;
         border: round #336a88;
-        background: #0a1b30; padding: 1 2;
+        background: #0a1b30; padding: 0 1;
     }
     #sku_result_title { color: #a7e5fa; text-style: bold; }
     #sku_rows { color: #dae8f6; height: auto; }
     #sku_detail { color: #a9c7d8; height: auto; margin-top: 1; }
-    #sku_footer { height: auto; color: #98c0d7; margin-top: 1; }
-    #sku_close { width: 19; margin-top: 1; background: #203d59; }
+    #sku_footer { height: auto; color: #98c0d7; margin-top: 0; }
+    #sku_close { width: 19; height: 2; margin-top: 0; background: #203d59; }
     Screen.tiny #sku_card { padding: 0 1; }
     """
 
