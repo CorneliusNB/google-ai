@@ -1242,6 +1242,12 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     await pilot.pause(0.2)
                     log = app.query_one("#debug_log", RichLog)
                     results = app.query_one("#results")
+                    # A busy runner may need a few refresh cycles to measure the
+                    # newly visible RichLog. Keep a bounded real scroll assertion.
+                    for _ in range(12):
+                        if log.max_scroll_y > 0 and log.scroll_y == log.max_scroll_y:
+                            break
+                        await pilot.pause(0.05)
                     self.assertGreater(log.max_scroll_y, 0)
                     self.assertEqual(log.scroll_y, log.max_scroll_y)
                     self.assertGreaterEqual(results.content_region.bottom, log.region.bottom)
