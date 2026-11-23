@@ -22,7 +22,7 @@ Read the **[full disclaimer](DISCLAIMER.md)** and [security precautions](SECURIT
 
 ## Install and prepare
 
-**Choose the instructions for your operating system.** Windows runs PowerShell; macOS runs Terminal with a POSIX shell (zsh/bash). **PowerShell is not required or used on macOS.**
+**Choose instructions for your operating system.** Windows runs PowerShell; macOS and Linux run native Terminal shells (zsh/bash or sh). **PowerShell is not required on macOS or Linux.**
 
 | Software / configuration | Windows | macOS | Linux |
 | --- | --- | --- | --- |

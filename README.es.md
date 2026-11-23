@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: 4f68b0ea54146c62a96a97b322a6c8cab816547e -->
+<!-- Source README.md git-blob: 1a71e505dcc435e48b65cc5199153c605fb02c1a -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -8,7 +8,7 @@
 
 > **Documento de referencia:** [README original en inglés](README.md). Esta versión está redactada en español para que resulte más fácil de seguir, sin cambiar las instrucciones técnicas ni las advertencias. Si encuentras alguna diferencia, consulta el código y la documentación original.
 
-**ePlus AI Toolkit** permite consultar las ofertas de Google AI Pro disponibles a través de Google One y Google Play en un dispositivo Android. Funciona en **Windows y macOS**: en Windows se inicia desde PowerShell y en Mac desde Terminal (zsh/bash). Tanto la interfaz Textual como los comandos de terminal utilizan el mismo motor basado en Python, ADB y Frida.
+**ePlus AI Toolkit** permite consultar las ofertas de Google AI Pro disponibles a través de Google One y Google Play en un dispositivo Android. Funciona en **Windows, macOS y Linux**: en Windows se inicia desde PowerShell y en Mac desde Terminal (zsh/bash). Tanto la interfaz Textual como los comandos de terminal utilizan el mismo motor basado en Python, ADB y Frida.
 
 ![Interfaz de ePlus AI Toolkit](images/terminal-ui-overview.png)
 
@@ -26,16 +26,16 @@ Este proyecto es **independiente y no está afiliado, patrocinado ni respaldado*
 
 **Sigue las instrucciones de tu sistema operativo.** En macOS no hace falta instalar PowerShell.
 
-| Componente | Windows | macOS |
-| --- | --- | --- |
-| Terminal | **PowerShell 5.1 o posterior** | **Terminal**, con zsh o bash |
-| Python | **3.10 o posterior** (comando `python`) | **3.10 o posterior** (`python3`); se crea un entorno `.venv` local |
-| Git | Git para Windows | Git mediante Xcode Command Line Tools o Homebrew |
-| Android | Dispositivo o emulador con root y ADB; el proyecto contempla **MuMuPlayer para Windows** | Dispositivo Android con root o emulador compatible; **MuMuPlayer Pro para Mac** es una opción para equipos Apple Silicon, no para Intel |
-| Aplicaciones | Google Play Store y Google One, con la cuenta que quieres comprobar | Las mismas aplicaciones en el Android elegido |
-| ADB | El programa puede localizar o descargar Android SDK Platform-Tools | Debes instalarlo por separado, por ejemplo, con `brew install android-platform-tools`; compruébalo con `adb devices` |
-| Frida | **16.5.9**; la preparación de Windows puede configurarla | **16.5.9** en `.venv`; es necesario comprobar que sea compatible con Android |
-| Inicio | `.\run-all.ps1` | `sh run-macos.sh` o `ePlus-AI-Toolkit.command` |
+| Componente | Windows | macOS | Linux |
+| --- | --- | --- | --- |
+| Terminal | **PowerShell 5.1 o posterior** | **Terminal**, con zsh o bash | **Terminal (sh/bash)**, sin PowerShell |
+| Python | **3.10 o posterior** (comando `python`) | **3.10 o posterior** (`python3`); se crea un entorno `.venv` local | **3.10+** (`python3`), crea `.venv` |
+| Git | Git para Windows | Git mediante Xcode Command Line Tools o Homebrew | Git desde el gestor de paquetes |
+| Android | Dispositivo o emulador con root y ADB; el proyecto contempla **MuMuPlayer para Windows** | Dispositivo Android con root o emulador compatible; **MuMuPlayer Pro para Mac** es una opción para equipos Apple Silicon, no para Intel | Teléfono Android rooteado por USB, un dispositivo ADB autorizado |
+| Aplicaciones | Google Play Store y Google One, con la cuenta que quieres comprobar | Las mismas aplicaciones en el Android elegido | Google Play Store y Google One en el teléfono |
+| ADB | El programa puede localizar o descargar Android SDK Platform-Tools | Debes instalarlo por separado, por ejemplo, con `brew install android-platform-tools`; compruébalo con `adb devices` | Platform-Tools por separado; `PATH` o `ADB_PATH` |
+| Frida | **16.5.9**; la preparación de Windows puede configurarla | **16.5.9** en `.venv`; es necesario comprobar que sea compatible con Android | **16.5.9**, Android 16+ bloqueado |
+| Inicio | `.\run-all.ps1` | `sh run-macos.sh` o `ePlus-AI-Toolkit.command` | `sh run-linux.sh` |
 
 En ambos sistemas necesitas acceso autorizado a un entorno Android correctamente configurado. Aunque la implementación de macOS incluye los pasos 0–5, **no se ha probado un proceso de pago real en Mac/MuMu**. Consulta las guías de [Windows](docs/INSTALLATION.md) y [macOS](docs/MACOS-PREVIEW.md).
 
@@ -113,10 +113,11 @@ En Ubuntu x86_64, instala Git, Python 3.10 o posterior con `venv` y `pip`, y And
 ```sh
 git clone https://github.com/hoangsvit/google-ai.git
 cd google-ai
-git switch feature
-adb devices
+"${ADB_PATH:-adb}" devices
 sh run-linux.sh
 ```
+
+**Linux antes de la fusión:** Para probar PR #84, ejecuta `git switch --track origin/integration/linux-feature-to-main-20261123` después de clonar. Tras la fusión, `main` incluirá `run-linux.sh`.
 
 Usa una versión que incluya `run-linux.sh`. El script abre el panel e instala las versiones fijadas de Textual y Frida 16.5.9 en un entorno local `.venv`. Si Ubuntu no puede crearlo, instala `python3-venv` o el paquete venv de tu versión de Python.
 

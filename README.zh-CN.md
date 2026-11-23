@@ -1,13 +1,13 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: 4f68b0ea54146c62a96a97b322a6c8cab816547e -->
+<!-- Source README.md git-blob: 1a71e505dcc435e48b65cc5199153c605fb02c1a -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
 
 > **原始文档：**[英文 README](README.md)。中文版采用更易理解的表述，同时保留原文中的命令、技术要求和安全警告。如文档与实际运行情况不一致，请以源代码及英文原文为准。
 
-**ePlus AI Toolkit** 用于查看 Android 设备上的 Google One 和 Google Play 提供的 Google AI Pro 优惠。它支持 **Windows 和 macOS**：Windows 用户通过 PowerShell 启动，Mac 用户则使用 Terminal（zsh/bash）。Textual 图形化终端界面与命令行模式共用 Python、ADB 和 Frida 执行引擎。
+**ePlus AI Toolkit** 用于查看 Android 设备上的 Google One 和 Google Play 提供的 Google AI Pro 优惠。它支持 **Windows、macOS 和 Linux**：Windows 用户通过 PowerShell 启动，Mac 用户则使用 Terminal（zsh/bash）。Textual 图形化终端界面与命令行模式共用 Python、ADB 和 Frida 执行引擎。
 
 ![ePlus AI Toolkit 界面](images/terminal-ui-overview.png)
 
@@ -25,16 +25,16 @@
 
 **请按照自己的操作系统进行设置。** Mac 用户无需安装 PowerShell。
 
-| 项目 | Windows | macOS |
-| --- | --- | --- |
-| 终端 | **PowerShell 5.1 或更高版本** | 系统自带的 **Terminal**（zsh/bash） |
-| Python | **3.10 或更高版本**，使用 `python` 命令 | **3.10 或更高版本**，使用 `python3`；启动时创建本地 `.venv` 环境 |
-| Git | Git for Windows | 通过 Xcode Command Line Tools 或 Homebrew 安装 |
-| Android 环境 | 已开启 root 和 ADB 的设备或模拟器；项目提供 **Windows 版 MuMuPlayer** 的操作流程 | 已 root 的 Android 设备或兼容模拟器；**Mac 版 MuMuPlayer Pro** 适用于 Apple Silicon，不支持 Intel Mac |
-| Android 应用 | Google Play Store 和 Google One，并登录要检查的账户 | 所选 Android 设备上同样需要安装这两个应用 |
-| ADB | 工具可按需查找或下载 Android SDK Platform-Tools | 需单独安装，例如 `brew install android-platform-tools`；使用 `adb devices` 检查连接 |
-| Frida | **16.5.9**，可由 Windows 配置程序准备 | 在 `.venv` 中安装 **16.5.9**，仍需核实与 Android 的兼容性 |
-| 启动命令 | `.\run-all.ps1` | `sh run-macos.sh` 或 `ePlus-AI-Toolkit.command` |
+| 项目 | Windows | macOS | Linux |
+| --- | --- | --- | --- |
+| 终端 | **PowerShell 5.1 或更高版本** | 系统自带的 **Terminal**（zsh/bash） | **Terminal (sh/bash)**，无需 PowerShell |
+| Python | **3.10 或更高版本**，使用 `python` 命令 | **3.10 或更高版本**，使用 `python3`；启动时创建本地 `.venv` 环境 | **3.10+**（`python3`），创建 `.venv` |
+| Git | Git for Windows | 通过 Xcode Command Line Tools 或 Homebrew 安装 | 通过包管理器安装 Git |
+| Android 环境 | 已开启 root 和 ADB 的设备或模拟器；项目提供 **Windows 版 MuMuPlayer** 的操作流程 | 已 root 的 Android 设备或兼容模拟器；**Mac 版 MuMuPlayer Pro** 适用于 Apple Silicon，不支持 Intel Mac | USB 连接已 root 的 Android 手机，仅允许一台 ADB 设备 |
+| Android 应用 | Google Play Store 和 Google One，并登录要检查的账户 | 所选 Android 设备上同样需要安装这两个应用 | 手机须安装 Google Play Store 与 Google One |
+| ADB | 工具可按需查找或下载 Android SDK Platform-Tools | 需单独安装，例如 `brew install android-platform-tools`；使用 `adb devices` 检查连接 | 单独安装 Platform-Tools，配置 `PATH` 或 `ADB_PATH` |
+| Frida | **16.5.9**，可由 Windows 配置程序准备 | 在 `.venv` 中安装 **16.5.9**，仍需核实与 Android 的兼容性 | **16.5.9**，不支持 Android 16+ |
+| 启动命令 | `.\run-all.ps1` | `sh run-macos.sh` 或 `ePlus-AI-Toolkit.command` | `sh run-linux.sh` |
 
 无论使用哪种系统，都需要一个已经正确配置、且你有权访问的 Android 环境。虽然 macOS 版本已实现 Steps 0–5，**但尚未在真实 Mac/MuMu 环境中验证支付流程**。另请参考 [Windows 指南](docs/INSTALLATION.md)和 [macOS 指南](docs/MACOS-PREVIEW.md)。
 
@@ -112,10 +112,11 @@ sh run-macos.sh
 ```sh
 git clone https://github.com/hoangsvit/google-ai.git
 cd google-ai
-git switch feature
-adb devices
+"${ADB_PATH:-adb}" devices
 sh run-linux.sh
 ```
+
+**合并前测试 Linux 版本：** 测试 PR #84 时，克隆后运行 `git switch --track origin/integration/linux-feature-to-main-20261123`。合并后，`main` 默认包含 `run-linux.sh`。
 
 请选择包含 `run-linux.sh` 的版本。启动脚本会打开界面，并在本地 `.venv` 中安装固定版本的 Textual 和 Frida 16.5.9。如果 Ubuntu 无法创建虚拟环境，请安装 `python3-venv` 或与当前 Python 版本对应的 venv 软件包。
 
