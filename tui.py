@@ -1,4 +1,4 @@
-"""Interactive Textual frontend for ePlus AI Toolkit (Windows + macOS preview).
+"""Interactive Textual frontend for ePlus AI Toolkit (Windows, macOS and Linux).
 
 UI-only orchestration: the original run-all.ps1 and ultra0.py still own all
 Android, Frida, Google Play, payment and account validation. The TUI never
@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+from tempfile import TemporaryDirectory
 import time
 
 from rich.markup import escape
@@ -372,12 +373,16 @@ class GoogleAITUI(App[None]):
     """
 
     def __init__(self, *, repo: Path, selected_step: int = 1,
-                 start_sequence: bool = False, initial_debug: bool = False) -> None:
+                 start_sequence: bool = False, initial_debug: bool = False,
+                 show_advanced: bool = False) -> None:
         super().__init__()
         self.repo = repo.resolve()
         self.initial_step = validate_step(selected_step)
         self.macos_mode = is_macos_platform()
+        self.linux_mode = sys.platform == "linux" and not self.macos_mode
+        self.native_mode = self.macos_mode or self.linux_mode
         self.start_sequence = start_sequence
+        self.show_advanced = show_advanced
         self.debug_visible = initial_debug
         self.busy = False
         self._diagnosing = False
@@ -443,9 +448,15 @@ class GoogleAITUI(App[None]):
                 with Vertical(id="results"):
                     yield TechnicalLog(id="debug_log", wrap=True, highlight=False, markup=False)
                     with Vertical(id="welcome_panel"):
-                        yield Static("GET STARTED · READ-ONLY CHECK", id="welcome")
-                        yield Static("Check MuMu connection and Google AI offers without opening checkout.", id="quick_hint")
+                        yield Static(
+                            "GET STARTED · OFFER CHECK" if self.linux_mode
+                            else "GET STARTED · READ-ONLY CHECK", id="welcome")
+                        yield Static(
+                            "Check Android offers without opening checkout." if self.linux_mode
+                            else "Check MuMu connection and Google AI offers without opening checkout.",
+                            id="quick_hint")
                         yield Button("Check Device & Offers", id="quickstart", variant="success")
+                        yield Button("Stop after current step", id="stop", disabled=True)
                         yield Button("Verified in Google Play → Next", id="next", disabled=True)
                         yield Button("Choose another step  +", id="advanced_toggle")
                         with Vertical(id="workflow_actions"):
@@ -469,7 +480,6 @@ class GoogleAITUI(App[None]):
                                 yield Static("Runs one step; no next step is automatic.", id="mode_hint")
                             yield Button("Run sequence from step", id="sequence")
                             yield Button("Run all", id="run_all")
-                            yield Button("Stop after current step", id="stop", disabled=True)
                             yield Static("Steps 2–5 can open checkout and require confirmation.", id="read_only")
                     with Vertical(id="status_panel"):
                         yield Static("LIVE STATUS", classes="section")
@@ -633,13 +643,17 @@ class GoogleAITUI(App[None]):
                              "Previous run · select an account and run Step 1 to verify")
         self.set_interval(1, self._refresh_elapsed)
         self.set_interval(5, self._poll_connection)
-        if self.macos_mode:
+        if self.native_mode:
             self.query_one("#device", Static).update("Device  •  Auto-detect")
             self.query_one("#quick_hint", Static).update(
                 "Check Android and Google AI offers before any subscription step."
             )
             self.query_one("#read_only", Static).update(
                 "Steps 2–5 can charge money. Confirm account, future price and renewal date."
+            )
+        if self.linux_mode:
+            self._set_message(
+                "Offer checks can change Android settings. Use Diagnose Android connection to inspect USB first."
             )
         self.query_one("#debug_log", RichLog).display = self.debug_visible
         self.query_one("#debug", Button).label = "Hide technical details" if self.debug_visible else "Show technical details"
@@ -650,6 +664,10 @@ class GoogleAITUI(App[None]):
             self.query_one("#workflow_actions", Vertical).display = True
             self.query_one("#advanced_toggle", Button).label = "Hide step selection  −"
             self.query_one("#mode_field", Vertical).display = True
+        elif self.show_advanced:
+            self.advanced_visible = True
+            self.query_one("#workflow_actions", Vertical).display = True
+            self.query_one("#advanced_toggle", Button).label = "Hide step selection  −"
         self._update_run_mode()
 
     def _invalidate_connection_polls(self) -> None:
@@ -812,6 +830,10 @@ class GoogleAITUI(App[None]):
         self.advanced_pressed()
 
     def _refresh_elapsed(self) -> None:
+        # Textual may fire a queued interval while the screen is unmounting.
+        # Avoid selecting widgets after shutdown (especially on Windows).
+        if not self.is_mounted or not len(self.query("#elapsed")):
+            return
         if not self.busy or self._started_at is None:
             return
         elapsed = int(time.monotonic() - self._started_at)
@@ -826,7 +848,8 @@ class GoogleAITUI(App[None]):
             idle = int(time.monotonic() - self._last_activity_at)
             if idle >= 30:
                 self.query_one("#activity", Static).update(
-                    f"No new output for {idle}s. Check MuMu or technical details."
+                    f"No new output for {idle}s. Check "
+                    f"{'Android' if self.native_mode else 'MuMu'} or technical details."
                 )
 
     def _set_workflow(self, step: int, state: str) -> None:
@@ -1147,7 +1170,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#elapsed", Static).update("Elapsed: 00:00")
         self.query_one("#status_panel").scroll_home(animate=False)
         self.query_one("#activity", Static).update(
-            "Connecting to Android diagnostics..." if self.macos_mode
+            "Connecting to Android diagnostics..." if self.native_mode
             else "Connecting to MuMu and preparing tools..."
         )
         quick_check = self.query_one("#quickstart", Button)
@@ -1175,10 +1198,13 @@ class GoogleAITUI(App[None]):
         self.query_one("#step_result", Static).update(f"Step {step} · {STAGES[step].label}")
         self._set_workflow(step, "running")
         self._set_status(
-            "Running — check Android if prompted" if self.macos_mode
+            "Running — check Android if prompted" if self.native_mode
             else "Running — check MuMu if prompted"
         )
-        self._set_message("Preparing tools and checking Google Play. Missing dependencies are installed automatically.")
+        self._set_message(
+            "Checking Android over ADB. Setup may alter Frida or device settings." if self.linux_mode
+            else "Preparing tools and checking Google Play. Missing dependencies are installed automatically."
+        )
         self.run_stage(step)
 
     def _execute(self, command: list[str]) -> int:
@@ -1200,6 +1226,14 @@ class GoogleAITUI(App[None]):
             text=True, encoding="utf-8", errors="replace", bufsize=1, **options
         ) as child:
             self._child = child
+            if self._cancel_requested and child.poll() is None:
+                try:
+                    if os.name == "nt":
+                        child.terminate()
+                    else:
+                        os.killpg(child.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
             if child.stdout:
                 for line in child.stdout:
                     try:
@@ -1211,7 +1245,7 @@ class GoogleAITUI(App[None]):
     @work(thread=True, exclusive=True)
     def run_stage(self, step: int) -> None:
         try:
-            if not self.macos_mode and needs_setup():
+            if not self.native_mode and needs_setup():
                 self.call_from_thread(self._set_status, "Setting up...")
                 self.call_from_thread(self._set_message,
                                       "Preparing Frida and ADB. You do not need a separate setup command.")
@@ -1239,12 +1273,29 @@ class GoogleAITUI(App[None]):
             command = command_for_step(
                 step, self.repo, account=self._selected_account or self._offer_ready_account,
                 device=self._offer_ready_device if step >= 2 else None)
-            return_code = self._execute(command)
+            if self.linux_mode:
+                # The Linux bridge publishes a minimal allow-listed report for
+                # this invocation. Never consume an older shared report.
+                with TemporaryDirectory(prefix="eplus-dashboard-") as directory:
+                    result_file = Path(directory) / "result.json"
+                    return_code = self._execute([*command, "--result-file", str(result_file)])
+                    report = None
+                    if return_code == 0 and step > 0 and not self._cancel_requested:
+                        try:
+                            data = json.loads(result_file.read_text(encoding="utf-8"))
+                            if isinstance(data, dict) and isinstance(data.get("status"), str):
+                                report = data
+                        except (OSError, ValueError):
+                            pass
+                connection = poll_connection()
+                self.call_from_thread(self._remember_linux_transport, connection)
+            else:
+                return_code = self._execute(command)
+                report = read_fresh_report(self.repo / "ultra0-report", step, started,
+                                           expected_account=self._verified_account)
             if self._cancel_requested:
                 self.call_from_thread(self._finished, step, Outcome("cancelled", "Check stopped", "Cancelled read-only check."), None)
                 return
-            report = read_fresh_report(self.repo / "ultra0-report", step, started,
-                                       expected_account=self._verified_account)
             result = outcome_for_stage(step, return_code, report)
             if return_code != 0 or result.code in ("missing_report", "tool_error"):
                 result = cli_issue_outcome(list(self._run_output), step) or result
@@ -1260,6 +1311,14 @@ class GoogleAITUI(App[None]):
             self.call_from_thread(self._finished, step, result, None)
         finally:
             self._child = None
+
+    def _remember_linux_transport(self, result: ConnectionStatus) -> None:
+        # Do not display serials. The selected transport must be unique.
+        self._connection_state = result
+        self._checked_device = (
+            result.devices[0] if result.state == "connected" and len(result.devices) == 1
+            else None
+        )
 
     def _record_internal_diagnostic(self, diagnostic: str) -> None:
         # Do not add to _run_output: protocol parsing only accepts child output.
@@ -1302,6 +1361,16 @@ class GoogleAITUI(App[None]):
             btn.display = True
             btn.disabled = False
             self._set_message("Complete the requested action on Android, then click Completed.")
+        if self.linux_mode:
+            if line == "Android device connected.":
+                self.query_one("#device", Static).update("Device  •  ADB Connected")
+            elif line == "Google Play account verified.":
+                self.query_one("#account", Static).update("Account  •  Verified by offer check")
+            elif line == "Google Play account could not be verified.":
+                self.query_one("#account", Static).update("Account  •  Unverified")
+            # The Linux stage adapter emits only categorized progress, not
+            # raw device/account identities or untrusted Android output.
+            return
         selected_device = re.search(
             r"\b(?:Connected ADB device:|Device)\s+([A-Za-z0-9._:/-]{1,90})\s*$", line
         )
@@ -1349,21 +1418,38 @@ class GoogleAITUI(App[None]):
             detected = str((report or {}).get("detected_play_account") or "").strip().lower()
             verified = (self._verified_account or "").strip().lower()
             offers = (report or {}).get("offers")
-            self._offer_check_ready = bool(
-                outcome.code == "listed" and isinstance(offers, list) and offers
-                and verified and (not detected or detected == verified)
-                and (not self._selected_account or self._selected_account == verified)
-                and self._checked_device
-            )
+            if self.linux_mode:
+                # Linux publishes no email or device serial in its result.
+                # The bridge validates an explicitly selected account against
+                # the Step 1 Play listing; it repeats live lookup before billing.
+                selected = (self._selected_account or "").strip().lower()
+                self._offer_check_ready = bool(
+                    outcome.code == "listed" and isinstance(offers, list) and offers
+                    and selected and self._checked_device and self._connection_state
+                    and self._connection_state.state == "connected"
+                    and len(self._connection_state.devices) == 1
+                )
+                self._verified_account = selected if self._offer_check_ready else None
+            else:
+                self._offer_check_ready = bool(
+                    outcome.code == "listed" and isinstance(offers, list) and offers
+                    and verified and (not detected or detected == verified)
+                    and (not self._selected_account or self._selected_account == verified)
+                    and self._checked_device
+                )
             self._offer_ready_device = self._checked_device if self._offer_check_ready else None
-            self._offer_ready_account = verified if self._offer_check_ready else None
+            self._offer_ready_account = (
+                (self._selected_account or "").strip().lower() if self.linux_mode else verified
+            ) if self._offer_check_ready else None
             if self._offer_ready_device:
                 # The Stage 1 transport is authoritative; the previous idle
                 # poll may describe a different device from before the check.
                 self._connection_state = ConnectionStatus("connected", (self._offer_ready_device,))
             self._initial_offer_ready = bool(self._offer_check_ready and any(
                 isinstance(offer, dict) and offer.get("id") == "12months-eft"
-                and str(offer.get("micros")) == "0" for offer in offers
+                and str(offer.get("micros")) == "0"
+                and (not self.linux_mode or offer.get("product") == "g1.2tb.ai.subs_variant")
+                for offer in offers
             ))
         elif step == 0:
             self._offer_check_ready = False
@@ -1479,16 +1565,19 @@ class GoogleAITUI(App[None]):
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="ePlus AI Toolkit Textual frontend")
-    parser.add_argument("--step", type=int, default=1)
+    parser.add_argument("--step", type=int)
     parser.add_argument("--sequence", action="store_true")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args(argv)
+    linux = sys.platform == "linux"
+    default_step = 2 if linux and args.sequence else 1
     try:
-        selected = validate_step(args.step)
+        selected = validate_step(default_step if args.step is None else args.step)
     except ValueError as exc:
         parser.error(str(exc))
     GoogleAITUI(repo=Path(__file__).resolve().parent, selected_step=selected,
-                start_sequence=args.sequence, initial_debug=args.debug).run()
+                start_sequence=args.sequence, initial_debug=args.debug,
+                show_advanced=linux and (args.step is not None or args.sequence)).run()
     return 0
 
 
