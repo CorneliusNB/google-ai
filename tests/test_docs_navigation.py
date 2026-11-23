@@ -78,7 +78,7 @@ class DocumentationNavigationTests(unittest.TestCase):
         locations = [ROOT / "README.md", ROOT / "README.en.md"]
         locations.extend(ROOT / f"README.{lang}.md" for lang in LOCALIZED)
         locations.extend(sorted(DOCS.rglob("*.md")))
-        locations.extend((ROOT / "CONTRIBUTING.md", ROOT / "AGENTS.md"))
+        locations.extend((ROOT / "CONTRIBUTING.md", ROOT / "CONTRIBUTORS.md", ROOT / "AGENTS.md"))
         for source in locations:
             text = source.read_text(encoding="utf-8")
             for target in MD_LINK.findall(text):
