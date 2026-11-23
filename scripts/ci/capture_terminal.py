@@ -28,7 +28,7 @@ CASES = [
     ("05-approval-compact", "approval", 90, 20, ("Start initial 12-month checkout", "not guaranteed", "Cancel", "Continue")),
     ("06-play-review", "review", 110, 35, ("Verified in Google Play",)),
     ("07-sku-explorer", "sku_explorer", 110, 35,
-     ("SKU EXPLORER", "SIMULATED DATA ONLY", "PREVIEW RESULT", "NO CHECKOUT")),
+     ("SKU EXPLORER", "SIMULATED DATA ONLY", "PREVIEW RESULT", "NO CHECKOUT", "Close preview")),
 ]
 
 
