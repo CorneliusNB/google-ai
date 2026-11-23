@@ -33,6 +33,10 @@ python research/one-sku-study/sku_research.py --input research/one-sku-study/sam
 python -m unittest discover -s tests -p 'test_one_sku_research.py' -v
 ```
 
+## Detailed Check SKU proposal
+
+See [CHECK-SKU-DESIGN.md](CHECK-SKU-DESIGN.md) for the dedicated query-only architecture, UI layout, full pricing-phase response contract, threat model, tests and rollout gates. **No live Check SKU or checkout is implemented on this branch.**
+
 ## Integration design — not implemented yet
 
 1. **Inventory existing offer-query API** in `ultra0.py`. If safe and compatible, extend the existing read-only Step 1 query to accept a **bounded, manually chosen** list of SKU candidates. Avoid importing the third-party `pro0.py`, running unreviewed BAT scripts, or automatically brute-forcing the Play Store.
