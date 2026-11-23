@@ -87,6 +87,8 @@ def main():
                             found = True
                             break
                     if not found:
+                        # Synthetic preview output only; useful when a new overlay is clipped.
+                        print(f"{name}: process exit={process.poll()}\nXTERM SCREEN:\n{visible}", flush=True)
                         raise RuntimeError(f"{name}: expected visible text not found: {expected!r}")
                     page.screenshot(path=str(OUTPUT / f"{name}.png"))
                     print(f"Captured {name}: {cols}x{rows} (fixture: {scenario})", flush=True)
