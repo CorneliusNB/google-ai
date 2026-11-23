@@ -28,7 +28,7 @@ CASES = [
     ("05-approval-compact", "approval", 90, 20, ("Start initial 12-month checkout", "not guaranteed", "Cancel", "Continue")),
     ("06-play-review", "review", 110, 35, ("Verified in Google Play",)),
     ("07-linux-startup", "linux_startup", 110, 35, ("GET STARTED", "Diagnose Android connection", "Ready — no check started")),
-    ("08-linux-step-picker", "linux_step_picker", 110, 35, ("Choose a step", "Run this step", "Offer checks can change Android settings")),
+    ("08-linux-step-picker", "linux_step_picker", 110, 35, ("Choose a step", "Run this step")),
 ]
 
 
