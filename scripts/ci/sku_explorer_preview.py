@@ -52,7 +52,7 @@ class SKUExplorerPreview(ModalScreen[None]):
     #sku_rows { color: #dae8f6; height: auto; }
     #sku_detail { color: #a9c7d8; height: auto; margin-top: 1; }
     #sku_footer { height: auto; color: #98c0d7; margin-top: 0; }
-    #sku_close { width: 19; height: 2; margin-top: 0; background: #203d59; }
+    #sku_close { width: 19; height: 3; margin-top: 0; background: #203d59; }
     Screen.tiny #sku_card { padding: 0 1; }
     """
 
