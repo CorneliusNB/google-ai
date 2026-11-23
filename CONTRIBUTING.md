@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve the Windows, macOS and Linux implementations of this toolkit. The original implementation comes from [gylive/google-ultra](https://github.com/gylive/google-ultra); current maintenance is by [David Nguyen (@hoangsvit)](https://github.com/hoangsvit).
+Thanks for helping improve the Windows, macOS and Linux implementations of this toolkit. The original implementation comes from [gylive/google-ultra](https://github.com/gylive/google-ultra); current maintenance is by [David Nguyen (@hoangsvit)](https://github.com/hoangsvit). See [CONTRIBUTORS.md](CONTRIBUTORS.md) for full project credits.
 
 ## Report an issue
 
