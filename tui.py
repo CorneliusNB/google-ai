@@ -229,10 +229,16 @@ class ConnectionNotice(SetupNotice):
         if result.state == "connected":
             self.app._connection_polled(result)
         else:
-            self.query_one("#connection_instruction", Static).update(
-                "Still unable to connect. Close and reopen MuMu, wait for Android to boot, "
-                "enable ADB debugging, then press Retry connection."
-            )
+            if getattr(self.app, "linux_mode", False):
+                guidance = ("Still unable to connect. Unlock the Android phone, check USB "
+                            "debugging and Linux USB permissions, then press Retry connection.")
+            elif getattr(self.app, "macos_mode", False):
+                guidance = ("Still unable to connect. Check the Android device or emulator, "
+                            "approve ADB debugging and press Retry connection.")
+            else:
+                guidance = ("Still unable to connect. Close and reopen MuMu, wait for Android "
+                            "to boot, enable ADB debugging, then press Retry connection.")
+            self.query_one("#connection_instruction", Static).update(guidance)
 
 
 def is_macos_platform() -> bool:
