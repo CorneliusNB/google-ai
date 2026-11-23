@@ -123,8 +123,10 @@ class ReadmeSourceParityTests(unittest.TestCase):
                             "https://github.com/gylive", "https://github.com/hoangsvit",
                             "David Nguyen (@hoangsvit)", "https://eplus.dev",
                             "https://github.com/XrayIran", "https://github.com/iman-ardehali",
-                            "pull/66", "pull/84", "(THIRD_PARTY_NOTICES.md)",
-                            "graphs/contributors"):
+                            "https://github.com/hoangsvit/google-ai/pull/66",
+                            "https://github.com/hoangsvit/google-ai/pull/84",
+                            "(THIRD_PARTY_NOTICES.md)",
+                            "https://github.com/hoangsvit/google-ai/graphs/contributors"):
             self.assertIn(attribution, credits)
         for name in ("README.md", *(f"README.{locale}.md" for locale in LOCALES)):
             with self.subTest(name=name):
