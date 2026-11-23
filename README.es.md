@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: 1a71e505dcc435e48b65cc5199153c605fb02c1a -->
+<!-- Source README.md git-blob: a3845e5770429f2a91707307b99e04681170d01e -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -111,13 +111,13 @@ sh run-macos.sh
 En Ubuntu x86_64, instala Git, Python 3.10 o posterior con `venv` y `pip`, y Android SDK Platform-Tools. Agrega `adb` a `PATH` o indica la ruta del ejecutable en `ADB_PATH`. Conecta por USB un teléfono Android con acceso root, Google Play Store y Google One. Activa la depuración USB, desbloquea el teléfono y autoriza la conexión. Comprueba que ADB muestre un solo dispositivo con estado `device`.
 
 ```sh
-git clone https://github.com/hoangsvit/google-ai.git
+git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
 cd google-ai
 "${ADB_PATH:-adb}" devices
 sh run-linux.sh
 ```
 
-**Linux antes de la fusión:** Para probar PR #84, ejecuta `git switch --track origin/integration/linux-feature-to-main-20261123` después de clonar. Tras la fusión, `main` incluirá `run-linux.sh`.
+**Usa la rama `main`:** Una vez fusionado el soporte de Linux, clona `main` directamente con el comando anterior. No necesitas cambiar a ramas de desarrollo ni a la rama de la PR.
 
 Usa una versión que incluya `run-linux.sh`. El script abre el panel e instala las versiones fijadas de Textual y Frida 16.5.9 en un entorno local `.venv`. Si Ubuntu no puede crearlo, instala `python3-venv` o el paquete venv de tu versión de Python.
 

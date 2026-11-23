@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: 1a71e505dcc435e48b65cc5199153c605fb02c1a -->
+<!-- Source README.md git-blob: a3845e5770429f2a91707307b99e04681170d01e -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -110,13 +110,13 @@ sh run-macos.sh
 在 Ubuntu x86_64 上安装 Git、带有 `venv` 和 `pip` 的 Python 3.10 或更高版本，以及 Android SDK Platform-Tools。将 `adb` 加入 `PATH`，或用 `ADB_PATH` 指定可执行文件。用 USB 连接已取得 root 权限且装有 Google Play 商店和 Google One 的 Android 手机。打开 USB 调试，解锁手机并确认授权。ADB 应只显示一台状态为 `device` 的设备。
 
 ```sh
-git clone https://github.com/hoangsvit/google-ai.git
+git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
 cd google-ai
 "${ADB_PATH:-adb}" devices
 sh run-linux.sh
 ```
 
-**合并前测试 Linux 版本：** 测试 PR #84 时，克隆后运行 `git switch --track origin/integration/linux-feature-to-main-20261123`。合并后，`main` 默认包含 `run-linux.sh`。
+**使用 `main` 分支：** Linux 功能合并后，请按上述命令直接克隆 `main`，无需切换到实验分支或 PR 分支。
 
 请选择包含 `run-linux.sh` 的版本。启动脚本会打开界面，并在本地 `.venv` 中安装固定版本的 Textual 和 Frida 16.5.9。如果 Ubuntu 无法创建虚拟环境，请安装 `python3-venv` 或与当前 Python 版本对应的 venv 软件包。
 

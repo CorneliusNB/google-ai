@@ -51,6 +51,16 @@ class DocumentationNavigationTests(unittest.TestCase):
             self.assertIn("| Linux |", localized)
             self.assertNotIn("git switch feature", localized)
 
+    def test_linux_user_guides_clone_main_only(self):
+        guides = [ROOT / "README.md", DOCS / "LINUX.md"]
+        guides.extend(ROOT / f"README.{locale}.md" for locale in LOCALIZED)
+        for guide in guides:
+            with self.subTest(guide=guide.name):
+                body = guide.read_text(encoding="utf-8")
+                self.assertIn("git clone --branch main --single-branch", body)
+                self.assertNotIn("git switch feature", body)
+                self.assertNotIn("git switch --track origin/integration", body)
+
     def test_documentation_hub_references_every_topic(self):
         hub = (DOCS / "README.md").read_text(encoding="utf-8")
         self.assertIn("[!CAUTION]", hub)

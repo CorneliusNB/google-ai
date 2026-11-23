@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: 1a71e505dcc435e48b65cc5199153c605fb02c1a -->
+<!-- Source README.md git-blob: a3845e5770429f2a91707307b99e04681170d01e -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -112,13 +112,13 @@ Lệnh `sh run-macos.sh` mở cùng giao diện Textual với **Steps 0–5**. `
 Trên Ubuntu x86_64, hãy cài Git, Python 3.10 trở lên kèm `venv` và `pip`, cùng Android SDK Platform-Tools. Thêm `adb` vào `PATH` hoặc đặt `ADB_PATH` trỏ tới tệp thực thi. Kết nối qua USB với điện thoại Android đã root và có Google Play Store, Google One. Bật gỡ lỗi USB, mở khóa điện thoại và chấp nhận yêu cầu cấp quyền. ADB phải hiển thị một thiết bị ở trạng thái `device`.
 
 ```sh
-git clone https://github.com/hoangsvit/google-ai.git
+git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
 cd google-ai
 "${ADB_PATH:-adb}" devices
 sh run-linux.sh
 ```
 
-**Bản Linux trước khi merge:** Khi thử PR #84, sau khi clone hãy chạy `git switch --track origin/integration/linux-feature-to-main-20261123`. Sau khi PR được merge, nhánh `main` đã có `run-linux.sh`.
+**Dùng nhánh `main`:** Sau khi phần Linux được tích hợp, hãy clone trực tiếp `main` theo lệnh trên. Không cần chuyển sang nhánh nghiên cứu hay nhánh PR.
 
 Dùng phiên bản có tệp `run-linux.sh`. Tập lệnh mở giao diện và cài các phiên bản Textual và Frida 16.5.9 đã định sẵn vào `.venv` cục bộ. Nếu Ubuntu không tạo được môi trường, hãy cài `python3-venv` hoặc gói venv dành cho phiên bản Python đang dùng.
 

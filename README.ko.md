@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 한국어
 
-<!-- Source README.md git-blob: 1a71e505dcc435e48b65cc5199153c605fb02c1a -->
+<!-- Source README.md git-blob: a3845e5770429f2a91707307b99e04681170d01e -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -110,13 +110,13 @@ sh run-macos.sh
 Ubuntu x86_64에서 Git, `venv`와 `pip`를 사용할 수 있는 Python 3.10 이상, Android SDK Platform-Tools를 설치하세요. `adb`를 `PATH`에 추가하거나 `ADB_PATH`로 실행 파일을 지정합니다. Google Play 스토어와 Google One이 설치된 루팅 Android 휴대전화를 USB로 연결하세요. USB 디버깅을 켜고 휴대전화의 잠금을 해제한 후 연결을 승인합니다. ADB에 상태가 `device`인 기기가 한 대만 표시되는지 확인하세요.
 
 ```sh
-git clone https://github.com/hoangsvit/google-ai.git
+git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
 cd google-ai
 "${ADB_PATH:-adb}" devices
 sh run-linux.sh
 ```
 
-**병합 전 Linux 테스트:** PR #84를 테스트하려면 클론한 후 `git switch --track origin/integration/linux-feature-to-main-20261123`을 실행하세요. 병합 후에는 `main`에 `run-linux.sh`가 포함됩니다.
+**`main` 브랜치 사용:** Linux 기능이 병합된 후 위 명령으로 `main`을 직접 복제하세요. 개발 브랜치나 PR 브랜치로 전환할 필요가 없습니다.
 
 `run-linux.sh`가 포함된 버전을 사용하세요. 실행 스크립트는 대시보드를 열고 지정된 버전의 Textual과 Frida 16.5.9를 로컬 `.venv`에 설치합니다. Ubuntu에서 가상 환경을 만들 수 없다면 `python3-venv` 또는 사용 중인 Python 버전에 맞는 venv 패키지를 설치하세요.
 

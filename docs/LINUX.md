@@ -12,13 +12,11 @@ The engine used by Steps 0 and 1 can request an ADB daemon restart for root, dep
 
 1. Install Git, Python 3.10+ with `venv` and `pip`, and Android SDK Platform-Tools. Put `adb` on `PATH` or set `ADB_PATH` to the path of the executable.
 2. Connect one rooted Android device by USB. Enable USB debugging, unlock the device and approve the authorization prompt. Google Play Store and Google One must be installed. Sign in to the intended Google Play account on the device.
-3. Clone the toolkit and start the Linux launcher. Before PR #84 merges, switch to its review branch. After merge, the default `main` branch includes `run-linux.sh`. The ADB check respects `ADB_PATH`:
+3. Once Linux support has been merged, clone the stable `main` branch and start the Linux launcher. The ADB check respects `ADB_PATH`:
 
    ```sh
-   git clone https://github.com/hoangsvit/google-ai.git
+   git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
    cd google-ai
-   # Only when testing PR #84 before merge:
-   # git switch --track origin/integration/linux-feature-to-main-20261123
    "${ADB_PATH:-adb}" devices
    sh run-linux.sh
    ```

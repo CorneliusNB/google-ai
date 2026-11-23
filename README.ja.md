@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 日本語
 
-<!-- Source README.md git-blob: 1a71e505dcc435e48b65cc5199153c605fb02c1a -->
+<!-- Source README.md git-blob: a3845e5770429f2a91707307b99e04681170d01e -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -110,13 +110,13 @@ sh run-macos.sh
 Ubuntu x86_64 では Git、`venv` と `pip` が使える Python 3.10 以降、Android SDK Platform-Tools を用意します。`adb` を `PATH` に追加するか、実行ファイルを `ADB_PATH` で指定してください。Google Play ストアと Google One が入った root 化済みの Android 端末を USB で接続します。USB デバッグを有効にし、端末のロックを解除して接続を許可します。ADB に `device` と表示される端末が 1 台であることを確認してください。
 
 ```sh
-git clone https://github.com/hoangsvit/google-ai.git
+git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
 cd google-ai
 "${ADB_PATH:-adb}" devices
 sh run-linux.sh
 ```
 
-**マージ前の Linux 版を試す場合：** PR #84 の確認中はクローン後に `git switch --track origin/integration/linux-feature-to-main-20261123` を実行します。マージ後は `main` に `run-linux.sh` が含まれます。
+**`main` ブランチを使用：** Linux 対応がマージされたら、上記のコマンドで `main` を直接取得してください。開発用ブランチや PR ブランチへの切り替えは不要です。
 
 `run-linux.sh` を含むバージョンを使用してください。起動スクリプトはダッシュボードを開き、指定バージョンの Textual と Frida 16.5.9 をローカルの `.venv` にインストールします。Ubuntu で仮想環境を作成できない場合は、`python3-venv` または使用中の Python に対応する venv パッケージをインストールしてください。
 

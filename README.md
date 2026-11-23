@@ -119,13 +119,13 @@ The macOS adapter exposes **Steps 0–5**. **Steps 2–5 may initiate real Googl
 On Ubuntu x86_64, install Git, Python 3.10+ with `venv` and `pip`, and Android SDK Platform-Tools. Put `adb` on `PATH` or set `ADB_PATH` to its executable. Connect a rooted Android phone with Google Play Store and Google One over USB. Enable USB debugging, unlock the phone, and approve the authorization prompt. Check that ADB reports one device with status `device`.
 
 ```sh
-git clone https://github.com/hoangsvit/google-ai.git
+git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
 cd google-ai
 "${ADB_PATH:-adb}" devices
 sh run-linux.sh
 ```
 
-Use a revision containing `run-linux.sh`. Before [PR #84](https://github.com/hoangsvit/google-ai/pull/84) merges, run `git switch --track origin/integration/linux-feature-to-main-20261123` after cloning; after merge the default `main` contains Linux support. The launcher opens the dashboard and installs the pinned Textual and Frida 16.5.9 dependencies into a local `.venv`. If Ubuntu cannot create that environment, install `python3-venv` or the venv package for your Python version.
+The `main` branch is the stable entrypoint for Linux after this integration merges. The launcher opens the dashboard and installs pinned Textual and Frida 16.5.9 dependencies into a local `.venv`. If Ubuntu cannot create that environment, install `python3-venv` or the venv package for your Python version.
 
 - `sh run-linux.sh --check` runs Step 0, which can modify Android, Frida or network settings.
 - `sh run-linux.sh --list` runs Step 1 to list offers without requesting checkout. It can also prepare the Android environment.
