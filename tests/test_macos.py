@@ -17,6 +17,12 @@ from tui_core import command_for_step
 
 
 class MacStageAdapterTests(unittest.TestCase):
+    def setUp(self):
+        # Exercise macOS compatibility independently of the CI host OS.
+        platform_patcher = patch("macos_runner.sys.platform", "darwin")
+        platform_patcher.start()
+        self.addCleanup(platform_patcher.stop)
+
     def test_android_details_query_uses_selected_device(self):
         result = subprocess.CompletedProcess([], 0, "14\n34\narm64-v8a\n", "")
         with patch("macos_runner.subprocess.run", return_value=result) as run:
@@ -73,7 +79,7 @@ class MacStageAdapterTests(unittest.TestCase):
         engine.assert_not_called()
 
     def test_paid_stage_refuses_unconfirmed_or_wrong_account(self):
-        report = {"status": "listed", "offers": [{"id": "12months-eft", "micros": "0"}],
+        report = {"status": "listed", "offers": [{"product": "g1.2tb.ai.subs_variant", "id": "12months-eft", "micros": "0"}],
                   "detected_play_account": "alice@example.com"}
         with self.assertRaisesRegex(RuntimeError, "confirmations"):
             macos_runner.run_stage(2, "device-1", {})
@@ -84,7 +90,7 @@ class MacStageAdapterTests(unittest.TestCase):
                         macos_runner.run_stage(2, "device-1", {}, confirmed=True)
 
     def test_paid_stage_rejects_nonzero_offer(self):
-        report = {"status": "listed", "offers": [{"id": "12months-eft", "micros": "3000000"}],
+        report = {"status": "listed", "offers": [{"product": "g1.2tb.ai.subs_variant", "id": "12months-eft", "micros": "3000000"}],
                   "detected_play_account": "alice@example.com"}
         with patch("macos_runner.run_engine", return_value=0) as send:
             with patch("macos_runner.list_offers", return_value=report):
@@ -94,7 +100,7 @@ class MacStageAdapterTests(unittest.TestCase):
             self.assertEqual(send.call_count, 1)  # environment only; no checkout
 
     def test_paid_stage_invokes_original_engine_only_after_checks(self):
-        report = {"status": "listed", "offers": [{"id": "6months-eft", "micros": 0}],
+        report = {"status": "listed", "offers": [{"product": "g1.2tb.ai.subs_variant", "id": "6months-eft", "micros": 0}],
                   "detected_play_account": "alice@example.com"}
         with patch("macos_runner.run_engine", return_value=0) as send:
             with patch("macos_runner.list_offers", return_value=report):

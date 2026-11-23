@@ -328,7 +328,7 @@ def validate_step(step: int) -> int:
 def command_for_step(step: int, repo: Path, shell: str | None = None,
                      account: str | None = None, device: str | None = None) -> list[str]:
     validate_step(step)
-    if sys.platform == "darwin":
+    if sys.platform in ("darwin", "linux") and shell is None:
         bridge = repo / "macos_runner.py"
         if not bridge.is_file():
             raise FileNotFoundError("macos_runner.py is missing")
@@ -339,7 +339,7 @@ def command_for_step(step: int, repo: Path, shell: str | None = None,
             command.append("--confirmed")
         if step >= 3:
             command.append("--active-confirmed")
-        if step >= 2 and account:
+        if account and (step >= 2 or (sys.platform == "linux" and step == 1)):
             command.extend(["--expected-account", account])
         if step >= 2 and device:
             command.extend(["--expected-device", device])
