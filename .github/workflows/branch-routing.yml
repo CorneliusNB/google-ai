@@ -36,6 +36,9 @@ jobs:
             elif [[ "$PR_NUMBER" == "84" && "$HEAD" == "integration/linux-feature-to-main-20261123" && "$HEAD_REPO" == "$TARGET_REPO" ]]; then
               # Explicit one-off promotion of the tested Linux feature, including original PR #66 history.
               echo "Branch routing OK: approved Linux integration PR #84 -> main"
+            elif [[ "$PR_NUMBER" == "86" && "$HEAD" == "review/contributor-pr64-windows-cleanup-20261124" && "$HEAD_REPO" == "$TARGET_REPO" ]]; then
+              # Scoped contributor review PR only; do not change the default dev-first policy.
+              echo "Branch routing OK: review-only contributor PR #86"
             elif [[ "$HEAD" != "dev" || "$HEAD_REPO" != "$TARGET_REPO" ]]; then
               echo "::error::Only the repository's dev branch may be promoted into main."
               exit 1
