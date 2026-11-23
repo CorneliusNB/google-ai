@@ -31,8 +31,10 @@ class OriginalProStageTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         notice = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
-        self.assertIn("github.com/gylive/google-ultra", readme)
-        self.assertIn("David Nguyen (@hoangsvit)", readme)
+        credits = (ROOT / "CONTRIBUTORS.md").read_text(encoding="utf-8")
+        self.assertIn("(CONTRIBUTORS.md)", readme)
+        self.assertIn("github.com/gylive/google-ultra", credits)
+        self.assertIn("David Nguyen (@hoangsvit)", credits)
         self.assertIn("Original: @gylive", ps)
         self.assertIn("Maintained: @hoangsvit", ps)
         self.assertIn("Copyright (c) 2026 gylive", notice)
@@ -56,7 +58,9 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertIn("-Debug", usage)
         self.assertIn("(docs/USAGE.md)", readme)
         self.assertIn("https://eplus.dev", ps)
-        self.assertIn("https://eplus.dev", readme)
+        credits = (ROOT / "CONTRIBUTORS.md").read_text(encoding="utf-8")
+        self.assertIn("(CONTRIBUTORS.md)", readme)
+        self.assertIn("https://eplus.dev", credits)
 
     def test_friendly_user_error_mapping_preserves_checkout_safety(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
