@@ -24,6 +24,8 @@ TECHNICAL = (
 class ReadmeSourceParityTests(unittest.TestCase):
     def test_all_locales_track_exact_source_blob(self):
         source = (ROOT / "README.md").read_bytes()
+        # Git blobs use LF, even when Windows core.autocrlf checks out CRLF.
+        source = source.replace(b"\r\n", b"\n")
         payload = ("blob " + str(len(source)) + "\0").encode("ascii") + source
         sha = hashlib.sha1(payload).hexdigest()
         for locale in LOCALES:
