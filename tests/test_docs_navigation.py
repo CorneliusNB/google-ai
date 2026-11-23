@@ -96,7 +96,8 @@ class DocumentationNavigationTests(unittest.TestCase):
         self.assertIn("## macOS — Install and run", readme)
         self.assertIn("## Linux — Install and run", readme)
         self.assertIn("sh run-linux.sh", readme)
-        self.assertEqual(readme.count("git clone https://github.com/hoangsvit/google-ai.git"), 3)
+        self.assertEqual(readme.count("git clone https://github.com/hoangsvit/google-ai.git"), 2)
+        self.assertIn("git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git", readme)
         self.assertIn(".\\run-all.ps1", readme)
         self.assertIn("sh run-macos.sh", readme)
         self.assertIn("brew install android-platform-tools", readme)
@@ -113,7 +114,8 @@ class DocumentationNavigationTests(unittest.TestCase):
                 self.assertIn("macOS", text)
                 self.assertIn("sh run-macos.sh", text)
                 self.assertIn(".\\run-all.ps1", text)
-                self.assertEqual(text.count("git clone https://github.com/hoangsvit/google-ai.git"), 3)
+                self.assertEqual(text.count("git clone https://github.com/hoangsvit/google-ai.git"), 2)
+                self.assertIn("git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git", text)
                 self.assertNotIn("git switch dev", text)
 
     def test_user_install_guides_never_require_switching_to_dev(self):
