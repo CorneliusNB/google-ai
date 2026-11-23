@@ -141,7 +141,7 @@ class DocumentationNavigationTests(unittest.TestCase):
         hub = (DOCS / "README.md").read_text(encoding="utf-8")
         mac_guide = (DOCS / "MACOS-PREVIEW.md").read_text(encoding="utf-8")
         win_guide = (DOCS / "INSTALLATION.md").read_text(encoding="utf-8")
-        self.assertIn("PowerShell is not required or used on macOS", overview)
+        self.assertIn("PowerShell is not required on macOS or Linux", overview)
         self.assertIn("Terminal (zsh/bash)", hub)
         self.assertIn("PowerShell 5.1+", hub)
         self.assertIn("sh run-macos.sh", hub)
