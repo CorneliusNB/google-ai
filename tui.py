@@ -32,6 +32,17 @@ from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_co
 from stage_history import latest_history, read_history, record_history
 
 
+class TechnicalLog(RichLog):
+    """Keep the latest technical output visible when a hidden log is revealed."""
+
+    def on_resize(self, event) -> None:
+        # RichLog may defer writes while display:none; its first visible resize
+        # flushes those writes and finally gives the log a real scroll range.
+        super().on_resize(event)
+        if self.display:
+            self.scroll_end(animate=False, immediate=True, x_axis=False)
+
+
 class Approval(ModalScreen[bool]):
     """Clickable approval without long typed phrases."""
 
@@ -430,7 +441,7 @@ class GoogleAITUI(App[None]):
                     yield Button("Reload toolkit", id="reload")
                     yield Button("Exit toolkit", id="exit")
                 with Vertical(id="results"):
-                    yield RichLog(id="debug_log", wrap=True, highlight=False, markup=False)
+                    yield TechnicalLog(id="debug_log", wrap=True, highlight=False, markup=False)
                     with Vertical(id="welcome_panel"):
                         yield Static("GET STARTED · READ-ONLY CHECK", id="welcome")
                         yield Static("Check MuMu connection and Google AI offers without opening checkout.", id="quick_hint")
@@ -1052,19 +1063,13 @@ class GoogleAITUI(App[None]):
             for index, line in enumerate(self._last_output):
                 log.write(line, scroll_end=index == last_index)
             self.query_one("#results").scroll_home(animate=False)
-            # RichLog can defer its content reflow until after the first
-            # visible layout. One after-refresh callback may still see the old
-            # max_scroll_y, so follow again on the subsequent refresh.
+            # Follow on the log's own refresh, not the parent screen's:
+            # its first visible resize can render previously deferred lines.
             log.refresh(layout=True)
-            def follow_after_layout() -> None:
-                if not self.debug_visible:
-                    return
-                log.scroll_end(animate=False, immediate=True)
-                self.call_after_refresh(
-                    lambda: log.scroll_end(animate=False, immediate=True)
-                    if self.debug_visible else None
-                )
-            self.call_after_refresh(follow_after_layout)
+            log.call_after_refresh(
+                lambda: log.scroll_end(animate=False, immediate=True, x_axis=False)
+                if self.debug_visible else None
+            )
         self.query_one("#debug", Button).label = (
             "Hide technical details" if self.debug_visible else "Show technical details"
         )
