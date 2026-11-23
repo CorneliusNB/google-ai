@@ -9,16 +9,16 @@ This is the **version-controlled documentation hub** for the Windows, macOS and 
 
 ## Platform software requirements
 
-| | Windows | macOS |
-| --- | --- | --- |
-| Shell | **PowerShell 5.1+** | **Terminal (zsh/bash)**; PowerShell is **not** needed |
-| Python and Git | Python **3.10+** and Git | Python **3.10+** and Git |
-| Android | Root/ADB-enabled MuMuPlayer or authorized Android device with Google Play Store and Google One | Rooted compatible Android device/emulator with both apps; MuMuPlayer Pro for Mac is an Apple Silicon option, not Intel |
-| ADB and Frida | Windows launcher can locate/install Platform-Tools and prepare Frida **16.5.9** | Install ADB separately (e.g. `brew install android-platform-tools`); Mac launcher installs Frida **16.5.9** into `.venv` |
-| Launcher | `.\run-all.ps1` | `sh run-macos.sh` or `ePlus-AI-Toolkit.command` |
-| Setup guide | [Windows requirements and installation](INSTALLATION.md) | [macOS requirements and installation](MACOS-PREVIEW.md) |
+| | Windows | macOS | Linux (Ubuntu x86_64) |
+| --- | --- | --- | --- |
+| Shell | **PowerShell 5.1+** | **Terminal (zsh/bash)**; PowerShell is **not** needed | **Terminal (sh/bash)**; no PowerShell |
+| Python and Git | Python **3.10+** and Git | Python **3.10+** and Git | Python **3.10+** with `venv`/`pip` and Git |
+| Android | Root/ADB-enabled MuMuPlayer or authorized Android device with Google Play Store and Google One | Rooted compatible Android device/emulator with both apps; MuMuPlayer Pro for Mac is an Apple Silicon option, not Intel | Rooted USB Android phone with Google Play Store and Google One; one authorized ADB device |
+| ADB and Frida | Windows launcher can locate/install Platform-Tools and prepare Frida **16.5.9** | Install ADB separately (e.g. `brew install android-platform-tools`); Mac launcher installs Frida **16.5.9** into `.venv` | Install Platform-Tools separately (`PATH` or `ADB_PATH`); Frida **16.5.9** in `.venv`; Android 16+ blocked |
+| Launcher | `.\run-all.ps1` | `sh run-macos.sh` or `ePlus-AI-Toolkit.command` | `sh run-linux.sh` |
+| Setup guide | [Windows requirements and installation](INSTALLATION.md) | [macOS requirements and installation](MACOS-PREVIEW.md) | [Linux setup and verification](LINUX.md) |
 
-Use the native setup instructions for [Linux](LINUX.md). Automated checks use mocks for billing on every platform. Real Mac/MuMu billing remains unverified.
+Automated checks use mocks for billing on every platform. Real Mac/MuMu checkout and Linux rooted-device end-to-end testing remain unverified. [See the CI-generated terminal preview gallery on PR #84](https://github.com/hoangsvit/google-ai/pull/84). All preview account and offer data is simulated.
 
 ## Start here
 

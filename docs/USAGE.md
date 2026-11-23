@@ -1,4 +1,4 @@
-# Using the Textual dashboard and PowerShell CLI
+# Using the Textual dashboard (Windows, macOS and Linux) and PowerShell CLI
 
 [Documentation home](README.md) · [Repository README](../README.md) · [Safety](SAFETY.md)
 

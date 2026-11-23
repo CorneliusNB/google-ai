@@ -38,6 +38,19 @@ class DocumentationNavigationTests(unittest.TestCase):
                 self.assertTrue((DOCS / "i18n" / f"README.{lang}.md").is_file())
         self.assertGreater((DOCS / "USAGE.md").stat().st_size, 3000)
 
+    def test_linux_docs_include_platform_and_adb_path(self):
+        english = (ROOT / "README.md").read_text(encoding="utf-8")
+        hub = (DOCS / "README.md").read_text(encoding="utf-8")
+        linux = (DOCS / "LINUX.md").read_text(encoding="utf-8")
+        self.assertIn("| Linux |", english)
+        self.assertIn("| Linux (Ubuntu x86_64) |", hub)
+        self.assertIn("ADB_PATH", linux)
+        self.assertNotIn("git switch feature", english)
+        for lang in LOCALIZED:
+            localized = (ROOT / f"README.{lang}.md").read_text(encoding="utf-8")
+            self.assertIn("| Linux |", localized)
+            self.assertNotIn("git switch feature", localized)
+
     def test_documentation_hub_references_every_topic(self):
         hub = (DOCS / "README.md").read_text(encoding="utf-8")
         self.assertIn("[!CAUTION]", hub)
