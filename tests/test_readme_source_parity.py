@@ -115,6 +115,18 @@ class ReadmeSourceParityTests(unittest.TestCase):
                                "Run this step", "↺"):
                     self.assertIn(detail, content)
 
+    def test_credits_are_centralized(self):
+        credits = (ROOT / "CONTRIBUTORS.md").read_text(encoding="utf-8")
+        for attribution in ("@gylive", "@hoangsvit", "@XrayIran",
+                            "@iman-ardehali", "pull/66", "pull/84",
+                            "THIRD_PARTY_NOTICES.md", "graphs/contributors"):
+            self.assertIn(attribution, credits)
+        for name in ("README.md", *(f"README.{locale}.md" for locale in LOCALES)):
+            with self.subTest(name=name):
+                content = (ROOT / name).read_text(encoding="utf-8")
+                self.assertIn("(CONTRIBUTORS.md)", content)
+        self.assertIn("(CONTRIBUTORS.md)", (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8"))
+
     def test_english_alias_links_to_root_source(self):
         self.assertIn("(README.md)", (ROOT / "README.en.md").read_text(encoding="utf-8"))
 
