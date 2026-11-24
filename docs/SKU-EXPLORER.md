@@ -4,17 +4,19 @@ This feature is available on the research branch `research/one-sku-billing-study
 
 ## Start the app
 
-Use your existing installation, but check out the research branch first:
+Use your existing installation, but check out the research branch first (first-time clone only):
 
 ```sh
 git fetch origin
-git switch research/one-sku-billing-study || git switch --track origin/research/one-sku-billing-study
+git switch --track origin/research/one-sku-billing-study
 git pull --ff-only
 ```
 
 - Windows: launch `./run-all.ps1` in PowerShell (use `.\run-all.ps1` on Windows).
 - macOS: `sh run-macos.sh`.
 - Linux (on branches with the Linux launcher): `sh run-linux.sh`.
+
+If you already have the branch locally, run `git switch research/one-sku-billing-study` followed by `git pull --ff-only` instead.
 
 ### Check SKU from the Textual dashboard
 
