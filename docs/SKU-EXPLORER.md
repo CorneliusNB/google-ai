@@ -31,9 +31,22 @@ If the modal’s **Check SKU** button is disabled, complete Step 1 again and con
 
 **Safety and limits:** one manually chosen SKU per click; one bounded ProductDetails query; no billing flow, Subscribe tap, token export, account switching or automatic retry. Cancelling the check terminates the query process. No on-device or subscription result has been validated from this PR's CI; tests and screenshots use mocks/synthetic states.
 
+## Dynamic Step 5+ discovery
+
+**Step 1** now aggregates additional observed offers (not a separate step):
+
+- The normal **Check Device & Offers** report supplies its offer IDs for the selected account/device.
+- After a *real and verified* Step 1 execution, one bounded read-only query checks three existing known candidate product IDs (`g1.play.20tb`, `g1.play.ai.pro`, `g1.30tb`). The candidate list is not an exhaustive Google Play catalogue.
+- **Check SKU & prices** can inspect a custom product manually; its sanitized returned offers are also added to the same Step 1 results.
+- Steps **2, 3 and 4** remain the original Pro workflow, even if no extra offers are found.
+- Additional distinct offers appear as **Step 5, Step 6, Step 7…**, with stable sorting, deduplication and a limit of 12 extra entries. If no additional offers are observed, Step 5+ is hidden.
+- The pre-existing optional Pro +6-month operation is retained *only if* the corresponding known offer `6months-eft-ss-2026` on `g1.2tb.ai.subs_variant` is observed. In that case it is Step 5, and retains explicit payment approval and preflight checks.
+- Unknown extra offers are **inspect-only**. Seeing a Step number does not authorize payment or mean the offer is redeemable; no generic checkout is inferred, and the guided sequence never automatically advances beyond Step 4.
+- Discovered entries are session-bound. They are cleared when Step 1 is rerun or the selected account/device changes. No offers or product IDs are stored as new subscription status.
+
 ## Preview screenshots
 
-Open [PR #85](https://github.com/hoangsvit/google-ai/pull/85) and find the automated **Terminal UI previews** comment. Images **09-sku-explorer.png** and **10-step1-check-sku.png** show the live SKU details window and the **Check SKU & prices** button beside the offer-check action inside Step 1, using synthetic data only. Both the main dashboard and SKU modal are captured without connecting a real Android device.
+Open [PR #85](https://github.com/hoangsvit/google-ai/pull/85) and find the automated **Terminal UI previews** comment. Images **09-sku-explorer.png**, **10-step1-check-sku.png** and **11-step1-discovered-offers.png** show the live SKU details window and the **Check SKU & prices** button beside the offer-check action inside Step 1, using synthetic data only. Both the main dashboard and SKU modal are captured without connecting a real Android device.
 
 ## Developer boundaries
 
