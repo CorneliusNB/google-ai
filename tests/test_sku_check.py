@@ -80,8 +80,9 @@ class SKUMetadataTests(unittest.TestCase):
         self.assertEqual(out["items"], [])
 
     def test_runner_fails_closed_for_invalid_serial(self):
-        with patch.object(runner, "find_adb", side_effect=AssertionError("must not be called")):
+        with patch.object(runner, "find_adb", side_effect=RuntimeError("must not be called")) as find:
             out = runner.check_skus("../../bad", ["g1.play.20tb"])
+            find.assert_not_called()
         self.assertEqual(out["status"], "device_not_ready")
 
     def test_query_javascript_has_no_checkout_path(self):
