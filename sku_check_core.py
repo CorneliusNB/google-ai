@@ -202,6 +202,7 @@ def render_result(result: dict) -> str:
             lines.append(f"SKU: {sku}  |  Some returned metadata unavailable or invalid")
     if result.get("truncated") is True:
         lines.append("Offer details truncated locally; results are incomplete.")
+    lines.append("Play account for additional SKU results: UNVERIFIED")
     lines.append("Eligibility: UNVERIFIED  |  Subscription: UNVERIFIED")
     lines.append("No checkout or subscription change was requested.")
     return "\n".join(lines)
