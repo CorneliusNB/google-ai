@@ -1,66 +1,65 @@
-name: "Contribution / Đóng góp"
+name: "Contribution"
 description: "Propose a contribution, share completed work, or request contributor credit."
 title: "[Contribution] "
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for helping improve ePlus AI Toolkit! / Cảm ơn bạn đã đóng góp cho dự án!
+        Thank you for helping improve ePlus AI Toolkit!
         Use this form for contributions and attribution requests. For ordinary bugs or feature requests, use the relevant issue form when available.
         Do not include credentials, account emails, payment details, billing tokens, device identifiers or unredacted logs. Never perform real checkout to demonstrate a contribution.
   - type: dropdown
     id: contribution_type
     attributes:
-      label: "Contribution type / Loại đóng góp"
+      label: "Contribution type"
       options:
-        - "Code or bug fix / Mã nguồn hoặc sửa lỗi"
-        - "Platform support / Hỗ trợ nền tảng"
-        - "Documentation or translation / Tài liệu hoặc bản dịch"
-        - "Testing or reproducible feedback / Kiểm thử hoặc phản hồi"
-        - "Contributor credit or correction / Ghi công hoặc đính chính"
-        - "Other / Khác"
+        - "Code or bug fix"
+        - "Platform support"
+        - "Documentation or translation"
+        - "Testing or reproducible feedback"
+        - "Contributor credit or correction"
+        - "Other"
     validations:
       required: true
   - type: dropdown
     id: contribution_status
     attributes:
-      label: "Status / Trạng thái"
+      label: "Status"
       options:
-        - "Proposal / Đề xuất"
-        - "Work in progress / Đang thực hiện"
-        - "Completed or submitted / Đã hoàn thành hoặc gửi"
-        - "Existing credit correction / Đính chính ghi công hiện có"
+        - "Proposal"
+        - "Work in progress"
+        - "Completed or submitted"
+        - "Existing credit correction"
     validations:
       required: true
   - type: textarea
     id: summary
     attributes:
-      label: "Contribution details / Nội dung đóng góp"
-      description: "Describe your work, its benefits, or the exact attribution correction. / Mô tả công việc, lợi ích hoặc thông tin cần đính chính."
+      label: "Contribution details"
+      description: "Describe your work, its benefits, or the exact attribution correction."
     validations:
       required: true
   - type: textarea
     id: evidence
     attributes:
-      label: "References / Minh chứng"
-      description: "Public PR, commit, issue, documentation or sanitized test evidence. For credit requests, identify the work and its original author(s). For proposals, explain the intended work. / Liên kết hoặc mô tả minh chứng; với yêu cầu ghi công, nêu rõ công việc và tác giả gốc."
+      label: "References"
+      description: "Public PR, commit, issue, documentation or sanitized test evidence. For credit requests, identify the work and its original author(s). For proposals, explain the intended work."
     validations:
       required: true
   - type: input
     id: preferred_credit
     attributes:
-      label: "Preferred attribution (optional) / Tên ghi công (không bắt buộc)"
-      description: "Your preferred public name or GitHub handle. Do not share private contact details. / Tên công khai hoặc tài khoản GitHub."
+      label: "Preferred attribution (optional)"
+      description: "Your preferred public name or GitHub handle. Do not share private contact details."
       placeholder: "@github-handle"
   - type: checkboxes
     id: confirmation
     attributes:
-      label: "Confirmation / Xác nhận"
+      label: "Confirmation"
       options:
-        - label: "I have removed sensitive data and will preserve original authorship and applicable license notices. / Tôi đã loại bỏ dữ liệu nhạy cảm và giữ nguyên ghi công, thông báo giấy phép gốc."
+        - label: "I have removed sensitive data and will preserve original authorship and applicable license notices."
           required: true
   - type: markdown
     attributes:
       value: |
         Credit requests are reviewed before updating CONTRIBUTORS.md. An issue alone does not establish authorship, approval or GitHub commit-contributor status.
-        Yêu cầu ghi công cần được xem xét trước khi cập nhật CONTRIBUTORS.md; việc mở issue không tự động xác nhận quyền tác giả hoặc ghi nhận đóng góp bằng commit trên GitHub.
