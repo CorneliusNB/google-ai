@@ -949,8 +949,10 @@ class GoogleAITUI(App[None]):
         selector = self.query_one("#step", Select)
         current = selector.value
         selector.set_options(choices)
-        if current not in {option for _, option in choices if option != 99}:
-            selector.value = 1
+        # Textual Select.set_options resets the selection. Restore even when
+        # the old number is still valid, or the dashboard jumps to Step 0.
+        allowed = {option for _, option in choices if option != 99}
+        selector.value = current if current in allowed else 1
         self._update_run_mode()
 
     def _confirm_stage(self, step: int, sequence: bool,
