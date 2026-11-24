@@ -18,6 +18,7 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import time
+import threading
 
 from rich.markup import escape
 from textual import on, work
@@ -26,6 +27,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Static
 
+from sku_check_core import render_result
 from offer_discovery import (ExtraOffer, parse_step1, parse_sku_check,
                              merge_extra_offers, offer_step_label, offer_details)
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
@@ -431,6 +433,9 @@ class GoogleAITUI(App[None]):
         self._real_step1_run = False
         self._offer_report: dict | None = None
         self._sku_report: dict | None = None
+        self._sku_pending = False
+        self._sku_cancel = threading.Event()
+        self._sku_exit = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -529,7 +534,7 @@ class GoogleAITUI(App[None]):
 
     @on(Button.Pressed, "#reload")
     def reload_pressed(self) -> None:
-        if self.busy or self._diagnosing or self._accounts_loading:
+        if self.busy or self._diagnosing or self._accounts_loading or self._sku_pending:
             return
         try:
             os.execv(sys.executable, [sys.executable, str(self.repo / "tui.py")])
@@ -543,7 +548,7 @@ class GoogleAITUI(App[None]):
 
     @on(Button.Pressed, "#choose_account")
     def choose_account_pressed(self) -> None:
-        if self.busy or self._diagnosing or self._accounts_loading:
+        if self.busy or self._diagnosing or self._accounts_loading or self._sku_pending:
             return
         self._accounts_loading = True
         self.query_one("#choose_account", Button).disabled = True
@@ -618,7 +623,7 @@ class GoogleAITUI(App[None]):
         self.push_screen(AccountPicker(accounts), self._account_chosen)
 
     def _account_chosen(self, account: str | None) -> None:
-        if not account or self.busy:
+        if not account or self.busy or self._sku_pending:
             return
         self._selected_account = account
         self._extra_scan_generation += 1
@@ -644,7 +649,7 @@ class GoogleAITUI(App[None]):
 
     @on(Button.Pressed, "#diagnose")
     def diagnose_pressed(self) -> None:
-        if self.busy or self._diagnosing:
+        if self.busy or self._diagnosing or self._sku_pending:
             return
         self._invalidate_connection_polls()
         self._extra_scan_generation += 1
@@ -758,7 +763,7 @@ class GoogleAITUI(App[None]):
         if generation is not None and generation != self._connection_generation:
             return
         self._connection_polling = False
-        if (self.busy or self._diagnosing or
+        if (self.busy or self._diagnosing or self._sku_pending or
                 (isinstance(self.screen, ModalScreen) and not isinstance(self.screen, ConnectionNotice))):
             return
         previous = self._connection_state
@@ -785,6 +790,11 @@ class GoogleAITUI(App[None]):
             self._offer_ready_device = None
             self._extra_scan_generation += 1
             self._update_discovered([], replace=True)
+            self._offer_report = None
+            self._sku_report = None
+            self.query_one("#offer_view", RichLog).clear()
+            self.query_one("#offer_view", RichLog).display = False
+            self.query_one("#offers_title", Static).display = False
             self.sequence = False
             self.query_one("#next", Button).display = False
             self.query_one("#next", Button).disabled = True
@@ -863,7 +873,10 @@ class GoogleAITUI(App[None]):
         self._update_run_mode()
 
     def _update_run_mode(self) -> None:
-        if self.busy:
+        if self.busy or self._diagnosing or self._sku_pending:
+            for control in ("#step", "#mode", "#run", "#sequence"):
+                if len(self.query(control)):
+                    self.query_one(control).disabled = True
             return
         # Textual can deliver a queued Select.Changed while its screen is
         # being unmounted (especially on Windows). Ignore stale UI events.
@@ -998,7 +1011,7 @@ class GoogleAITUI(App[None]):
 
     def _confirm_stage(self, step: int, sequence: bool,
                        previous_verified: bool = False) -> None:
-        if self.busy or self._diagnosing:
+        if self.busy or self._diagnosing or self._sku_pending:
             return
         if step >= 5:
             if not (self._offer_check_ready and 5 <= step < 5 + len(self._extra_offers)):
@@ -1069,7 +1082,7 @@ class GoogleAITUI(App[None]):
                          lambda approved: self._start(step, sequence) if approved else None)
 
     def _render_offer_catalog(self) -> None:
-        """Display only observed offers with an existing checkout step."""
+        """Separate supported checkout rows from read-only SKU observations."""
         view = self.query_one("#offer_view", RichLog)
         view.clear()
         supported = {stage.offer for stage in STAGES[2:]}
@@ -1086,8 +1099,22 @@ class GoogleAITUI(App[None]):
         for line in (offer_explorer_lines({"offers": list(offers.values())}) if offers
                      else ["No supported offers found in this scan."]):
             view.write(line)
+        # Step 1 observations without a supported operation remain inspect-only.
+        unknown = [item for item in parse_step1(self._offer_report)
+                   if not item.legacy_checkout_supported]
+        if unknown:
+            view.write("ADDITIONAL OBSERVED OFFERS (READ-ONLY)")
+            for item in unknown[:12]:
+                for line in offer_details(item).splitlines():
+                    view.write(line, scroll_end=False)
+        # Unknown offers are metadata only. Never add them to executable steps.
+        if self._sku_report is not None:
+            view.write("")
+            for line in render_result(self._sku_report).splitlines():
+                view.write(line, scroll_end=False)
         view.display = True
         self.query_one("#offers_title", Static).display = True
+        view.call_after_refresh(lambda: view.scroll_home(animate=False))
 
     @work(thread=True, exclusive=True, group="step1-known-skus")
     def scan_known_skus(self, device: str, account: str,
@@ -1103,15 +1130,30 @@ class GoogleAITUI(App[None]):
         for sku in checked:
             command.extend(["--sku", sku])
         result: dict = {"status": "query_error"}
+        child = None
+        cancel = self._sku_cancel
+        options = ({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+                   if os.name == "nt" else {"start_new_session": True})
         try:
-            output = subprocess.run(
-                command, cwd=self.repo, capture_output=True, text=True,
-                encoding="utf-8", errors="replace", timeout=36, check=False,
-            ).stdout
-            if len(output) <= 200_000:
-                parsed = json.loads(output)
-                if isinstance(parsed, dict):
-                    result = parsed
+            if not cancel.is_set():
+                with subprocess.Popen(command, cwd=self.repo, stdout=subprocess.PIPE,
+                                      stderr=subprocess.DEVNULL, text=True,
+                                      encoding="utf-8", errors="replace", **options) as child:
+                    deadline = time.monotonic() + 180
+                    while True:
+                        if cancel.is_set() or time.monotonic() >= deadline:
+                            result = {"status": "cancelled" if cancel.is_set() else "timeout"}
+                            self._stop_sku_process(child)
+                            break
+                        try:
+                            output, _ = child.communicate(timeout=0.25)
+                        except subprocess.TimeoutExpired:
+                            continue
+                        if len(output) <= 200_000:
+                            parsed = json.loads(output)
+                            if isinstance(parsed, dict):
+                                result = parsed
+                        break
         except (OSError, ValueError, UnicodeError, subprocess.TimeoutExpired):
             pass
         try:
@@ -1120,21 +1162,60 @@ class GoogleAITUI(App[None]):
         except RuntimeError:
             pass
 
+    @staticmethod
+    def _stop_sku_process(child: subprocess.Popen) -> None:
+        """Request graceful cleanup first, then terminate only this scan tree."""
+        if child.poll() is not None:
+            return
+        try:
+            if os.name == "nt":
+                child.send_signal(signal.CTRL_BREAK_EVENT)
+            else:
+                os.killpg(child.pid, signal.SIGTERM)
+            child.communicate(timeout=5)
+            return
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        try:
+            if os.name == "nt":
+                subprocess.run(["taskkill", "/PID", str(child.pid), "/T", "/F"],
+                               capture_output=True, timeout=8, check=False)
+            else:
+                os.killpg(child.pid, signal.SIGKILL)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        if child.poll() is None:
+            child.kill()
+        child.communicate(timeout=5)
+
     def _known_skus_finished(self, result: dict, device: str,
                              account: str, generation: int) -> None:
-        if (not self.is_mounted or generation != self._extra_scan_generation
-                or not self._offer_check_ready or device != self._offer_ready_device
-                or account != (self._offer_ready_account or "")):
+        if not self.is_mounted or generation != self._extra_scan_generation:
             return
-        before = len(self._extra_offers)
+        was_pending = self._sku_pending
+        self._sku_pending = False
+        if self._sku_exit:
+            self.exit()
+            return
+        if self.busy or self._diagnosing:
+            return
+        if was_pending:
+            for control in ("#quickstart", "#reload", "#diagnose", "#choose_account", "#refresh_offers", "#mode", "#sequence"):
+                self.query_one(control).disabled = False
+            self.query_one("#stop", Button).display = False
+            self.query_one("#stop", Button).disabled = True
+        if (not self._offer_check_ready or device != self._offer_ready_device
+                or account != (self._offer_ready_account or "")):
+            self._update_run_mode()
+            return
         self._sku_report = result
         self._real_step1_run = False
-        self._update_discovered(parse_sku_check(result))
+        # SKU metadata cannot enable additional checkout operations.
         self._render_offer_catalog()
-        if len(self._extra_offers) > before:
-            self.query_one("#activity", Static).update(
-                "Step 1 observed the optional Step 5 offer. Eligibility remains unverified."
-            )
+        self._update_run_mode()
+        self.query_one("#activity", Static).update("SKU scan finished. Eligibility remains unverified.")
+        if was_pending and self._initial_offer_ready and result.get("status") != "cancelled":
+            self.push_screen(CheckComplete(), lambda proceed: self._confirm_stage(2, True) if proceed else None)
 
     @on(Button.Pressed, "#quickstart")
     def quickstart_pressed(self) -> None:
@@ -1233,6 +1314,11 @@ class GoogleAITUI(App[None]):
 
     @on(Button.Pressed, "#stop")
     def stop_pressed(self) -> None:
+        if self._sku_pending:
+            self._sku_cancel.set()
+            self.query_one("#stop", Button).disabled = True
+            self._set_message("Stopping SKU metadata scan; no checkout was started.")
+            return
         if not self.busy:
             return
         if self.current_step in (0, 1):
@@ -1323,6 +1409,10 @@ class GoogleAITUI(App[None]):
         self.selected_pressed()
 
     def action_quit_safely(self) -> None:
+        if self._sku_pending:
+            self._sku_exit = True
+            self.stop_pressed()
+            return
         if not self.busy:
             self.exit()
             return
@@ -1335,7 +1425,7 @@ class GoogleAITUI(App[None]):
             self.query_one("#exit", Button).disabled = True
 
     def _start(self, step: int, sequence: bool) -> None:
-        if step not in range(len(STAGES)) or self.busy or self._diagnosing:
+        if step not in range(len(STAGES)) or self.busy or self._diagnosing or self._sku_pending:
             return
         if step == 5 and not (
             self._extra_offers and self._extra_offers[0].legacy_checkout_supported
@@ -1695,11 +1785,6 @@ class GoogleAITUI(App[None]):
                 # The Stage 1 transport is authoritative; the previous idle
                 # poll may describe a different device from before the check.
                 self._connection_state = ConnectionStatus("connected", (self._offer_ready_device,))
-            if self._offer_check_ready and self._real_step1_run and self._offer_ready_device:
-                self.scan_known_skus(
-                    self._offer_ready_device, self._offer_ready_account or "",
-                    self._extra_scan_generation
-                )
             self._initial_offer_ready = bool(self._offer_check_ready and any(
                 isinstance(offer, dict) and offer.get("id") == "12months-eft"
                 and str(offer.get("micros")) == "0"
@@ -1794,6 +1879,20 @@ class GoogleAITUI(App[None]):
             self.sequence = False
         if self._exit_after_step:
             self.exit()
+            return
+        if step == 1 and self._offer_check_ready and self._real_step1_run and self._offer_ready_device:
+            self._sku_pending = True
+            self._sku_cancel.clear()
+            self._sku_exit = False
+            for control in ("#quickstart", "#reload", "#diagnose", "#choose_account", "#refresh_offers"):
+                self.query_one(control).disabled = True
+            self._update_run_mode()
+            self.query_one("#stop", Button).label = "Stop SKU scan"
+            self.query_one("#stop", Button).display = True
+            self.query_one("#stop", Button).disabled = False
+            self.query_one("#activity", Static).update("Checking SKU metadata (read-only)…")
+            self.scan_known_skus(self._offer_ready_device, self._offer_ready_account or "",
+                                 self._extra_scan_generation)
             return
         if step == 1 and self._initial_offer_ready:
             self.push_screen(CheckComplete(), lambda proceed: self._confirm_stage(2, True) if proceed else None)
