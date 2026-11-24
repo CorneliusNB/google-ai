@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: 00970df832b386d5507a536a7348ded599d43c54 -->
+<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -256,6 +256,8 @@ Nhật ký chạy được lưu trong `logs/`, còn báo cáo nằm trong `ultra
 ## Hỗ trợ cộng đồng và dự án liên quan
 
 Nếu gặp vấn đề khi cài đặt hoặc sử dụng ePlus AI Toolkit, hãy truy cập [bài đăng hỗ trợ trên Telegram ePlus](https://t.me/eplus_news/29) để liên lạc, trao đổi kinh nghiệm và nhờ cộng đồng hỗ trợ. Với lỗi kỹ thuật có thể tái hiện, bạn cũng có thể [tạo GitHub Issue](https://github.com/hoangsvit/google-ai/issues). **Không chia sẻ mật khẩu, mã OTP/2FA, offer/purchase token, log chưa che thông tin cá nhân hoặc dữ liệu thẻ thanh toán.** Đây là hỗ trợ cộng đồng, không phải kênh hỗ trợ chính thức của Google.
+
+**Ủng hộ dự án bằng Telegram Boost:** Nếu ePlus AI Toolkit hữu ích với bạn và bạn có Telegram Premium, hãy cân nhắc dùng lượt Boost sẵn có để [Boost kênh @eplus_news](https://t.me/eplus_news?boost). Sự ủng hộ của bạn giúp mở khóa thêm tính năng cộng đồng trên kênh Telegram. Việc Boost hoàn toàn tự nguyện, không ảnh hưởng đến quyền sử dụng công cụ, các tính năng hay việc nhận hỗ trợ.
 
 **Không tham gia được chương trình Google AI Pro?** Bạn có thể tham khảo [Muse Invite Hub](https://github.com/ePlus-DEV/muse-invite-hub), một dự án khác của ePlus.DEV để [tìm kiếm hoặc chia sẻ mã mời Muse](https://muse.eplus.dev/). **Muse là dịch vụ riêng**, mã mời Muse **không kích hoạt và không thay thế** quyền đăng ký Google AI Pro. Mã mời có thể hết lượt hoặc bị giới hạn theo khu vực/tài khoản.
 
