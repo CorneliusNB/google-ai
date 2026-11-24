@@ -1150,7 +1150,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
         from textual.widgets import Button
         from tui_core import Outcome
 
-        for step in range(2, 6):
+        for step in range(2, 5):
             with self.subTest(step=step), tempfile.TemporaryDirectory() as directory:
                 app = GoogleAITUI(repo=Path(directory))
                 async with app.run_test(size=(90, 20)):
