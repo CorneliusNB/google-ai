@@ -30,7 +30,7 @@ CASES = [
     ("07-linux-startup", "linux_startup", 110, 35, ("GET STARTED", "Diagnose Android connection", "Ready — no check started")),
     ("08-linux-step-picker", "linux_step_picker", 110, 35, ("Choose a step", "Run this step")),
     ("09-step1-sku-offers", "sku_offers", 120, 55,
-     ("SKU / PRODUCT / OFFER", "g1.play.20tb", "19.99 USD", "Check Device & Offers")),
+     ("SKU / PRODUCT / OFFER", "PLAY ACCOUNT UNVERIFIED", "g1.play.20tb", "19.99 USD", "Check Device & Offers")),
     ("10-step1-sku-missing", "sku_missing", 120, 55,
      ("No subscription offers returned", "Not returned", "Check Device & Offers")),
     ("11-step1-discovered-offers", "sku_extra_steps", 120, 55,
