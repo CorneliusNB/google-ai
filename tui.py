@@ -560,7 +560,7 @@ class GoogleAITUI(App[None]):
 
     @work(thread=True, exclusive=True, group="account-candidates")
     def discover_account_candidates(self, serial: str = "", generation: int | None = None) -> None:
-        accounts = []
+        accounts = None
         try:
             lookup = self.repo / "scripts" / "runtime-lookup.py"
             def read_value(command: str, serial: str = "") -> str:
@@ -580,7 +580,7 @@ class GoogleAITUI(App[None]):
                 serial = self._checked_device or read_value("device")
             if not serial or not re.fullmatch(r"[A-Za-z0-9._:/-]{1,90}", serial):
                 raise RuntimeError("No unambiguous Android device was found")
-            raw = json.loads(read_value("play-accounts", serial))
+            raw = json.loads(read_value("play-accounts-existing" if generation is not None else "play-accounts", serial))
             if not isinstance(raw, list):
                 raise ValueError("Android account list was invalid")
             accounts = sorted({x.lower() for x in raw if isinstance(x, str) and
@@ -592,8 +592,8 @@ class GoogleAITUI(App[None]):
         else:
             self.call_from_thread(self._show_detected_accounts, serial, generation, accounts)
 
-    def _show_detected_accounts(self, serial: str, generation: int, accounts: list[str]) -> None:
-        if (generation != self._connection_generation or self.busy or self._diagnosing
+    def _show_detected_accounts(self, serial: str, generation: int, accounts: list[str] | None) -> None:
+        if (generation != self._connection_generation or self.busy or self._diagnosing or self._sku_pending
                 or self._accounts_loading or self._selected_account or self._verified_account
                 or not self._connection_state or self._connection_state.state != "connected"):
             return
@@ -602,7 +602,9 @@ class GoogleAITUI(App[None]):
             return
         if serial not in self._connection_state.devices:
             return
-        if accounts:
+        if accounts is None:
+            self.query_one("#account", Static).update("Account  •  Lookup unavailable; use Choose account")
+        elif accounts:
             self._display_account_candidates(accounts, serial)
         else:
             self.query_one("#account", Static).update("Account  •  No Android account detected")
@@ -612,9 +614,11 @@ class GoogleAITUI(App[None]):
         self.query_one("#account", Static).update(f"Account  •  {escape(identity)} · Play unverified")
         self._detected_account_device = serial or None
 
-    def _account_candidates_loaded(self, accounts: list[str], serial: str = "") -> None:
+    def _account_candidates_loaded(self, accounts: list[str] | None, serial: str = "") -> None:
         self._accounts_loading = False
-        self.query_one("#choose_account", Button).disabled = self.busy or self._diagnosing
+        self.query_one("#choose_account", Button).disabled = self.busy or self._diagnosing or self._sku_pending
+        if self.busy or self._diagnosing or self._sku_pending:
+            return
         if not accounts:
             self._set_status("Account list unavailable")
             self._set_message("Android did not provide a readable account list. "
@@ -820,6 +824,11 @@ class GoogleAITUI(App[None]):
                 else:
                     self.query_one("#account", Static).update(
                         "Account  •  Android device not resolved; choose account manually")
+        if startup and changed and result.state in ("missing_adb", "disconnected", "adb_error"):
+            guidance = {"missing_adb": "ADB not found. Run Check Device & Offers or install Android platform-tools.",
+                        "disconnected": "Android not connected. Start Android, enable ADB and authorize the connection.",
+                        "adb_error": "ADB not responding. Check the installation or use Diagnose Android connection."}
+            self._set_message(guidance[result.state])
         if not startup and result.state in ("missing_adb", "disconnected", "adb_error") and changed:
             if isinstance(self.screen, ConnectionNotice):
                 return
