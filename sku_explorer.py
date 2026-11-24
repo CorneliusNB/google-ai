@@ -9,6 +9,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Callable
 
 from textual import on, work
 from textual.containers import Horizontal, Vertical, VerticalScroll
@@ -52,10 +53,14 @@ class SKUExplorer(ModalScreen[str]):
     Screen.compact #sku_results { height: 5; }
     """
 
-    def __init__(self, *, serial: str | None = None, preview: bool = False) -> None:
+    def __init__(self, *, serial: str | None = None, preview: bool = False,
+                 initial_sku: str = "g1.2tb.ai.subs_variant",
+                 on_result: Callable[[dict], None] | None = None) -> None:
         super().__init__()
         self.serial = serial if serial else None
         self.preview = preview
+        self.initial_sku = initial_sku
+        self._on_result = on_result
         self._running = False
         self._process: subprocess.Popen[str] | None = None
         self._last_status = "not_run"
@@ -75,7 +80,7 @@ class SKUExplorer(ModalScreen[str]):
                 yield Button("AI Pro", id="sku_pro")
                 yield Button("Ultra", id="sku_ultra")
                 yield Button("Custom", id="sku_custom")
-            yield Input(value="g1.2tb.ai.subs_variant", placeholder="Google Play product ID",
+            yield Input(value=self.initial_sku, placeholder="Google Play product ID",
                         id="sku_input")
             with Horizontal(id="sku_commands"):
                 yield Button("Check SKU (read-only)", id="sku_check", variant="success",
@@ -188,6 +193,10 @@ class SKUExplorer(ModalScreen[str]):
         except (ValueError, TypeError, KeyError, ArithmeticError):
             message = "The read-only SKU result could not be displayed safely."
         self.query_one("#sku_output", Static).update(message)
+        if self._on_result is not None and result.get("status") == "observed":
+            # Called on Textual's UI thread, not the subprocess worker thread.
+            # The parent owns session/device checks before adding steps.
+            self._on_result(result)
 
     @on(Button.Pressed, "#sku_cancel")
     def cancel_check(self) -> None:
