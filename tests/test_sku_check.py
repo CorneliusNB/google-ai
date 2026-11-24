@@ -50,8 +50,9 @@ class SKUMetadataTests(unittest.TestCase):
         self.assertNotIn("SECRET", str(got))
         self.assertNotIn("secret@example.com", str(got))
         text = core.render_result(got)
-        self.assertIn("0.00 USD / P1M", text)
-        self.assertIn("19.99 USD / P1M", text)
+        self.assertIn("Phase 1: 0.00 USD / P1M (1 cycle(s))", text)
+        self.assertIn("Phase 2: 19.99 USD / P1M (ongoing)", text)
+        self.assertLess(text.index("Phase 1:"), text.index("Phase 2:"))
         self.assertIn("UNVERIFIED", text)
         self.assertNotIn("token", text.lower())
 
@@ -63,8 +64,31 @@ class SKUMetadataTests(unittest.TestCase):
                 "billing_period": "P1M", "currency": "UNKNOWN"
             }]
         }], ["g1.play.20tb"])
-        self.assertEqual(result["status"], "not_returned")
+        self.assertEqual(result["status"], "unusable_metadata")
         self.assertEqual(result["items"], [])
+        self.assertEqual(result["unusable_skus"], ["g1.play.20tb"])
+        self.assertEqual(result["missing_skus"], [])
+
+    def test_invalid_first_phase_never_relabels_renewal(self):
+        row = {"sku": "g1.example", "offer_id": "fixture", "base_plan_id": "monthly",
+               "phases": [{"price_amount_micros": "0", "currency": "invalid",
+                           "billing_period": "P1M"},
+                          {"price_amount_micros": "1234000", "currency": "KWD",
+                           "billing_period": "P1M"}]}
+        result = core.sanitize_offers([row], ["g1.example"])
+        self.assertEqual(result["status"], "unusable_metadata")
+        self.assertNotIn("Phase 1:", core.render_result(result))
+        row["phases"] = row["phases"][1:]
+        result = core.sanitize_offers([row], ["g1.example"])
+        self.assertIn("1.234 KWD / P1M (recurrence unknown)", core.render_result(result))
+
+    def test_truncated_product_observation_not_reported_missing(self):
+        result = core.sanitize_offers([], ["g1.example", "g1.other"],
+                                      returned_skus=("g1.example",),
+                                      no_offer_skus=("g1.example",), truncated=True)
+        self.assertEqual(result["no_offer_skus"], ["g1.example"])
+        self.assertEqual(result["missing_skus"], ["g1.other"])
+        self.assertIn("truncated locally", core.render_result(result))
 
     def test_missing_and_no_offers_are_distinct(self):
         self.assertEqual(
