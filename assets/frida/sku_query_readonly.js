@@ -6,14 +6,36 @@
 var SKU_REQUEST = [];
 var skuClient = null;
 var skuDexLoader = null;
-function skuSend(data) { send(data); }
+var skuFinished = false;
+function skuSend(data) { if (!skuFinished) send(data); }
+function skuClose() {
+  var client = skuClient;
+  skuClient = null;
+  if (client) {
+    try { client.endConnection(); } catch (ignored) {}
+  }
+}
+function skuFinish(code) {
+  if (skuFinished) return;
+  skuFinished = true;
+  skuClose();
+  send({ev:"done", code:code});
+}
+rpc.exports = {
+  close: function () {
+    Java.performNow(function () {
+      skuFinished = true;
+      skuClose();
+    });
+  }
+};
 function skuLoader(loader) { Java.classFactory.loader = loader; }
 function skuBoot() {
   Java.perform(function () {
     try {
       skuLoader(null);
       var app = Java.use("android.app.ActivityThread").currentApplication();
-      if (!app) { skuSend({ev:"done", code:"device_not_ready"}); return; }
+      if (!app) { skuFinish("device_not_ready"); return; }
       var ctx = app.getApplicationContext();
       var Loader = Java.use("dalvik.system.DexClassLoader");
       skuDexLoader = Loader.$new("/data/local/tmp/module_521.apk",
@@ -38,19 +60,20 @@ function skuBoot() {
         name: "sku.Setup" + Date.now(), implements: [SetupListener],
         methods: {
           onBillingSetupFinished: function (r) {
+            if (skuFinished) return;
             if (r.getResponseCode() !== 0) {
-              skuSend({ev:"done", code:"billing_unavailable"}); return;
+              skuFinish("billing_unavailable"); return;
             }
             skuQuery();
           },
           onBillingServiceDisconnected: function () {
-            skuSend({ev:"done", code:"billing_unavailable"});
+            skuFinish("billing_unavailable");
           }
         }
       });
       skuClient.startConnection(Setup.$new());
     } catch (error) {
-      skuSend({ev:"done", code:"query_error"});
+      skuFinish("query_error");
     }
   });
 }
@@ -64,9 +87,10 @@ function skuQuery() {
       name: "sku.Response" + Date.now(), implements: [ResponseListener],
       methods: {
         onProductDetailsResponse: function (result, list) {
+          if (skuFinished) return;
           try {
             if (result.getResponseCode() !== 0) {
-              skuSend({ev:"done", code:"billing_unavailable"}); return;
+              skuFinish("billing_unavailable"); return;
             }
             skuLoader(skuDexLoader);
             var PD = Java.use("com.android.billingclient.api.ProductDetails");
@@ -103,11 +127,11 @@ function skuQuery() {
                 });
               }
             }
-            skuSend({ev:"done", code:"ok"});
+            skuFinish("ok");
           } catch (error) {
-            skuSend({ev:"done", code:"query_error"});
+            skuFinish("query_error");
           } finally {
-            try { skuClient.endConnection(); } catch (ignored) {}
+            skuClose();
           }
         }
       }
@@ -120,8 +144,8 @@ function skuQuery() {
     skuClient.queryProductDetailsAsync(
       Params.newBuilder().setProductList(request).build(), QueryResponse.$new());
   } catch (error) {
-    skuSend({ev:"done", code:"query_error"});
-    try { skuClient.endConnection(); } catch (ignored) {}
+    skuFinish("query_error");
+    skuClose();
   }
 }
 skuBoot();
