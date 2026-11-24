@@ -450,6 +450,7 @@ class GoogleAITUI(App[None]):
                                          id=f"stage_{stage.number}", classes="workflow-step")
                     yield Button("Help & Guide", id="nav_help")
                     yield Button("Diagnose Android connection", id="diagnose")
+                    yield Button("SKU Explorer · Check SKU", id="sku_explorer")
                     yield Button("Show technical details", id="debug")
                     yield Button("Reload toolkit", id="reload")
                     yield Button("Exit toolkit", id="exit")
@@ -464,7 +465,6 @@ class GoogleAITUI(App[None]):
                             else "Check MuMu connection and Google AI offers without opening checkout.",
                             id="quick_hint")
                         yield Button("Check Device & Offers", id="quickstart", variant="success")
-                        yield Button("SKU Explorer · Check SKU (read-only)", id="sku_explorer")
                         yield Button("Stop after current step", id="stop", disabled=True)
                         yield Button("Verified in Google Play → Next", id="next", disabled=True)
                         yield Button("Choose another step  +", id="advanced_toggle")
