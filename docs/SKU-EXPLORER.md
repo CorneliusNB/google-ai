@@ -16,7 +16,7 @@ Step 1 includes **SKU inspection automatically**. There is only one action: **Ch
 
 ## Supported operations and safety
 
-The original Pro optional +6-month operation is only available as Step 5 when its exact product/offer is observed in Step 1; it retains its original explicit approval and checkout preflight. Unknown discovered offers are **inspect-only** and never initiate a generic purchase. The guided checkout sequence does not automatically continue beyond Step 4.
+The original Pro optional +6-month operation is only available as Step 5 when its exact product/offer is observed in the primary Step 1 report; it retains its original explicit approval and checkout preflight. Unknown discovered offers are **inspect-only** and never initiate a generic purchase. The guided checkout sequence ends at Step 4. SKU observations appear in the existing scrollable panel and do not authorize additional checkout steps. Use Stop SKU scan to cancel; Exit waits for cancellation.
 
 Step 1's SKU check invokes `sku_check_runner.py` using a separate read-only Frida `queryProductDetailsAsync` script. It does **not** call `launchBillingFlow`, read a purchase token, switch accounts or automatically activate any plan. Finding a SKU, seeing a zero-priced phase, or seeing an offer ID **does not prove account eligibility, an active subscription, a free month or successful payment**. Verify terms and charges in Google Play before any optional checkout.
 
@@ -28,8 +28,8 @@ New scans clear stale extra steps and SKU results. When the selected account/dev
 
 See [PR #85](https://github.com/hoangsvit/google-ai/pull/85), the **Terminal UI previews** comment. GitHub Actions captures the actual running Textual dashboard with synthetic data and posts the images directly:
 
-- `09-step1-sku-offers.png`: one Step 1 button and the supported offer list.
-- `10-step1-sku-missing.png`: no supported offers found in a synthetic scan.
+- `09-step1-sku-offers.png`: one Step 1 button, supported offers and read-only SKU metadata.
+- `10-step1-sku-missing.png`: synthetic missing SKU and no-offer statuses.
 - `11-step1-discovered-offers.png`: the supported optional Step 5 is visible in a synthetic scan; unsupported offers are not shown as extra steps.
 
 Additional synthetic terminal previews cover Step 0 environment checks, account selection, Step 1 progress and failures, individual Step 2–5 approval and review screens, retry safety, and optional Step 5 selection. The 26 screenshots are captured from real Textual widgets; no emulator, purchase, or real account is used. CI validates expected labels before publishing.
@@ -41,5 +41,5 @@ Automated tests: `tests/test_sku_check.py`, `tests/test_offer_discovery.py`, plu
 - `tui.py`: Step 1 workflow, automatic SKU candidate scan and supported offer display.
 - `sku_check_runner.py`: bounded device-bound ProductDetails query.
 - `sku_check_core.py`: validation, sanitized offer data and safe pricing display.
-- `offer_discovery.py`: deduplication and dynamic Step 5+ numbering.
+- `offer_discovery.py`: base-plan-aware deduplication and optional Step 5 metadata.
 - `assets/frida/sku_query_readonly.js`: query-only Android Billing instrumentation.
