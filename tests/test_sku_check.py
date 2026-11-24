@@ -101,7 +101,7 @@ class SKUMetadataTests(unittest.TestCase):
         ui = (ROOT / "tui.py").read_text(encoding="utf-8")
         runner = (ROOT / "sku_check_runner.py").read_text(encoding="utf-8")
         self.assertIn("sku_check_runner.py", ui)
-        self.assertIn("SKU CATALOG", ui)
+        self.assertIn("SUPPORTED OFFERS", ui)
         self.assertNotIn('id="sku_explorer"', ui)
         self.assertNotIn("SKUExplorer(", ui)
         self.assertNotIn("launchBillingFlow", runner)
@@ -126,7 +126,7 @@ class SKUMetadataTests(unittest.TestCase):
 @unittest.skipUnless(importlib.util.find_spec("textual") is not None,
                      "Textual is tested in Terminal UI previews with dependencies installed")
 class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
-    async def test_one_step_one_button_and_inline_sku_catalogue(self):
+    async def test_one_step_one_button_and_supported_offer_list(self):
         from tempfile import TemporaryDirectory
         from textual.widgets import Button, Select, Static, RichLog
         from tui import GoogleAITUI
@@ -157,10 +157,9 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                 rendered = "\n".join(segment.text for strip in
                                      app.query_one("#offer_view", RichLog).lines
                                      for segment in strip)
-                self.assertIn("g1.play.20tb", rendered)
-                self.assertIn("promo-2026", rendered)
-                self.assertIn("19.99 USD", rendered)
-                self.assertIn("g1.30tb", rendered)
+                self.assertNotIn("g1.play.20tb", rendered)
+                self.assertNotIn("promo-2026", rendered)
+                self.assertNotIn("g1.30tb", rendered)
                 self.assertIn("12months-eft", rendered)
 
     async def test_real_step_one_launches_automatic_sku_scan(self):
@@ -193,7 +192,7 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause()
                 self.assertEqual(len(app.query("#sku_explorer")), 0)
 
-    async def test_new_offers_appear_from_step_five_without_checkout(self):
+    async def test_only_supported_optional_offer_appears_in_step_picker(self):
         from tempfile import TemporaryDirectory
         from textual.widgets import Button, Select, Static
         from offer_discovery import parse_step1
@@ -210,24 +209,17 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                     {"product": "g1.30tb", "id": "offer-b"},
                 ]}))
                 await pilot.pause()
-                self.assertEqual(len(app._extra_offers), 2)
-                self.assertIn("5. Ultra:", str(app.query_one("#stage_5", Static).render()))
-                self.assertIn("6. Ultra:", str(app.query_one("#stage_6", Static).render()))
-                app.query_one("#step", Select).value = 5
+                self.assertFalse(app._extra_offers)
+                self.assertFalse(app.query_one("#stage_5", Static).display)
+                app._update_discovered(parse_step1({"offers": [
+                    {"product": "g1.2tb.ai.subs_variant", "id": "6months-eft-ss-2026", "micros": "0"},
+                ]}))
                 await pilot.pause()
-                self.assertEqual(str(app.query_one("#run", Button).label), "Inspect observed offer")
-                with patch.object(app, "_start") as checkout:
-                    app.selected_pressed()
-                    await pilot.pause()
-                    checkout.assert_not_called()
-                self.assertEqual(len(app.screen_stack), 1)  # No SKU modal opened.
-                self.assertIn("metadata", str(app.query_one("#state", Static).render()).lower())
-                self.assertFalse(app.busy)
-
+                self.assertTrue(app.query_one("#stage_5", Static).display)
+                self.assertFalse(list(app.query("#stage_6")))
                 app._update_discovered([], replace=True)
                 await pilot.pause()
                 self.assertFalse(app.query_one("#stage_5", Static).display)
-                self.assertFalse(app.query_one("#stage_6", Static).display)
                 self.assertEqual(app.query_one("#step", Select).value, 1)
 
     async def test_sku_scan_requires_same_verified_step_one_identity(self):
@@ -258,7 +250,7 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                 app._known_skus_finished(result, "emulator-5554",
                                          "verified@example.test", app._extra_scan_generation)
                 self.assertEqual(app._sku_report["status"], "observed")
-                self.assertEqual(len(app._extra_offers), 1)
+                self.assertFalse(app._extra_offers)
                 self.assertTrue(app.query_one("#offer_view", RichLog).display)
                 previous = app._sku_report
                 app._extra_scan_generation += 1

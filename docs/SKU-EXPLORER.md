@@ -11,8 +11,8 @@ Step 1 includes **SKU inspection automatically**. There is only one action: **Ch
    - `g1.play.20tb`
    - `g1.play.ai.pro`
    - `g1.30tb`
-4. The existing **AVAILABLE OFFERS · SKU / OFFER / PRICE PHASES** panel displays the original offer list, plus each returned SKU, base plan, offer ID and ordered pricing phases. Products not returned are explicitly marked **Not returned**, *not* "ineligible". Failed SKU checks display a diagnostic message rather than inventing offers.
-5. Existing Steps **2, 3 and 4** remain unchanged. Any distinct additional offers actually observed in Step 1 appear dynamically as **Step 5, Step 6, Step 7…**, up to 12 extras. If there are none, Step 5+ is hidden.
+4. **SUPPORTED OFFERS · FIRST PHASE ONLY** shows observed offers that match an existing checkout step and have a zero-priced first phase.
+5. The existing Steps **2, 3 and 4** remain in the step picker. The optional **Step 5** appears only when the scan returns its exact offer with a zero-priced first phase.
 
 ## Supported operations and safety
 
@@ -24,7 +24,7 @@ The candidate SKUs are a **bounded, known shortlist**, not an exhaustive Google 
 
 New scans clear stale extra steps and SKU results. When the selected account/device changes, the old offer catalog is cleared so it cannot be mistaken for the current account.
 
-## CI screenshots and tests
+## Historical CI screenshots and tests
 
 See [PR #85](https://github.com/hoangsvit/google-ai/pull/85), the **Terminal UI previews** comment. GitHub Actions captures the actual running Textual dashboard with synthetic data and posts the images directly:
 
@@ -36,7 +36,7 @@ Automated tests: `tests/test_sku_check.py`, `tests/test_offer_discovery.py`, plu
 
 ## Source files
 
-- `tui.py`: Step 1 workflow, automatic SKU candidate scan, unified display and dynamic steps.
+- `tui.py`: Step 1 workflow, automatic SKU candidate scan and supported offer display.
 - `sku_check_runner.py`: bounded device-bound ProductDetails query.
 - `sku_check_core.py`: validation, sanitized offer data and safe pricing display.
 - `offer_discovery.py`: deduplication and dynamic Step 5+ numbering.

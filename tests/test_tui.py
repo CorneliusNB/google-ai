@@ -533,12 +533,12 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertLessEqual(action.bottom, size[1])
     async def test_checkout_dialog_fits_compact_terminal(self):
         from tui import GoogleAITUI, Approval
-        for size in ((90, 20), (60, 20), (110, 35)):
+        for size in ((90, 20), (60, 20), (110, 35), (155, 40)):
             with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
                 app = GoogleAITUI(repo=Path(directory))
                 async with app.run_test(size=size) as pilot:
                     app._offer_check_ready = True
-                    app._confirm_stage(2, False)
+                    app._confirm_stage(4 if size[1] >= 35 else 2, False)
                     await pilot.pause()
                     self.assertIsInstance(app.screen, Approval)
                     card = app.screen.query_one("#approval_card").region
@@ -548,6 +548,10 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         region = app.screen.query_one(selector).region
                         self.assertGreaterEqual(region.y, card.y)
                         self.assertLessEqual(region.bottom, card.bottom)
+                    if size[1] >= 35:
+                        message = app.screen.query_one("#approval_message").region
+                        actions = app.screen.query_one("#approval_actions").region
+                        self.assertLessEqual(actions.y - message.bottom, 2)
     async def test_step_picker_defaults_to_one_step_and_hides_extra_options(self):
         from textual.widgets import Button, Select
         from tui import GoogleAITUI
@@ -958,7 +962,9 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     app.stop_pressed()
                     self.assertTrue(app._stop_after_step)
                     self.assertFalse(app._cancel_requested)
-                    self.assertTrue(app.query_one("#stop", Button).disabled)
+                    button = app.query_one("#stop", Button)
+                    self.assertTrue(button.disabled)
+                    self.assertIn("Stop queued", str(button.label))
 
     async def test_quit_during_checkout_queues_exit_without_killing_process(self):
         from tui import GoogleAITUI
@@ -974,7 +980,78 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(app._stop_after_step)
                     self.assertFalse(app._cancel_requested)
                     self.assertTrue(app.query_one("#exit", Button).disabled)
+                    self.assertIn("Exit queued", str(app.query_one("#stop", Button).label))
                     stop.assert_not_called()
+
+    async def test_checkout_review_marker_keeps_stage_busy(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button, Static
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app.busy = True
+                app.current_step = 3
+                app._received("EPLUS_CHECKOUT_REVIEW:unconfirmed")
+                self.assertIn("could not confirm", str(app.query_one("#activity", Static).render()))
+                self.assertTrue(app.busy)
+                self.assertTrue(app.query_one("#next", Button).disabled)
+
+    async def test_startup_probe_displays_masked_account_without_approval(self):
+        from device_diagnostics import ConnectionStatus
+        from tui import GoogleAITUI
+        from textual.widgets import Static
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory), startup_probe=True)
+            with patch.object(app, "discover_account_candidates") as discover:
+                async with app.run_test(size=(110, 35)) as pilot:
+                    await pilot.pause()
+                    app._poll_connection.assert_called_once_with(startup=True)
+                    device = ConnectionStatus("connected", ("fixture-device",))
+                    app._connection_polled(device, app._connection_generation, True)
+                    discover.assert_called_once_with("fixture-device", app._connection_generation)
+                    app._show_detected_accounts("fixture-device", app._connection_generation,
+                                                ["fixture@example.test"])
+                    self.assertIn("ADB", str(app.query_one("#device", Static).render()))
+                    label = str(app.query_one("#account", Static).render())
+                    self.assertIn("Play unverified", label)
+                    self.assertNotIn("fixture@example.test", label)
+                    self.assertFalse(app._offer_check_ready)
+
+    async def test_startup_account_probe_resolves_multiple_transports(self):
+        from device_diagnostics import ConnectionStatus
+        from tui import GoogleAITUI
+        from textual.widgets import Static
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory), startup_probe=True)
+            with patch.object(app, "discover_account_candidates") as discover:
+                async with app.run_test(size=(110, 35)):
+                    generation = app._connection_generation
+                    app._connection_polled(ConnectionStatus("connected", ("fixture-a", "fixture-b")), generation, True)
+                    discover.assert_called_once_with("", generation)
+                    account = app.query_one("#account", Static)
+                    app._show_detected_accounts("", generation, [])
+                    self.assertIn("device not resolved", str(account.render()))
+                    app._show_detected_accounts("fixture-b", generation, ["fixture@example.test"])
+                    self.assertIn("Play unverified", str(account.render()))
+                    self.assertNotIn("fixture@example.test", str(account.render()))
+                    self.assertFalse(app._offer_check_ready)
+
+    async def test_account_picker_updates_card_before_selection(self):
+        from tui import AccountPicker, GoogleAITUI
+        from textual.widgets import Static
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._account_candidates_loaded(["fixture@example.test"], "fixture-device")
+                await pilot.pause()
+                self.assertIsInstance(app.screen, AccountPicker)
+                label = str(app.screen_stack[0].query_one("#account", Static).render())
+                self.assertIn("Play unverified", label)
+                self.assertNotIn("fixture@example.test", label)
+                app.screen.dismiss(None)
+                await pilot.pause()
+                self.assertIsNone(app._selected_account)
+                self.assertFalse(app._offer_check_ready)
 
     async def test_quit_during_readonly_requests_stop(self):
         from tui import GoogleAITUI
@@ -1324,7 +1401,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                             from offer_discovery import ExtraOffer
                             app._update_discovered([
                                 ExtraOffer("g1.2tb.ai.subs_variant",
-                                           "6months-eft-ss-2026", source="step1")
+                                           "6months-eft-ss-2026", price_micros="0", source="step1")
                             ])
                         app._confirm_stage(step, False)
                         await pilot.pause()
