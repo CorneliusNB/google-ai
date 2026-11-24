@@ -385,7 +385,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(app._offer_check_ready)
                 self.assertIsNone(app._offer_ready_account)
 
-    async def test_unlocking_step_two_also_unlocks_steps_three_through_five(self):
+    async def test_unlocking_step_two_also_unlocks_steps_three_through_four(self):
         from textual.widgets import Button, Select, Static
         from tui import GoogleAITUI
 
@@ -402,7 +402,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(app.query_one("#run", Button).disabled)
 
                 # The single successful read-only Step 1 check unlocks every
-                # independent paid choice, not only the initial 12-month step.
+                # fixed paid choices 2-4; Step 5+ require observed extra offers.
                 app._checked_device = "emulator-5554"
                 app._verified_account = "first@example.com"
                 app._finished(1, Outcome("listed", "Offers listed", "Review first phase."), {
@@ -418,7 +418,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     app.screen.dismiss(False)
                     await pilot.pause()
 
-                for step in (2, 3, 4, 5):
+                for step in (2, 3, 4):
                     with self.subTest(step=step):
                         app.query_one("#step", Select).value = step
                         await pilot.pause()
@@ -435,7 +435,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 app._finished(2, Outcome("tool_error", "Step failed", "Review Google Play."), None)
                 await pilot.pause()
                 self.assertTrue(app._offer_check_ready)
-                for step in (2, 3, 4, 5):
+                for step in (2, 3, 4):
                     with self.subTest(step_after_failure=step):
                         app.query_one("#step", Select).value = step
                         await pilot.pause()
@@ -456,7 +456,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                                          "Wrong account", "Check Play Store."), None)
                 self.assertFalse(app._offer_check_ready)
                 self.assertIsNone(app._offer_ready_account)
-                for step in (2, 3, 4, 5):
+                for step in (2, 3, 4):
                     app.query_one("#step", Select).value = step
                     for _ in range(20):
                         if app.query_one("#run", Button).disabled:
@@ -1320,6 +1320,12 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 with patch("tui.subprocess.Popen") as launch:
                     async with app.run_test(size=(110, 35)) as pilot:
                         app._offer_check_ready = True
+                        if step == 5:
+                            from offer_discovery import ExtraOffer
+                            app._update_discovered([
+                                ExtraOffer("g1.2tb.ai.subs_variant",
+                                           "6months-eft-ss-2026", source="step1")
+                            ])
                         app._confirm_stage(step, False)
                         await pilot.pause()
                         self.assertIsInstance(app.screen, Approval)
