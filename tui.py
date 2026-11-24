@@ -1003,11 +1003,12 @@ class GoogleAITUI(App[None]):
         raise ValueError("Offer not observed in this Step 1 session")
 
     def _update_discovered(self, new_items: list[ExtraOffer], *, replace: bool = False) -> None:
-        """Show the existing optional Step 5 only when its offer is observed."""
+        """Keep executable choices tied to the primary Step 1 report only."""
         previous_keys = tuple(item.key for item in self._extra_offers)
         self._extra_offers = merge_extra_offers(
             [] if replace else self._extra_offers,
-            [item for item in new_items if item.legacy_checkout_supported and item.price_micros == "0"]
+            [item for item in new_items if item.source == "step1"
+             and item.legacy_checkout_supported and item.price_micros == "0"]
         )
         changed_keys = previous_keys != tuple(item.key for item in self._extra_offers)
         self.query_one("#stage_5", Static).display = bool(self._extra_offers)
@@ -1242,7 +1243,7 @@ class GoogleAITUI(App[None]):
         self.query_one("#activity", Static).update(
             "SKU scan cancelled; primary Step 1 report retained."
             if result.get("status") == "cancelled"
-            else "SKU scan finished. Eligibility remains unverified.")
+            else "SKU scan finished. Play account and eligibility unverified.")
         if was_pending and result.get("status") != "cancelled":
             if self._initial_offer_ready:
                 self.push_screen(CheckComplete(), lambda proceed: self._confirm_stage(2, True) if proceed else None)
