@@ -20,7 +20,7 @@ from sku_check_core import render_result, validate_skus
 ROOT = Path(__file__).resolve().parent
 
 
-class SKUExplorer(ModalScreen[None]):
+class SKUExplorer(ModalScreen[str]):
     """Explicit single-SKU check, never a checkout action."""
 
     CSS = """
@@ -58,6 +58,7 @@ class SKUExplorer(ModalScreen[None]):
         self.preview = preview
         self._running = False
         self._process: subprocess.Popen[str] | None = None
+        self._last_status = "not_run"
 
     def compose(self):
         with Vertical(id="sku_card"):
@@ -175,6 +176,9 @@ class SKUExplorer(ModalScreen[None]):
     def query_finished(self, result: dict) -> None:
         if not self.is_mounted:
             return
+        if self._last_status == "cancelled":
+            return
+        self._last_status = str(result.get("status") or "query_error")
         self._running = False
         self.query_one("#sku_check", Button).disabled = self.preview or not self.serial
         self.query_one("#sku_clear", Button).disabled = False
@@ -189,6 +193,7 @@ class SKUExplorer(ModalScreen[None]):
     def cancel_check(self) -> None:
         if not self._running:
             return
+        self._last_status = "cancelled"
         proc = self._process
         if proc and proc.poll() is None:
             try:
@@ -200,7 +205,7 @@ class SKUExplorer(ModalScreen[None]):
     @on(Button.Pressed, "#sku_close")
     def close_sku(self) -> None:
         self.cancel_check()
-        self.dismiss(None)
+        self.dismiss(self._last_status)
 
     def on_unmount(self) -> None:
         proc = self._process
