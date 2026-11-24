@@ -59,6 +59,15 @@ class OfferDiscoveryTests(unittest.TestCase):
         self.assertEqual(merge_extra_offers([primary, yearly, monthly, monthly]),
                          [monthly, yearly])
 
+    def test_bare_base_plan_does_not_collide_with_named_offer(self):
+        raw = {"status": "observed", "items": [
+            {"sku": "g1.example", "base_plan_id": "monthly", "offer_id": value}
+            for value in ("", "base-plan-monthly", "")
+        ]}
+        rows = merge_extra_offers(parse_sku_check(raw))
+        self.assertEqual({row.offer_id for row in rows}, {"", "base-plan-monthly"})
+        self.assertEqual(len(rows), 2)
+
     def test_cannot_treat_an_arbitrary_offer_as_legacy_checkout(self):
         self.assertFalse(ExtraOffer("g1.play.20tb", "6months-eft-ss-2026").legacy_checkout_supported)
         self.assertFalse(ExtraOffer("g1.2tb.ai.subs_variant", "new-offer").legacy_checkout_supported)
@@ -67,6 +76,7 @@ class OfferDiscoveryTests(unittest.TestCase):
         items = [{"product": "g1.play.20tb", "id": "o" + str(i)}
                  for i in range(MAX_EXTRA_OFFERS + 10)]
         items.append({"product": "g1.play.20tb;rm -rf", "id": "bad"})
+        self.assertEqual(parse_step1({"offers": [items[-1]]}), [])
         offers = merge_extra_offers(parse_step1({"offers": items}))
         self.assertEqual(len(offers), MAX_EXTRA_OFFERS)
         self.assertEqual(parse_sku_check({"status": "timeout", "items": items}), [])
