@@ -95,12 +95,12 @@ jobs:
               '01-startup.png', '02-disconnected.png', '03-offer-found.png',
               '04-step-picker-compact.png', '05-approval-compact.png', '06-play-review.png',
               '07-linux-startup.png', '08-linux-step-picker.png',
-              '09-sku-explorer.png',
+              '09-sku-explorer.png', '10-sku-step-selection.png',
           ]
           labels = ['Start', 'Disconnected', 'Offers found', 'Choose a step (90×20)',
                     'Step 2 confirmation (90×20)', 'Review in Google Play',
                     'Linux dashboard (110×35)', 'Linux step picker (110×35)',
-                    'SKU Explorer — read-only UI prototype']
+                    'SKU Explorer — read-only UI prototype', 'Step 1A — normal workflow selector']
           paths = sorted(p.name for p in Path('images').iterdir())
           if paths != expected:
               raise SystemExit('Unexpected preview artifact contents')
