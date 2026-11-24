@@ -125,6 +125,8 @@ def sanitize_offers(raw: object, requested: list[str], *,
         "no_offer_skus": [sku for sku in requested if sku in products_without_offers],
         "unusable_skus": [sku for sku in requested if sku in unusable],
         "truncated": truncated or len(raw) > MAX_OFFERS,
+        # Device-bound metadata is not proof of the active Play profile.
+        "account_binding_verified": False,
         "eligibility_verified": False,
         "subscription_active_verified": False,
     }
@@ -144,7 +146,9 @@ def render_result(result: dict) -> str:
         "cancelled": "SKU scan cancelled.",
         "query_error": "SKU scan could not complete. Check device and try again.",
     }
-    lines = ["SKU / PRODUCT / OFFER (OBSERVED; NOT ELIGIBILITY)"]
+    # Always display the boundary before any observed prices, even when
+    # the input claims verification. This renderer cannot verify a profile.
+    lines = ["SKU / PRODUCT / OFFER (PLAY ACCOUNT UNVERIFIED)"]
     items = result.get("items") if isinstance(result.get("items"), list) else []
     for row in items[:MAX_OFFERS]:
         if not isinstance(row, dict):
