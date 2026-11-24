@@ -8,10 +8,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tui import GoogleAITUI  # noqa: E402
 from tui_core import Outcome  # noqa: E402
 from device_diagnostics import ConnectionStatus  # noqa: E402
+from textual.widgets import Select  # noqa: E402
 from sku_explorer import SKUExplorer  # noqa: E402
 
 SCENARIOS = {"startup", "disconnected", "offer_found", "step_picker", "approval", "review",
-             "linux_startup", "linux_step_picker", "sku_explorer"}
+             "linux_startup", "linux_step_picker", "sku_explorer", "sku_step"}
 scenario = os.environ.get("PREVIEW_SCENARIO", "")
 if scenario not in SCENARIOS:
     raise SystemExit("Invalid preview scenario")
@@ -41,6 +42,10 @@ class PreviewApp(GoogleAITUI):
             return
         if scenario == "sku_explorer":
             self.push_screen(SKUExplorer(preview=True))
+            return
+        if scenario == "sku_step":
+            self.advanced_pressed()
+            self.query_one("#step", Select).value = 6
             return
         if scenario == "disconnected":
             self._connection_polled(ConnectionStatus("disconnected"))
