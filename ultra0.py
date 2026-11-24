@@ -22,6 +22,7 @@ import argparse, base64, hashlib, hmac, json, os, re, struct, subprocess, sys, t
 import shlex
 from pathlib import Path
 import tempfile
+from uuid import uuid4
 
 # Standalone launches may use a Windows legacy console code page that cannot
 # encode status symbols. Preserve the console's encoding, but escape unsupported
@@ -434,8 +435,23 @@ def ensure_network():
 
 # ---------- UI ----------
 def ui_xml() -> str:
-    sh("shell", "uiautomator dump /sdcard/ui.xml")
-    return sh("shell", "cat /sdcard/ui.xml")
+    # A failed dump can leave an old hierarchy at a fixed path.
+    path = f"/sdcard/eplus-ui-{uuid4().hex}.xml"
+    command = (
+        f"trap 'rm -f {path}' EXIT; "
+        f"uiautomator dump {path} >/dev/null && cat {path}"
+    )
+    try:
+        xml = sh("shell", command, check=True)
+    except RuntimeError as exc:
+        # Keep the machine-readable stdout protocol clean; never log UI XML.
+        diagnostic = " ".join(str(exc).split())
+        if "<" in diagnostic:
+            diagnostic = "XML diagnostic omitted"
+        print("Android UI capture failed: " + (diagnostic or "no stderr diagnostic"),
+              file=sys.stderr, flush=True)
+        return ""
+    return xml if xml.endswith("</hierarchy>") else ""
 
 
 def nodes(xml: str):
