@@ -139,6 +139,53 @@ class SKUExplorerUITests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(app._offer_check_ready)
                 self.assertEqual(app.query_one("#step", Select).value, 1)
 
+    async def test_extra_offers_become_steps_5_and_6_without_checkout(self):
+        from tempfile import TemporaryDirectory
+        from textual.widgets import Button, Select, Static
+        from offer_discovery import parse_step1
+        from sku_explorer import SKUExplorer
+        from tui import GoogleAITUI
+
+        with TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                self.assertFalse(app.query_one("#stage_5", Static).display)
+                self.assertEqual(app.query_one("#step", Select).value, 1)
+                app._checked_device = "emulator-5554"
+                app._offer_ready_device = "emulator-5554"
+                app._offer_ready_account = "verified@example.test"
+                app._offer_check_ready = True
+                app._update_discovered(parse_step1({"offers": [
+                    {"product": "g1.2tb.ai.subs_variant", "id": "12months-eft"},
+                    {"product": "g1.play.20tb", "id": "offer-a"},
+                    {"product": "g1.30tb", "id": "offer-b"},
+                ]}))
+                await pilot.pause()
+                self.assertEqual(len(app._extra_offers), 2)
+                self.assertTrue(app.query_one("#stage_5", Static).display)
+                self.assertIn("5. Offer:", str(app.query_one("#stage_5", Static).render()))
+                self.assertIn("6. Ultra:", str(app.query_one("#stage_6", Static).render()))
+                app.query_one("#step", Select).value = 5
+                await pilot.pause()
+                self.assertEqual(app._selected(), 5)
+                self.assertEqual(str(app.query_one("#run", Button).label),
+                                 "Inspect observed offer")
+                with patch.object(app, "_start") as paid:
+                    app.selected_pressed()
+                    await pilot.pause()
+                    paid.assert_not_called()
+                self.assertIsInstance(app.screen, SKUExplorer)
+                await pilot.click("#sku_close")
+                await pilot.pause()
+                self.assertFalse(app.busy)
+
+                # A fresh check without additional offers removes those steps.
+                app._update_discovered([], replace=True)
+                await pilot.pause()
+                self.assertFalse(app.query_one("#stage_5", Static).display)
+                self.assertFalse(app.query_one("#stage_6", Static).display)
+                self.assertEqual(app.query_one("#step", Select).value, 1)
+
     async def test_sku_dialog_does_not_unlock_paid_steps(self):
         from tempfile import TemporaryDirectory
         from textual.widgets import Button
