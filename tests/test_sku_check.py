@@ -98,6 +98,20 @@ class SKUMetadataTests(unittest.TestCase):
                                  ["g1.play.20tb"])["status"],
             "no_offers")
 
+    def test_cleanup_wait_is_bounded(self):
+        import threading
+        blocked = threading.Event()
+        try:
+            self.assertFalse(runner._bounded_cleanup(blocked.wait, timeout=0.01))
+        finally:
+            blocked.set()
+        self.assertTrue(runner._bounded_cleanup(lambda: None, timeout=1))
+
+    def test_runner_reuses_noninstalling_adb_locator(self):
+        with patch.object(runner, "locate_adb", return_value="fixture-adb") as locate:
+            self.assertEqual(runner.find_adb(), "fixture-adb")
+            locate.assert_called_once_with()
+
     def test_runner_fails_closed_without_adb(self):
         with patch.object(runner, "find_adb", return_value=None):
             out = runner.check_skus("emulator-5554", ["g1.play.20tb"])
@@ -335,6 +349,36 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
         kill.assert_called_once_with(98765, signal.SIGTERM)
         child.communicate.assert_called_once_with(timeout=5)
         child.kill.assert_not_called()
+
+    async def test_linux_transport_binding_rejects_device_replacement(self):
+        import hashlib
+        from tempfile import TemporaryDirectory
+        from device_diagnostics import ConnectionStatus
+        from tui import GoogleAITUI
+        with TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                binding = hashlib.sha256(b"fixture-a").hexdigest()
+                app._remember_linux_transport(ConnectionStatus("connected", ("fixture-b",)), binding)
+                self.assertIsNone(app._checked_device)
+                app._remember_linux_transport(ConnectionStatus("connected", ("fixture-a",)), binding)
+                self.assertEqual(app._checked_device, "fixture-a")
+
+    async def test_cancelled_scan_discards_valid_late_result(self):
+        from tempfile import TemporaryDirectory
+        from tui import GoogleAITUI
+        with TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._offer_check_ready = True
+                app._offer_ready_device = "fixture-device"
+                app._offer_ready_account = "preview@example.invalid"
+                app._sku_pending = True
+                app._sku_cancel.set()
+                app._known_skus_finished({"status": "observed", "items": []},
+                                         "fixture-device", "preview@example.invalid", app._extra_scan_generation)
+                self.assertEqual(app._sku_report, {"status": "cancelled"})
+                self.assertFalse(app._sku_pending)
 
     async def test_no_unobserved_step_five_execution(self):
         from tempfile import TemporaryDirectory
