@@ -97,112 +97,157 @@ class SKUMetadataTests(unittest.TestCase):
                 self.assertNotIn(forbidden, js)
         self.assertIn("queryProductDetailsAsync", js)
 
-    def test_ui_never_runs_existing_checkout_script(self):
-        source = (ROOT / "sku_explorer.py").read_text(encoding="utf-8")
-        self.assertIn("sku_check_runner.py", source)
-        self.assertNotIn("query_sku.py", source)
-        self.assertNotIn("ultra0.py", source)
-        self.assertNotIn("run-all.ps1", source)
+    def test_step_one_uses_one_button_and_sku_runner_never_starts_checkout(self):
+        ui = (ROOT / "tui.py").read_text(encoding="utf-8")
+        runner = (ROOT / "sku_check_runner.py").read_text(encoding="utf-8")
+        self.assertIn("sku_check_runner.py", ui)
+        self.assertIn("SKU CATALOG", ui)
+        self.assertNotIn('id="sku_explorer"', ui)
+        self.assertNotIn("SKUExplorer(", ui)
+        self.assertNotIn("launchBillingFlow", runner)
+
+    def test_result_lists_skus_base_plans_offers_and_missing_candidates(self):
+        raw = [{"sku": "g1.play.20tb", "offer_id": "intro",
+                "base_plan_id": "monthly", "phases": [{
+                    "price_amount_micros": "19990000", "currency": "USD",
+                    "billing_period": "P1M"
+                }]}]
+        parsed = core.sanitize_offers(raw, ["g1.play.20tb", "g1.30tb"])
+        output = core.render_result(parsed)
+        self.assertIn("SKU: g1.play.20tb", output)
+        self.assertIn("Offer: intro", output)
+        self.assertIn("19.99 USD / P1M", output)
+        self.assertIn("SKU: g1.30tb", output)
+        self.assertIn("Not returned", output)
+        self.assertNotIn("SECRET", output)
+        self.assertEqual(parsed["missing_skus"], ["g1.30tb"])
 
 
 @unittest.skipUnless(importlib.util.find_spec("textual") is not None,
                      "Textual is tested in Terminal UI previews with dependencies installed")
-class SKUExplorerUITests(unittest.IsolatedAsyncioTestCase):
-    async def test_step_one_sku_button_opens_without_adding_a_new_step(self):
+class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
+    async def test_one_step_one_button_and_inline_sku_catalogue(self):
         from tempfile import TemporaryDirectory
-
-        from textual.widgets import Button, Select, Static
-        from sku_explorer import SKUExplorer
+        from textual.widgets import Button, Select, Static, RichLog
         from tui import GoogleAITUI
 
         with TemporaryDirectory() as directory:
             app = GoogleAITUI(repo=Path(directory))
             async with app.run_test(size=(110, 35)) as pilot:
+                self.assertEqual(app.query_one("#step", Select).value, 1)
+                self.assertEqual(len(app.query("#sku_explorer")), 0)
+                self.assertGreater(app.query_one("#quickstart", Button).region.width, 25)
                 self.assertEqual(len(app.query("#workflow .workflow-step")), 6)
-                self.assertIn("1. Available offers", str(app.query_one("#stage_1", Static).render()))
-                button = app.query_one("#sku_explorer", Button)
-                self.assertTrue(button.visible)
-                self.assertGreater(button.region.width, 10)
-                self.assertTrue(app.query_one("#quickstart", Button).visible)
-                self.assertEqual(app.query_one("#step", Select).value, 1)
-                with patch.object(app, "_start") as paid:
-                    await pilot.click("#sku_explorer")
-                    await pilot.pause()
-                    paid.assert_not_called()
-                self.assertIsInstance(app.screen, SKUExplorer)
-                self.assertTrue(app.screen.query_one("#sku_check", Button).disabled)
-                with patch.object(app, "selected_pressed") as start:
-                    app.action_run_selected()
-                    start.assert_not_called()
-                await pilot.click("#sku_close")
+                self.assertFalse(app.query_one("#stage_5", Static).display)
+                app._offer_report = {"offers": [
+                    {"id": "12months-eft", "product": "g1.2tb.ai.subs_variant",
+                     "micros": "0", "period": "P1Y"}
+                ]}
+                app._sku_report = core.sanitize_offers([{
+                    "sku": "g1.play.20tb", "offer_id": "promo-2026",
+                    "base_plan_id": "monthly", "phases": [{
+                        "price_amount_micros": "19990000",
+                        "currency": "USD", "billing_period": "P1M"
+                    }]
+                }], ["g1.play.20tb", "g1.30tb"])
+                app._render_offer_catalog()
                 await pilot.pause()
-                self.assertFalse(app._offer_check_ready)
-                self.assertEqual(app.query_one("#step", Select).value, 1)
+                self.assertTrue(app.query_one("#offer_view", RichLog).display)
+                self.assertTrue(app.query_one("#offers_title", Static).display)
+                rendered = "\n".join(segment.text for strip in
+                                     app.query_one("#offer_view", RichLog).lines
+                                     for segment in strip)
+                self.assertIn("g1.play.20tb", rendered)
+                self.assertIn("promo-2026", rendered)
+                self.assertIn("19.99 USD", rendered)
+                self.assertIn("g1.30tb", rendered)
+                self.assertIn("12months-eft", rendered)
 
-    async def test_extra_offers_become_steps_5_and_6_without_checkout(self):
+    async def test_new_offers_appear_from_step_five_without_checkout(self):
         from tempfile import TemporaryDirectory
         from textual.widgets import Button, Select, Static
         from offer_discovery import parse_step1
-        from sku_explorer import SKUExplorer
         from tui import GoogleAITUI
 
         with TemporaryDirectory() as directory:
             app = GoogleAITUI(repo=Path(directory))
             async with app.run_test(size=(110, 35)) as pilot:
                 self.assertFalse(app.query_one("#stage_5", Static).display)
-                self.assertEqual(app.query_one("#step", Select).value, 1)
-                app._checked_device = "emulator-5554"
-                app._offer_ready_device = "emulator-5554"
-                app._offer_ready_account = "verified@example.test"
                 app._offer_check_ready = True
+                app._offer_ready_device = "emulator-5554"
                 app._update_discovered(parse_step1({"offers": [
-                    {"product": "g1.2tb.ai.subs_variant", "id": "12months-eft"},
                     {"product": "g1.play.20tb", "id": "offer-a"},
                     {"product": "g1.30tb", "id": "offer-b"},
                 ]}))
                 await pilot.pause()
                 self.assertEqual(len(app._extra_offers), 2)
-                self.assertTrue(app.query_one("#stage_5", Static).display)
                 self.assertIn("5. Ultra:", str(app.query_one("#stage_5", Static).render()))
                 self.assertIn("6. Ultra:", str(app.query_one("#stage_6", Static).render()))
                 app.query_one("#step", Select).value = 5
                 await pilot.pause()
-                self.assertEqual(app._selected(), 5)
-                self.assertEqual(str(app.query_one("#run", Button).label),
-                                 "Inspect observed offer")
-                with patch.object(app, "_start") as paid:
+                self.assertEqual(str(app.query_one("#run", Button).label), "Inspect observed offer")
+                with patch.object(app, "_start") as checkout:
                     app.selected_pressed()
                     await pilot.pause()
-                    paid.assert_not_called()
-                self.assertIsInstance(app.screen, SKUExplorer)
-                await pilot.click("#sku_close")
-                await pilot.pause()
+                    checkout.assert_not_called()
+                self.assertIs(app.screen, app)
+                self.assertIn("metadata", str(app.query_one("#state", Static).render()).lower())
                 self.assertFalse(app.busy)
 
-                # A fresh check without additional offers removes those steps.
                 app._update_discovered([], replace=True)
                 await pilot.pause()
                 self.assertFalse(app.query_one("#stage_5", Static).display)
                 self.assertFalse(app.query_one("#stage_6", Static).display)
                 self.assertEqual(app.query_one("#step", Select).value, 1)
 
-    async def test_sku_dialog_does_not_unlock_paid_steps(self):
+    async def test_sku_scan_requires_same_verified_step_one_identity(self):
         from tempfile import TemporaryDirectory
-        from textual.widgets import Button
+        from textual.widgets import RichLog
         from tui import GoogleAITUI
 
         with TemporaryDirectory() as directory:
             app = GoogleAITUI(repo=Path(directory))
-            async with app.run_test(size=(110, 35)) as pilot:
-                app._start(6, False)  # No synthetic Step 1A should ever be executable.
-                await pilot.pause()
+            async with app.run_test(size=(110, 35)):
+                app._offer_report = {"offers": [
+                    {"id": "12months-eft", "product": "g1.2tb.ai.subs_variant",
+                     "micros": "0", "period": "P1Y"}
+                ]}
+                app._offer_check_ready = True
+                app._offer_ready_device = "emulator-5554"
+                app._offer_ready_account = "verified@example.test"
+                result = core.sanitize_offers([{
+                    "sku": "g1.play.20tb", "offer_id": "extra",
+                    "base_plan_id": "monthly", "phases": [{
+                        "price_amount_micros": "0", "currency": "USD",
+                        "billing_period": "P1M",
+                    }]
+                }], ["g1.play.20tb"])
+                app._known_skus_finished(result, "other-device",
+                                         "verified@example.test", app._extra_scan_generation)
+                self.assertIsNone(app._sku_report)
+                app._known_skus_finished(result, "emulator-5554",
+                                         "verified@example.test", app._extra_scan_generation)
+                self.assertEqual(app._sku_report["status"], "observed")
+                self.assertEqual(len(app._extra_offers), 1)
+                self.assertTrue(app.query_one("#offer_view", RichLog).display)
+                previous = app._sku_report
+                app._extra_scan_generation += 1
+                app._known_skus_finished({"status": "timeout"},
+                                         "emulator-5554", "verified@example.test",
+                                         app._extra_scan_generation - 1)
+                self.assertIs(app._sku_report, previous)
+
+    async def test_no_unobserved_step_five_execution(self):
+        from tempfile import TemporaryDirectory
+        from tui import GoogleAITUI
+
+        with TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._start(5, False)
+                app._start(6, False)
                 self.assertFalse(app.busy)
                 self.assertIsNone(app.current_step)
-                self.assertFalse(app._offer_check_ready)
-                app.busy = True
-                await pilot.click("#sku_explorer")
-                await pilot.pause()
-                self.assertEqual(len(app.screen.query("#sku_check")), 0)
 
 
 if __name__ == "__main__":
