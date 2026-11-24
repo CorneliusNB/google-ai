@@ -163,12 +163,16 @@ class PreviewApp(GoogleAITUI):
                 ]
             self._sku_report = sanitize_offers(rows, requested)
             self._update_discovered(parse_step1(self._offer_report))
+            self.query_one("#offer_view").styles.height = 24
             self._render_offer_catalog()
             self.query_one("#state", Static).update(
                 "Step 1 complete · SKU scan results (SIMULATED)")
             self.query_one("#activity", Static).update(
                 "Synthetic scan complete; review supported offers below.")
             self.query_one("#status_panel").scroll_end(animate=False)
+            if scenario != "sku_extra_steps":
+                view = self.query_one("#offer_view")
+                view.call_after_refresh(lambda: view.scroll_end(animate=False))
             return
         if scenario == "disconnected":
             self._connection_polled(ConnectionStatus("disconnected"))
