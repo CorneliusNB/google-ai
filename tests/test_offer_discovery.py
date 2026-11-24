@@ -52,6 +52,13 @@ class OfferDiscoveryTests(unittest.TestCase):
         self.assertNotIn("DO_NOT_DISPLAY", repr(after))
         self.assertNotIn("SECRET", offer_details(after[0]))
 
+    def test_distinct_base_plans_are_not_collapsed(self):
+        primary = ExtraOffer("g1.play.20tb", "intro")
+        monthly = ExtraOffer("g1.play.20tb", "intro", "monthly", source="sku")
+        yearly = ExtraOffer("g1.play.20tb", "intro", "yearly", source="sku")
+        self.assertEqual(merge_extra_offers([primary, yearly, monthly, monthly]),
+                         [monthly, yearly])
+
     def test_cannot_treat_an_arbitrary_offer_as_legacy_checkout(self):
         self.assertFalse(ExtraOffer("g1.play.20tb", "6months-eft-ss-2026").legacy_checkout_supported)
         self.assertFalse(ExtraOffer("g1.2tb.ai.subs_variant", "new-offer").legacy_checkout_supported)
