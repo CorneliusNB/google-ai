@@ -965,9 +965,11 @@ class GoogleAITUI(App[None]):
             if not (step == 5 and offer.legacy_checkout_supported):
                 self._set_status(f"Step {step} · Review offer only")
                 self.query_one("#step_result", Static).update(offer_details(offer))
-                self.push_screen(SKUExplorer(serial=self._offer_ready_device,
+                device, generation = self._offer_ready_device, self._extra_scan_generation
+                self.push_screen(SKUExplorer(serial=device,
                                              initial_sku=offer.product,
-                                             on_result=self._sku_result_received))
+                                             on_result=lambda data: self._sku_result_received(
+                                                 data, device, generation)))
                 return
         if step >= 2 and not self._offer_check_ready:
             self._set_status("Check Device & Offers first")
@@ -1033,13 +1035,63 @@ class GoogleAITUI(App[None]):
         # Part of Step 1: inspect additional ProductDetails after device/account
         # verification. Never changes completion flags or runs a paid step.
         serial = self._checked_device if self._verified_account and self._checked_device else None
-        self.push_screen(SKUExplorer(serial=serial, on_result=self._sku_result_received))
+        generation = self._extra_scan_generation
+        self.push_screen(SKUExplorer(serial=serial,
+                                     on_result=lambda data: self._sku_result_received(
+                                         data, serial, generation)))
 
-    def _sku_result_received(self, result: dict) -> None:
-        """Add verified-device SKU observations to Step 5+ without changing billing gates."""
-        if not self.is_mounted or not self._offer_check_ready:
+    def _sku_result_received(self, result: dict, device: str | None,
+                             generation: int) -> None:
+        """Only append SKU observations tied to the current Step 1 device."""
+        if (not self.is_mounted or not self._offer_check_ready
+                or not device or device != self._offer_ready_device
+                or generation != self._extra_scan_generation):
             return
         self._update_discovered(parse_sku_check(result))
+
+    @work(thread=True, exclusive=True, group="step1-known-skus")
+    def scan_known_skus(self, device: str, account: str,
+                        generation: int) -> None:
+        """After a *real* Step 1, query a small, existing SKU shortlist only.
+
+        No catalogue enumeration, no account switching or checkout; fail closed.
+        """
+        checked = ("g1.play.20tb", "g1.play.ai.pro", "g1.30tb")
+        command = [sys.executable, str(self.repo / "sku_check_runner.py"),
+                   "--serial", device]
+        for sku in checked:
+            command.extend(["--sku", sku])
+        result: dict = {"status": "query_error"}
+        try:
+            output = subprocess.run(
+                command, cwd=self.repo, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=36, check=False,
+            ).stdout
+            if len(output) <= 200_000:
+                parsed = json.loads(output)
+                if isinstance(parsed, dict):
+                    result = parsed
+        except (OSError, ValueError, UnicodeError, subprocess.TimeoutExpired):
+            pass
+        try:
+            self.call_from_thread(self._known_skus_finished, result,
+                                  device, account, generation)
+        except RuntimeError:
+            pass
+
+    def _known_skus_finished(self, result: dict, device: str,
+                             account: str, generation: int) -> None:
+        if (not self.is_mounted or generation != self._extra_scan_generation
+                or not self._offer_check_ready or device != self._offer_ready_device
+                or account != (self._offer_ready_account or "")):
+            return
+        before = len(self._extra_offers)
+        self._update_discovered(parse_sku_check(result))
+        if len(self._extra_offers) > before:
+            self.query_one("#activity", Static).update(
+                f"Step 1 observed {len(self._extra_offers)} additional offer(s) "
+                "from Step 5 (eligibility unverified)."
+            )
 
     @on(Button.Pressed, "#quickstart")
     def quickstart_pressed(self) -> None:
