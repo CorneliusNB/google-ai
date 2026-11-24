@@ -26,28 +26,28 @@ class SKUExplorer(ModalScreen[None]):
     CSS = """
     SKUExplorer { align: center middle; background: #071526 88%; }
     #sku_card {
-        width: 105; max-width: 96%; height: auto; max-height: 96%;
-        background: #10253d; border: round #3c97b8; padding: 1 2;
+        width: 105; max-width: 96%; height: auto; max-height: 94%;
+        background: #10253d; border: round #3c97b8; padding: 0 2;
     }
     #sku_title { color: #b4eafa; text-style: bold; }
     #sku_notice { color: #9bc5d9; height: auto; }
-    #sku_groups { height: 3; margin-top: 1; }
+    #sku_groups { height: 3; margin-top: 0; }
     #sku_groups Button { width: 1fr; margin-right: 1; }
     #sku_pro { background: #24577a; color: #f7fbff; }
-    #sku_input { width: 100%; margin-top: 1; }
-    #sku_commands { height: 3; margin-top: 1; }
+    #sku_input { width: 100%; margin-top: 0; }
+    #sku_commands { height: 3; margin-top: 0; }
     #sku_commands Button { margin-right: 1; }
     #sku_check { width: 25; }
     #sku_cancel { width: 15; }
     #sku_clear { width: 13; }
     #sku_results {
-        height: 10; min-height: 6; max-height: 13;
+        height: 8; min-height: 6; max-height: 10;
         border: round #365c7b; background: #0a1b30;
-        margin-top: 1; padding: 0 1; overflow-y: auto;
+        margin-top: 0; padding: 0 1; overflow-y: auto;
     }
     #sku_output { color: #deedf9; height: auto; }
-    #sku_warning { color: #9dcce0; height: auto; margin-top: 1; }
-    #sku_close { width: 27; height: 3; margin-top: 1; }
+    #sku_warning { color: #9dcce0; height: auto; margin-top: 0; }
+    #sku_close { width: 27; height: 3; margin-top: 0; }
     Screen.compact #sku_card { padding: 0 1; }
     Screen.compact #sku_results { height: 7; }
     """
