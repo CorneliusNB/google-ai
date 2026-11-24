@@ -24,7 +24,7 @@ PKG = "com.google.android.apps.subscriptions.red"
 SERIAL_RE = re.compile(r"^[A-Za-z0-9._:-]{1,90}$")
 ALLOWED_CODES = {
     "observed", "no_offers", "not_returned", "device_not_ready",
-    "billing_unavailable", "timeout", "query_error", "cancelled",
+    "billing_unavailable", "timeout", "query_error", "cancelled", "unusable_metadata",
 }
 
 
@@ -119,9 +119,13 @@ def check_skus(serial: str, skus: list[str], timeout: int = 25) -> dict:
         script = None
         done = threading.Event()
         raw: list[dict] = []
+        returned_skus: set[str] = set()
+        no_offer_skus: set[str] = set()
+        truncated = False
         completed = {"code": "query_error"}
 
         def receive(message, _data):
+            nonlocal truncated
             if message.get("type") == "error":
                 completed["code"] = "query_error"
                 done.set()
@@ -130,10 +134,18 @@ def check_skus(serial: str, skus: list[str], timeout: int = 25) -> dict:
             if not isinstance(payload, dict):
                 return
             ev = payload.get("ev")
-            if ev == "offer" and len(raw) < 100:
-                # Drop every unknown key before passing callback data to the model.
-                raw.append({key: payload.get(key) for key in
-                            ("sku", "offer_id", "base_plan_id", "phases", "no_offers")})
+            if ev == "offer":
+                sku = payload.get("sku")
+                if sku not in validated:
+                    return
+                returned_skus.add(sku)
+                if payload.get("no_offers") is True:
+                    no_offer_skus.add(sku)
+                elif len(raw) < 100:
+                    raw.append({key: payload.get(key) for key in
+                                ("sku", "offer_id", "base_plan_id", "phases")})
+                else:
+                    truncated = True
             elif ev == "done":
                 code = payload.get("code")
                 completed["code"] = code if code in ("ok", "billing_unavailable", "device_not_ready") else "query_error"
@@ -150,7 +162,10 @@ def check_skus(serial: str, skus: list[str], timeout: int = 25) -> dict:
                 return fail(completed["code"])
             if serial not in online_serials(adb) or _adb_output(adb, serial, "pidof", PKG) != str(pid):
                 return fail("device_not_ready")
-            return sanitize_offers(raw, validated)
+            return sanitize_offers(raw, validated,
+                                   returned_skus=tuple(returned_skus),
+                                   no_offer_skus=tuple(no_offer_skus),
+                                   truncated=truncated)
         finally:
             if script is not None:
                 try:
@@ -184,7 +199,7 @@ def main(argv=None) -> int:
     except (Exception, SystemExit):
         result = fail("query_error")
     print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))
-    return 0 if result["status"] in ("observed", "no_offers", "not_returned") else 1
+    return 0 if result["status"] in ("observed", "no_offers", "not_returned", "unusable_metadata") else 1
 
 
 if __name__ == "__main__":
