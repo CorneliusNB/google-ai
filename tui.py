@@ -921,9 +921,11 @@ class GoogleAITUI(App[None]):
 
     def _update_discovered(self, new_items: list[ExtraOffer], *, replace: bool = False) -> None:
         """Display deduplicated Step 5+ entries without enabling any checkout."""
+        previous_keys = tuple(item.key for item in self._extra_offers)
         self._extra_offers = merge_extra_offers(
             [] if replace else self._extra_offers, new_items
         )
+        changed_keys = previous_keys != tuple(item.key for item in self._extra_offers)
         self.query_one("#stage_5", Static).display = bool(self._extra_offers)
         existing = list(self.query("#workflow .extra-offer-step"))
         for index, offer in enumerate(self._extra_offers):
@@ -948,6 +950,11 @@ class GoogleAITUI(App[None]):
         choices.append(("More run options…", 99))
         selector = self.query_one("#step", Select)
         current = selector.value
+        # A newly discovered legacy Step 5 can reorder unknown offers.
+        # Reset rather than silently converting a selected offer into
+        # a different, possibly billable action.
+        if changed_keys and isinstance(current, int) and current >= 5:
+            current = 1
         selector.set_options(choices)
         # Textual Select.set_options resets the selection. Restore even when
         # the old number is still valid, or the dashboard jumps to Step 0.
