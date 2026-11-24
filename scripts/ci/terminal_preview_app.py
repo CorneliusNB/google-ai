@@ -48,6 +48,8 @@ class PreviewApp(GoogleAITUI):
                 {"product": "g1.2tb.ai.subs_variant", "id": "12months-eft",
                  "micros": "0", "period": "P1Y"},
             ]
+            if scenario == "sku_missing":
+                primary = []
             if scenario == "sku_extra_steps":
                 primary += [
                     {"product": "g1.2tb.ai.subs_variant", "id": "6months-eft-ss-2026",
@@ -80,7 +82,7 @@ class PreviewApp(GoogleAITUI):
             self.query_one("#state", Static).update(
                 "Step 1 complete · SKU scan results (SIMULATED)")
             self.query_one("#activity", Static).update(
-                "Checked four candidate SKUs; see offer list below.")
+                "Synthetic scan complete; review supported offers below.")
             self.query_one("#status_panel").scroll_end(animate=False)
             return
         if scenario == "disconnected":
