@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tui import GoogleAITUI  # noqa: E402
 from tui_core import Outcome  # noqa: E402
 from device_diagnostics import ConnectionStatus  # noqa: E402
-from textual.widgets import Select  # noqa: E402
+from textual.widgets import Button  # noqa: E402
 from sku_explorer import SKUExplorer  # noqa: E402
 
 SCENARIOS = {"startup", "disconnected", "offer_found", "step_picker", "approval", "review",
@@ -44,8 +44,8 @@ class PreviewApp(GoogleAITUI):
             self.push_screen(SKUExplorer(preview=True))
             return
         if scenario == "sku_step":
-            self.advanced_pressed()
-            self.query_one("#step", Select).value = 6
+            # Show Check SKU directly alongside the Step 1 offer check.
+            self.query_one("#sku_explorer", Button).focus()
             return
         if scenario == "disconnected":
             self._connection_polled(ConnectionStatus("disconnected"))
