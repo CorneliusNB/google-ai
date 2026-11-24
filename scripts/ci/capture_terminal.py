@@ -63,7 +63,7 @@ CASES = [
      ("Review the offer check", "Verify the active Play account", "Got it")),
     ("25-step2-approval-wide", "approval_2", 120, 42,
      ("Start initial 12-month checkout", "Card check 1 of 3", "Cancel", "Continue")),
-    ("26-step5-picker", "optional_picker", 120, 42,
+    ("26-step5-picker", "optional_picker", 120, 52,
      ("5. Optional", "Run optional Step 5", "Known optional offer")),
 ]
 
