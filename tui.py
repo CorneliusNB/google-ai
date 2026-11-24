@@ -28,7 +28,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Static
 
 from sku_check_core import render_result
-from offer_discovery import (ExtraOffer, parse_step1, parse_sku_check,
+from offer_discovery import (ExtraOffer, parse_step1,
                              merge_extra_offers, offer_step_label, offer_details)
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
@@ -694,6 +694,8 @@ class GoogleAITUI(App[None]):
         self.query_one("#diagnose", Button).disabled = False
         self.query_one("#quickstart", Button).disabled = False
         self.query_one("#run", Button).disabled = False
+        self.query_one("#mode", Select).disabled = False
+        self.query_one("#sequence", Button).disabled = False
         self._set_status(diagnosis.headline)
         self._set_message(diagnosis.guidance)
         self.query_one("#step_result", Static).update("\n".join(diagnosis.details))
@@ -741,7 +743,7 @@ class GoogleAITUI(App[None]):
         self._connection_polling = False
 
     def _poll_connection(self, startup: bool = False) -> None:
-        if (self.busy or self._diagnosing or self._connection_polling or
+        if (self.busy or self._diagnosing or self._sku_pending or self._connection_polling or
                 (isinstance(self.screen, ModalScreen) and not isinstance(self.screen, ConnectionNotice))):
             return
         self._connection_polling = True
@@ -1130,12 +1132,13 @@ class GoogleAITUI(App[None]):
         for sku in checked:
             command.extend(["--sku", sku])
         result: dict = {"status": "query_error"}
-        child = None
         cancel = self._sku_cancel
         options = ({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
                    if os.name == "nt" else {"start_new_session": True})
         try:
-            if not cancel.is_set():
+            if cancel.is_set():
+                result = {"status": "cancelled"}
+            else:
                 with subprocess.Popen(command, cwd=self.repo, stdout=subprocess.PIPE,
                                       stderr=subprocess.DEVNULL, text=True,
                                       encoding="utf-8", errors="replace", **options) as child:
@@ -1192,6 +1195,8 @@ class GoogleAITUI(App[None]):
                              account: str, generation: int) -> None:
         if not self.is_mounted or generation != self._extra_scan_generation:
             return
+        if device != self._offer_ready_device or account != (self._offer_ready_account or ""):
+            return
         was_pending = self._sku_pending
         self._sku_pending = False
         if self._sku_exit:
@@ -1204,8 +1209,7 @@ class GoogleAITUI(App[None]):
                 self.query_one(control).disabled = False
             self.query_one("#stop", Button).display = False
             self.query_one("#stop", Button).disabled = True
-        if (not self._offer_check_ready or device != self._offer_ready_device
-                or account != (self._offer_ready_account or "")):
+        if not self._offer_check_ready:
             self._update_run_mode()
             return
         self._sku_report = result
@@ -1214,8 +1218,12 @@ class GoogleAITUI(App[None]):
         self._render_offer_catalog()
         self._update_run_mode()
         self.query_one("#activity", Static).update("SKU scan finished. Eligibility remains unverified.")
-        if was_pending and self._initial_offer_ready and result.get("status") != "cancelled":
-            self.push_screen(CheckComplete(), lambda proceed: self._confirm_stage(2, True) if proceed else None)
+        if was_pending and result.get("status") != "cancelled":
+            if self._initial_offer_ready:
+                self.push_screen(CheckComplete(), lambda proceed: self._confirm_stage(2, True) if proceed else None)
+            else:
+                self.push_screen(SetupNotice("Review the offer check",
+                                            "Review the observed metadata. Eligibility is not verified."))
 
     @on(Button.Pressed, "#quickstart")
     def quickstart_pressed(self) -> None:
