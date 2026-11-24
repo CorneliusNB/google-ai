@@ -171,8 +171,12 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
         with TemporaryDirectory() as directory:
             app = GoogleAITUI(repo=Path(directory))
             async with app.run_test(size=(110, 35)) as pilot:
+                from device_diagnostics import ConnectionStatus
                 app._checked_device = "emulator-5554"
+                app._selected_account = "verified@example.test"
                 app._verified_account = "verified@example.test"
+                app._connection_state = ConnectionStatus(
+                    "connected", ("emulator-5554",))
                 app._real_step1_run = True
                 with patch.object(app, "scan_known_skus") as scan:
                     app._finished(1, Outcome("listed", "Offers listed",
