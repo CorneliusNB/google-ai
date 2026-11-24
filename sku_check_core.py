@@ -50,15 +50,20 @@ def _number(value: object) -> int | None:
     return int(value)
 
 
-def sanitize_offers(raw: object, requested: list[str]) -> dict:
+def sanitize_offers(raw: object, requested: list[str], *,
+                    returned_skus: tuple[str, ...] = (),
+                    no_offer_skus: tuple[str, ...] = (),
+                    truncated: bool = False) -> dict:
     """Only allow safe IDs and complete phases; drop any token/account fields."""
     requested = validate_skus(requested)
     if not isinstance(raw, list):
         raise ValueError("Invalid offer response")
     offers = []
     seen = set()
-    observed_products = set()
-    products_without_offers = set()
+    observed_products = set(requested).intersection(returned_skus)
+    products_without_offers = set(requested).intersection(no_offer_skus)
+    observed_products.update(products_without_offers)
+    rejected_products = set()
     for row in raw[:MAX_OFFERS]:
         if not isinstance(row, dict):
             continue
@@ -72,10 +77,15 @@ def sanitize_offers(raw: object, requested: list[str]) -> dict:
         offer = _id(row.get("offer_id"))
         base_plan = _id(row.get("base_plan_id"))
         # Subscription offers may have an empty offer ID for base plans.
-        if not base_plan:
+        if not base_plan or (row.get("offer_id") not in ("", None) and not offer):
+            rejected_products.add(product)
             continue
         phases = []
-        for ph in (row.get("phases") if isinstance(row.get("phases"), list) else [])[:MAX_PHASES]:
+        supplied = row.get("phases")
+        if not isinstance(supplied, list) or not 1 <= len(supplied) <= MAX_PHASES:
+            rejected_products.add(product)
+            continue
+        for ph in supplied:
             if not isinstance(ph, dict):
                 continue
             micros = _price(ph.get("price_amount_micros"))
@@ -92,7 +102,8 @@ def sanitize_offers(raw: object, requested: list[str]) -> dict:
                 "billing_cycle_count": _number(ph.get("billing_cycle_count")),
                 "recurrence_mode": _number(ph.get("recurrence_mode")),
             })
-        if not phases:
+        if len(phases) != len(supplied):
+            rejected_products.add(product)
             continue
         key = (product, base_plan, offer)
         if key in seen:
@@ -103,12 +114,17 @@ def sanitize_offers(raw: object, requested: list[str]) -> dict:
             "phases": phases,
             "eligibility_verified": False, "subscription_active_verified": False,
         })
+    valid_products = {row["sku"] for row in offers}
+    unusable = rejected_products | (observed_products - valid_products - products_without_offers)
     return {
-        "status": "observed" if offers else ("no_offers" if products_without_offers else "not_returned"),
+        "status": ("observed" if offers else "unusable_metadata" if unusable
+                   else "no_offers" if products_without_offers else "not_returned"),
         "items": offers,
         "requested_skus": requested,
         "missing_skus": [sku for sku in requested if sku not in observed_products],
         "no_offer_skus": [sku for sku in requested if sku in products_without_offers],
+        "unusable_skus": [sku for sku in requested if sku in unusable],
+        "truncated": truncated or len(raw) > MAX_OFFERS,
         "eligibility_verified": False,
         "subscription_active_verified": False,
     }
@@ -120,6 +136,7 @@ def render_result(result: dict) -> str:
     messages = {
         "not_returned": "Google Play returned no matching product metadata.",
         "no_offers": "Product details returned without available subscription offers.",
+        "unusable_metadata": "Product metadata returned, but pricing could not be validated.",
         "account_unverified": "Play account not verified. Recheck Step 1.",
         "device_not_ready": "Device/Google One/Frida is not ready. Recheck Step 1.",
         "billing_unavailable": "BillingClient did not return data.",
@@ -146,13 +163,26 @@ def render_result(result: dict) -> str:
             if not isinstance(phase, dict):
                 continue
             try:
-                amt = Decimal(phase["price_amount_micros"]) / Decimal(1_000_000)
+                micros = _price(phase["price_amount_micros"])
+                if micros is None:
+                    continue
+                amt = Decimal(micros) / Decimal(1_000_000)
                 currency = phase["currency"]
                 period = phase["billing_period"]
                 if (not isinstance(currency, str) or not CURRENCY_RE.fullmatch(currency)
                         or not isinstance(period, str) or not PERIOD_RE.fullmatch(period)):
                     continue
-                lines.append(f"  Phase {index}: {amt:,.2f} {currency} / {period}")
+                amount = f"{amt:,.6f}".rstrip("0").rstrip(".")
+                if "." not in amount:
+                    amount += ".00"
+                elif len(amount.rsplit(".", 1)[1]) == 1:
+                    amount += "0"
+                mode = _number(phase.get("recurrence_mode"))
+                cycles = _number(phase.get("billing_cycle_count"))
+                recurrence = ("ongoing" if mode == 1 else
+                              f"{cycles} cycle(s)" if mode == 2 and cycles else
+                              "one-time" if mode == 3 else "recurrence unknown")
+                lines.append(f"  Phase {index}: {amount} {currency} / {period} ({recurrence})")
             except (KeyError, TypeError, ArithmeticError):
                 continue
     if status in messages:
@@ -167,6 +197,11 @@ def render_result(result: dict) -> str:
         for sku in no_offers[:MAX_SKUS]:
             if isinstance(sku, str) and SKU_RE.fullmatch(sku):
                 lines.append(f"SKU: {sku}  |  No subscription offers returned")
+    for sku in (result.get("unusable_skus") or [])[:MAX_SKUS]:
+        if isinstance(sku, str) and SKU_RE.fullmatch(sku):
+            lines.append(f"SKU: {sku}  |  Some returned metadata unavailable or invalid")
+    if result.get("truncated") is True:
+        lines.append("Offer details truncated locally; results are incomplete.")
     lines.append("Eligibility: UNVERIFIED  |  Subscription: UNVERIFIED")
     lines.append("No checkout or subscription change was requested.")
     return "\n".join(lines)
