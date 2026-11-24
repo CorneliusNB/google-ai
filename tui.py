@@ -26,7 +26,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Static
 
-from sku_explorer import SKUExplorer
+from sku_check_core import render_result as render_sku_result
 from offer_discovery import (ExtraOffer, parse_step1, parse_sku_check,
                              merge_extra_offers, offer_step_label, offer_details)
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
@@ -297,9 +297,7 @@ class GoogleAITUI(App[None]):
     }
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
     #choose_account { width: 18; min-width: 18; height: 3; margin: 0 0 0 1; }
-    #step1_controls { width: 100%; height: 3; margin: 0; }
-    #quickstart, #sku_explorer { display: block; width: 1fr; min-width: 0; height: 3; margin: 0; }
-    #sku_explorer { margin-left: 1; }
+    #quickstart { display: block; width: 100%; height: 3; margin: 0; }
     #quickstart.checking:disabled, #run.checking:disabled {
         background: #123b31; color: #e5fff2; text-style: bold;
         text-opacity: 1; opacity: 1;
@@ -430,6 +428,8 @@ class GoogleAITUI(App[None]):
         self._extra_offers: list[ExtraOffer] = []
         self._extra_scan_generation = 0
         self._real_step1_run = False
+        self._offer_report: dict | None = None
+        self._sku_report: dict | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -471,9 +471,7 @@ class GoogleAITUI(App[None]):
                             "Check Android offers without opening checkout." if self.linux_mode
                             else "Check MuMu connection and Google AI offers without opening checkout.",
                             id="quick_hint")
-                        with Horizontal(id="step1_controls"):
-                            yield Button("Check Device & Offers", id="quickstart", variant="success")
-                            yield Button("Check SKU & prices", id="sku_explorer")
+                        yield Button("Check Device & Offers", id="quickstart", variant="success")
                         yield Button("Stop after current step", id="stop", disabled=True)
                         yield Button("Verified in Google Play → Next", id="next", disabled=True)
                         yield Button("Choose another step  +", id="advanced_toggle")
@@ -506,7 +504,7 @@ class GoogleAITUI(App[None]):
                         yield Static("Ready — no check started", id="state")
                         yield Static("Check the device and offers to begin.", id="message")
                         yield Static("", id="step_result")
-                        yield Static("AVAILABLE OFFERS · FIRST PHASE ONLY", id="offers_title")
+                        yield Static("AVAILABLE OFFERS · SKU / OFFER / PRICE PHASES", id="offers_title")
                         yield RichLog(id="offer_view", wrap=True, highlight=False, markup=False)
                         yield Static("Elapsed: --", id="elapsed")
                         yield Button("Completed action on Android", id="manual", disabled=True)
@@ -964,7 +962,7 @@ class GoogleAITUI(App[None]):
 
     def _confirm_stage(self, step: int, sequence: bool,
                        previous_verified: bool = False) -> None:
-        if self.busy or self._diagnosing or isinstance(self.screen, SKUExplorer):
+        if self.busy or self._diagnosing:
             return
         if step >= 5:
             if not (self._offer_check_ready and 5 <= step < 5 + len(self._extra_offers)):
@@ -974,11 +972,8 @@ class GoogleAITUI(App[None]):
             if not (step == 5 and offer.legacy_checkout_supported):
                 self._set_status(f"Step {step} · Review offer only")
                 self.query_one("#step_result", Static).update(offer_details(offer))
-                device, generation = self._offer_ready_device, self._extra_scan_generation
-                self.push_screen(SKUExplorer(serial=device,
-                                             initial_sku=offer.product,
-                                             on_result=lambda data: self._sku_result_received(
-                                                 data, device, generation)))
+                self._set_message("Observed in Step 1. Inspection only: no checkout for this newly discovered offer.")
+                self.query_one("#status_panel").scroll_end(animate=False)
                 return
         if step >= 2 and not self._offer_check_ready:
             self._set_status("Check Device & Offers first")
@@ -1037,26 +1032,28 @@ class GoogleAITUI(App[None]):
         self.push_screen(Approval(title, message),
                          lambda approved: self._start(step, sequence) if approved else None)
 
-    @on(Button.Pressed, "#sku_explorer")
-    def open_sku_explorer(self) -> None:
-        if self.busy or self._diagnosing or self._accounts_loading:
-            return
-        # Part of Step 1: inspect additional ProductDetails after device/account
-        # verification. Never changes completion flags or runs a paid step.
-        serial = self._checked_device if self._verified_account and self._checked_device else None
-        generation = self._extra_scan_generation
-        self.push_screen(SKUExplorer(serial=serial,
-                                     on_result=lambda data: self._sku_result_received(
-                                         data, serial, generation)))
-
-    def _sku_result_received(self, result: dict, device: str | None,
-                             generation: int) -> None:
-        """Only append SKU observations tied to the current Step 1 device."""
-        if (not self.is_mounted or not self._offer_check_ready
-                or not device or device != self._offer_ready_device
-                or generation != self._extra_scan_generation):
-            return
-        self._update_discovered(parse_sku_check(result))
+    def _render_offer_catalog(self) -> None:
+        """Display original offers and the same Step 1 SKU scan in one list."""
+        view = self.query_one("#offer_view", RichLog)
+        view.clear()
+        for line in offer_explorer_lines(self._offer_report):
+            view.write(line)
+        view.write("")
+        if self._sku_report is None:
+            view.write("SKU CATALOG · Checking ProductDetails in Step 1..." if
+                       self._offer_check_ready and self._real_step1_run else
+                       "SKU CATALOG · Complete a device/account check to query SKUs.")
+        else:
+            view.write("SKU CATALOG · PRODUCT / BASE PLAN / OFFER / PRICE PHASES")
+            for line in render_sku_result(self._sku_report).splitlines():
+                view.write(line)
+            missing = self._sku_report.get("missing_skus")
+            if isinstance(missing, list):
+                for sku in missing[:10]:
+                    if isinstance(sku, str) and sku.startswith("g1.") and len(sku) < 130:
+                        view.write(f"{sku} · Not returned (eligibility unknown)")
+        view.display = True
+        self.query_one("#offers_title", Static).display = True
 
     @work(thread=True, exclusive=True, group="step1-known-skus")
     def scan_known_skus(self, device: str, account: str,
@@ -1065,7 +1062,8 @@ class GoogleAITUI(App[None]):
 
         No catalogue enumeration, no account switching or checkout; fail closed.
         """
-        checked = ("g1.play.20tb", "g1.play.ai.pro", "g1.30tb")
+        checked = ("g1.2tb.ai.subs_variant", "g1.play.20tb",
+                   "g1.play.ai.pro", "g1.30tb")
         command = [sys.executable, str(self.repo / "sku_check_runner.py"),
                    "--serial", device]
         for sku in checked:
@@ -1095,7 +1093,9 @@ class GoogleAITUI(App[None]):
                 or account != (self._offer_ready_account or "")):
             return
         before = len(self._extra_offers)
+        self._sku_report = result
         self._update_discovered(parse_sku_check(result))
+        self._render_offer_catalog()
         if len(self._extra_offers) > before:
             self.query_one("#activity", Static).update(
                 f"Step 1 observed {len(self._extra_offers)} additional offer(s) "
@@ -1279,8 +1279,6 @@ class GoogleAITUI(App[None]):
         )
 
     def action_run_selected(self) -> None:
-        if isinstance(self.screen, SKUExplorer):
-            return
         self.selected_pressed()
 
     def action_quit_safely(self) -> None:
@@ -1298,7 +1296,7 @@ class GoogleAITUI(App[None]):
             self.query_one("#exit", Button).disabled = True
 
     def _start(self, step: int, sequence: bool) -> None:
-        if step not in range(len(STAGES)) or self.busy or self._diagnosing or isinstance(self.screen, SKUExplorer):
+        if step not in range(len(STAGES)) or self.busy or self._diagnosing:
             return
         if step == 5 and not (
             self._extra_offers and self._extra_offers[0].legacy_checkout_supported
@@ -1326,6 +1324,8 @@ class GoogleAITUI(App[None]):
             self._extra_scan_generation += 1
             self._update_discovered([], replace=True)
             self._real_step1_run = False
+            self._offer_report = None
+            self._sku_report = None
             self._environment_checked = False
             self._set_workflow(0, "pending")
             self._offer_check_ready = False
@@ -1608,6 +1608,8 @@ class GoogleAITUI(App[None]):
         if self._environment_checked:
             self._set_workflow(0, "done")
         if step == 1:
+            self._offer_report = report
+            self._sku_report = None
             # Step 1's fresh report is the only initial discovery source.
             # Never infer eligibility from any listed offer or price.
             self._update_discovered(parse_step1(report), replace=True)
@@ -1646,7 +1648,6 @@ class GoogleAITUI(App[None]):
                     self._offer_ready_device, self._offer_ready_account or "",
                     self._extra_scan_generation
                 )
-                self._real_step1_run = False
             self._initial_offer_ready = bool(self._offer_check_ready and any(
                 isinstance(offer, dict) and offer.get("id") == "12months-eft"
                 and str(offer.get("micros")) == "0"
@@ -1723,12 +1724,7 @@ class GoogleAITUI(App[None]):
         if step == 1:
             self.query_one("#step_result", Static).update(report_summary(report))
             if isinstance(report, dict):
-                offer_view = self.query_one("#offer_view", RichLog)
-                offer_view.clear()
-                for item in offer_explorer_lines(report):
-                    offer_view.write(item)
-                offer_view.display = True
-                self.query_one("#offers_title", Static).display = True
+                self._render_offer_catalog()
             if self.macos_mode and isinstance(report, dict):
                 detected = report.get("detected_play_account")
                 if isinstance(detected, str) and detected:
