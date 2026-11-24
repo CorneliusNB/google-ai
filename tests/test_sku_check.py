@@ -1,6 +1,7 @@
 """SKU Explorer safety and offline regression tests; no Android/emulator needed."""
 from __future__ import annotations
 
+import importlib.util
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -104,6 +105,8 @@ class SKUMetadataTests(unittest.TestCase):
         self.assertNotIn("run-all.ps1", source)
 
 
+@unittest.skipUnless(importlib.util.find_spec("textual") is not None,
+                     "Textual is tested in Terminal UI previews with dependencies installed")
 class SKUExplorerUITests(unittest.IsolatedAsyncioTestCase):
     async def test_sidebar_opens_real_modal_and_blocks_step_shortcut(self):
         from tempfile import TemporaryDirectory
