@@ -10,3 +10,5 @@ Thank you to everyone who has helped build and improve ePlus AI Toolkit.
 The upstream MIT notice is retained in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); that notice does not independently license unrelated new contributions.
 
 For instructions on contributing, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+To propose a contribution or request a credit correction, [open a Contribution issue](https://github.com/hoangsvit/google-ai/issues/new?template=contribution.yml). Please include public evidence of the work and its original authorship. Credits are reviewed before being added or corrected; GitHub commit-contributor statistics are separate.
