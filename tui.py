@@ -943,7 +943,9 @@ class GoogleAITUI(App[None]):
             return
         # Step 1 establishes the device and Play-account state. This dialog
         # cannot change checkout readiness or start any paid step.
-        serial = self._checked_device if self._offer_check_ready else None
+        # A missing default Pro offer must not block inspecting another SKU.
+        # This is read-only and never sets the paid-stage readiness flag.
+        serial = self._checked_device if self._verified_account and self._checked_device else None
         self.push_screen(SKUExplorer(serial=serial))
 
     @on(Button.Pressed, "#quickstart")
