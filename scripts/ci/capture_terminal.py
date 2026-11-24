@@ -29,7 +29,7 @@ CASES = [
     ("06-play-review", "review", 110, 35, ("Verified in Google Play",)),
     ("07-linux-startup", "linux_startup", 110, 35, ("GET STARTED", "Diagnose Android connection", "Ready — no check started")),
     ("08-linux-step-picker", "linux_step_picker", 110, 35, ("Choose a step", "Run this step")),
-    ("09-sku-explorer", "sku_explorer", 110, 35, ("SKU EXPLORER", "SIMULATED DATA ONLY", "PREVIEW RESULT", "NO CHECKOUT", "Close preview")),
+    ("09-sku-explorer", "sku_explorer", 110, 35, ("SKU EXPLORER", "SIMULATED DATA ONLY", "PREVIEW RESULT", "NO CHECKOUT", "Close SKU Explorer")),
 ]
 
 
