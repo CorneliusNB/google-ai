@@ -1050,6 +1050,35 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     app._show_detected_accounts("fixture-device", app._connection_generation, ["new@example.test"])
                     self.assertIn("Play unverified", str(app.query_one("#account", Static).render()))
 
+    async def test_automatic_account_failure_differs_from_empty_result(self):
+        from device_diagnostics import ConnectionStatus
+        from tui import GoogleAITUI
+        from textual.widgets import Static
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._connection_state = ConnectionStatus("connected", ("fixture-device",))
+                app._show_detected_accounts("fixture-device", app._connection_generation, None)
+                self.assertIn("Lookup unavailable", str(app.query_one("#account", Static).render()))
+                app._show_detected_accounts("fixture-device", app._connection_generation, [])
+                self.assertIn("No Android account detected", str(app.query_one("#account", Static).render()))
+
+    async def test_late_manual_account_lookup_does_not_interrupt_sku_scan(self):
+        from tui import GoogleAITUI
+        from textual.widgets import Button, Static
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._sku_pending = True
+                app._accounts_loading = True
+                original = app.screen
+                status = str(app.query_one("#state", Static).render())
+                app._account_candidates_loaded(["fixture@example.invalid"], "fixture-device")
+                self.assertFalse(app._accounts_loading)
+                self.assertTrue(app.query_one("#choose_account", Button).disabled)
+                self.assertIs(app.screen, original)
+                self.assertEqual(str(app.query_one("#state", Static).render()), status)
+
     async def test_account_picker_updates_card_before_selection(self):
         from tui import AccountPicker, GoogleAITUI
         from textual.widgets import Static
