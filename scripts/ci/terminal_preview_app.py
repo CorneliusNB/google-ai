@@ -10,9 +10,11 @@ from tui_core import Outcome  # noqa: E402
 from device_diagnostics import ConnectionStatus  # noqa: E402
 from textual.widgets import Button  # noqa: E402
 from sku_explorer import SKUExplorer  # noqa: E402
+from offer_discovery import parse_step1  # noqa: E402
 
 SCENARIOS = {"startup", "disconnected", "offer_found", "step_picker", "approval", "review",
-             "linux_startup", "linux_step_picker", "sku_explorer", "sku_step"}
+             "linux_startup", "linux_step_picker", "sku_explorer", "sku_step",
+             "sku_extra_steps"}
 scenario = os.environ.get("PREVIEW_SCENARIO", "")
 if scenario not in SCENARIOS:
     raise SystemExit("Invalid preview scenario")
@@ -46,6 +48,13 @@ class PreviewApp(GoogleAITUI):
         if scenario == "sku_step":
             # Show Check SKU directly alongside the Step 1 offer check.
             self.query_one("#sku_explorer", Button).focus()
+            return
+        if scenario == "sku_extra_steps":
+            self._update_discovered(parse_step1({"offers": [
+                {"product": "g1.2tb.ai.subs_variant", "id": "12months-eft", "micros": "0"},
+                {"product": "g1.2tb.ai.subs_variant", "id": "6months-eft-ss-2026", "micros": "0"},
+                {"product": "g1.play.20tb", "id": "promo-2026", "micros": "19990000"},
+            ]}))
             return
         if scenario == "disconnected":
             self._connection_polled(ConnectionStatus("disconnected"))
