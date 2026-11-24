@@ -293,8 +293,9 @@ class GoogleAITUI(App[None]):
     }
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
     #choose_account { width: 18; min-width: 18; height: 3; margin: 0 0 0 1; }
-    #quickstart { display: block; width: 100%; height: 3; margin: 0; }
-    #sku_explorer { display: block; width: 100%; height: 3; margin: 0; }
+    #step1_controls { width: 100%; height: 3; margin: 0; }
+    #quickstart, #sku_explorer { display: block; width: 1fr; min-width: 0; height: 3; margin: 0; }
+    #sku_explorer { margin-left: 1; }
     #quickstart.checking:disabled, #run.checking:disabled {
         background: #123b31; color: #e5fff2; text-style: bold;
         text-opacity: 1; opacity: 1;
@@ -463,8 +464,9 @@ class GoogleAITUI(App[None]):
                             "Check Android offers without opening checkout." if self.linux_mode
                             else "Check MuMu connection and Google AI offers without opening checkout.",
                             id="quick_hint")
-                        yield Button("Check Device & Offers", id="quickstart", variant="success")
-                        yield Button("Check SKU & prices  (Step 1)", id="sku_explorer")
+                        with Horizontal(id="step1_controls"):
+                            yield Button("Check Device & Offers", id="quickstart", variant="success")
+                            yield Button("Check SKU & prices", id="sku_explorer")
                         yield Button("Stop after current step", id="stop", disabled=True)
                         yield Button("Verified in Google Play → Next", id="next", disabled=True)
                         yield Button("Choose another step  +", id="advanced_toggle")
