@@ -30,6 +30,8 @@ CASES = [
     ("07-linux-startup", "linux_startup", 110, 35, ("GET STARTED", "Diagnose Android connection", "Ready — no check started")),
     ("08-linux-step-picker", "linux_step_picker", 110, 35, ("Choose a step", "Run this step")),
     ("09-sku-explorer", "sku_explorer", 110, 35, ("SKU EXPLORER", "SIMULATED DATA ONLY", "PREVIEW RESULT", "NO CHECKOUT", "Close SKU Explorer")),
+    ("10-sku-step-selection", "sku_step", 110, 35,
+     ("1A. Check SKU (read-only)", "Run Check SKU (read-only)", "Step 1A is read-only")),
 ]
 
 
