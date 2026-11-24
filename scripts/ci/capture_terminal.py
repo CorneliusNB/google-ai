@@ -30,11 +30,11 @@ CASES = [
     ("07-linux-startup", "linux_startup", 110, 35, ("GET STARTED", "Diagnose Android connection", "Ready — no check started")),
     ("08-linux-step-picker", "linux_step_picker", 110, 35, ("Choose a step", "Run this step")),
     ("09-step1-sku-offers", "sku_offers", 110, 35,
-     ("SKU CATALOG", "g1.play.20tb", "19.99 USD", "Check Device & Offers")),
+     ("PRODUCT / OFFER", "12months-eft", "zero (not eligibility)", "Check Device & Offers")),
     ("10-step1-sku-missing", "sku_missing", 110, 35,
-     ("SKU CATALOG", "No subscription offers", "Not returned", "Check Device & Offers")),
+     ("No supported offers found in this scan.", "Check Device & Offers")),
     ("11-step1-discovered-offers", "sku_extra_steps", 110, 35,
-     ("5. Optional", "6. Ultra", "SKU CATALOG", "g1.play.20tb")),
+     ("5. Optional", "6months-eft-ss-2026", "PRODUCT / OFFER", "Check Device & Offers")),
 ]
 
 
@@ -87,9 +87,17 @@ def main():
                             break
                         visible = page.evaluate('''() => Array.from({length:term.rows}, (_,i) =>
                             term.buffer.active.getLine(i)?.translateToString(true) || '').join('\\n')''')
-                        if all(label in visible for label in expected) and found_at is None:
+                        matches = all(label in visible for label in expected)
+                        if scenario.startswith("sku_"):
+                            # Unsupported synthetic offers must not appear as purchasable steps.
+                            matches = matches and "6. Ultra" not in visible and "promo-2026" not in visible
+                            if scenario != "sku_extra_steps":
+                                matches = matches and "5. Optional" not in visible
+                        if not matches:
+                            found_at = None
+                        elif found_at is None:
                             found_at = time.monotonic()
-                        if found_at is not None and time.monotonic() - found_at >= 0.5 and all(label in visible for label in expected):
+                        if matches and found_at is not None and time.monotonic() - found_at >= 0.5:
                             found = True
                             break
                     if not found:
