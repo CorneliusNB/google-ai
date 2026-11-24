@@ -595,6 +595,11 @@ class GoogleAITUI(App[None]):
         self._selected_account = account
         self._extra_scan_generation += 1
         self._update_discovered([], replace=True)
+        self._offer_report = None
+        self._sku_report = None
+        self.query_one("#offer_view", RichLog).clear()
+        self.query_one("#offer_view", RichLog).display = False
+        self.query_one("#offers_title", Static).display = False
         self._show_history(account)
         self._verified_account = None
         self._offer_ready_account = None
@@ -616,6 +621,11 @@ class GoogleAITUI(App[None]):
         self._invalidate_connection_polls()
         self._extra_scan_generation += 1
         self._update_discovered([], replace=True)
+        self._offer_report = None
+        self._sku_report = None
+        self.query_one("#offer_view", RichLog).clear()
+        self.query_one("#offer_view", RichLog).display = False
+        self.query_one("#offers_title", Static).display = False
         self._offer_check_ready = False
         self._initial_offer_ready = False
         self._offer_ready_device = None
@@ -1042,16 +1052,11 @@ class GoogleAITUI(App[None]):
         if self._sku_report is None:
             view.write("SKU CATALOG · Checking ProductDetails in Step 1..." if
                        self._offer_check_ready and self._real_step1_run else
-                       "SKU CATALOG · Complete a device/account check to query SKUs.")
+                       "SKU CATALOG · No SKU scan (run Step 1 on the verified device).")
         else:
             view.write("SKU CATALOG · PRODUCT / BASE PLAN / OFFER / PRICE PHASES")
             for line in render_sku_result(self._sku_report).splitlines():
                 view.write(line)
-            missing = self._sku_report.get("missing_skus")
-            if isinstance(missing, list):
-                for sku in missing[:10]:
-                    if isinstance(sku, str) and sku.startswith("g1.") and len(sku) < 130:
-                        view.write(f"{sku} · Not returned (eligibility unknown)")
         view.display = True
         self.query_one("#offers_title", Static).display = True
 
@@ -1094,6 +1099,7 @@ class GoogleAITUI(App[None]):
             return
         before = len(self._extra_offers)
         self._sku_report = result
+        self._real_step1_run = False
         self._update_discovered(parse_sku_check(result))
         self._render_offer_catalog()
         if len(self._extra_offers) > before:
