@@ -45,6 +45,7 @@ class SKUMetadataTests(unittest.TestCase):
         got = core.sanitize_offers(payload, ["g1.2tb.ai.subs_variant"])
         self.assertEqual(got["status"], "observed")
         self.assertEqual(len(got["items"][0]["phases"]), 2)
+        self.assertFalse(got["account_binding_verified"])
         self.assertFalse(got["eligibility_verified"])
         self.assertFalse(got["subscription_active_verified"])
         self.assertNotIn("SECRET", str(got))
@@ -53,6 +54,7 @@ class SKUMetadataTests(unittest.TestCase):
         self.assertIn("Phase 1: 0.00 USD / P1M (1 cycle(s))", text)
         self.assertIn("Phase 2: 19.99 USD / P1M (ongoing)", text)
         self.assertLess(text.index("Phase 1:"), text.index("Phase 2:"))
+        self.assertIn("PLAY ACCOUNT UNVERIFIED", text.splitlines()[0])
         self.assertIn("UNVERIFIED", text)
         self.assertNotIn("token", text.lower())
 
@@ -273,6 +275,49 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause()
                 self.assertFalse(app.query_one("#stage_5", Static).display)
                 self.assertEqual(app.query_one("#step", Select).value, 1)
+
+    async def test_secondary_sku_metadata_never_unlocks_optional_step(self):
+        from tempfile import TemporaryDirectory
+        from offer_discovery import parse_sku_check, parse_step1
+        from textual.widgets import RichLog, Static
+        from tui import GoogleAITUI
+
+        # The same exact offer identifier in a secondary scan must not
+        # authorize anything, even when its metadata appears complete.
+        with TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(120, 55)) as pilot:
+                app._offer_check_ready = True
+                app._offer_ready_device = "fixture-device"
+                app._offer_ready_account = "fixture@example.invalid"
+                app._offer_report = {"offers": []}
+                metadata = core.sanitize_offers([{
+                    "sku": "g1.2tb.ai.subs_variant",
+                    "offer_id": "6months-eft-ss-2026",
+                    "base_plan_id": "fixture-plan",
+                    "phases": [{"price_amount_micros": "0", "currency": "USD",
+                                "billing_period": "P6M"}],
+                }], ["g1.2tb.ai.subs_variant"])
+                app._update_discovered(parse_sku_check(metadata))
+                app._known_skus_finished(metadata, "fixture-device",
+                                         "fixture@example.invalid", app._extra_scan_generation)
+                await pilot.pause()
+                self.assertFalse(app._extra_offers)
+                self.assertFalse(app.query_one("#stage_5", Static).display)
+                rendered = "\\n".join(segment.text for strip in
+                                      app.query_one("#offer_view", RichLog).lines
+                                      for segment in strip)
+                self.assertIn("PLAY ACCOUNT UNVERIFIED", rendered)
+                self.assertIn("6months-eft-ss-2026", rendered)
+                self.assertFalse(metadata["account_binding_verified"])
+                # The pre-existing primary-report logic remains intact.
+                app._update_discovered(parse_step1({"offers": [{
+                    "product": "g1.2tb.ai.subs_variant",
+                    "id": "6months-eft-ss-2026", "micros": "0",
+                }]}))
+                self.assertTrue(app.query_one("#stage_5", Static).display)
+                app._update_discovered(parse_sku_check(metadata))
+                self.assertEqual(app._extra_offers[0].source, "step1")
 
     async def test_sku_scan_requires_same_verified_step_one_identity(self):
         from tempfile import TemporaryDirectory
