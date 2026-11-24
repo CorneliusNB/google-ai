@@ -480,8 +480,11 @@ class GoogleAITUI(App[None]):
                                     yield Static("Choose a step", id="advanced_label")
                                     yield Select(
                                         [(f"{stage.number}. {stage.label}", stage.number)
-                                         for stage in STAGES] + [("1A. Check SKU (read-only)", SKU_STEP),
-                                                                 ("More run options…", 99)],
+                                         for stage in STAGES[:2]] +
+                                        [("1A. Check SKU (read-only)", SKU_STEP)] +
+                                        [(f"{stage.number}. {stage.label}", stage.number)
+                                         for stage in STAGES[2:]] +
+                                        [("More run options…", 99)],
                                         value=self.initial_step, id="step", allow_blank=False)
                                 with Vertical(classes="field", id="mode_field"):
                                     yield Static("After this step", id="mode_label")
