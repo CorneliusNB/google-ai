@@ -889,9 +889,15 @@ class GoogleAITUI(App[None]):
 
     def _set_workflow(self, step: int, state: str) -> None:
         marker = {"running": "●", "done": "✓", "review": "!"}.get(state, "○")
-        self.query_one(f"#stage_{step}", Static).update(
-            f"{marker}  {step}. {STAGES[step].label}"
-        )
+        if 5 <= step < 5 + len(self._extra_offers):
+            label = offer_step_label(step, self._extra_offers[step - 5])
+        elif step < len(STAGES):
+            label = f"{step}. {STAGES[step].label}"
+        else:
+            return
+        nodes = self.query(f"#stage_{step}")
+        if len(nodes):
+            nodes.first().update(f"{marker}  {label}")
 
     def _set_message(self, value: str) -> None:
         self.query_one("#message", Static).update(value)
@@ -900,12 +906,58 @@ class GoogleAITUI(App[None]):
         self.query_one("#state", Static).update(value)
 
     def _selected(self) -> int:
-        return validate_step(int(self.query_one("#step", Select).value))
+        step = int(self.query_one("#step", Select).value)
+        if 5 <= step < 5 + len(self._extra_offers):
+            return step
+        if step < 5:
+            return validate_step(step)
+        raise ValueError("Offer not observed in this Step 1 session")
+
+    def _update_discovered(self, new_items: list[ExtraOffer], *, replace: bool = False) -> None:
+        """Display deduplicated Step 5+ entries without enabling any checkout."""
+        self._extra_offers = merge_extra_offers(
+            [] if replace else self._extra_offers, new_items
+        )
+        self.query_one("#stage_5", Static).display = bool(self._extra_offers)
+        for widget in list(self.query("#workflow .extra-offer-step")):
+            widget.remove()
+        for index, offer in enumerate(self._extra_offers):
+            step = 5 + index
+            if step == 5:
+                self._set_workflow(step, "pending")
+            else:
+                self.query_one("#workflow", Vertical).mount(
+                    Static(f"○  {offer_step_label(step, offer)}",
+                           id=f"stage_{step}", classes="workflow-step extra-offer-step")
+                )
+        choices = [(f"{stage.number}. {stage.label}", stage.number)
+                   for stage in STAGES[:5]]
+        choices += [(offer_step_label(index + 5, offer), index + 5)
+                    for index, offer in enumerate(self._extra_offers)]
+        choices.append(("More run options…", 99))
+        selector = self.query_one("#step", Select)
+        current = selector.value
+        selector.set_options(choices)
+        if current not in {option for _, option in choices if option != 99}:
+            selector.value = 1
+        self._update_run_mode()
 
     def _confirm_stage(self, step: int, sequence: bool,
                        previous_verified: bool = False) -> None:
         if self.busy or self._diagnosing or isinstance(self.screen, SKUExplorer):
             return
+        if step >= 5:
+            if not (self._offer_check_ready and 5 <= step < 5 + len(self._extra_offers)):
+                self._set_message("Run Step 1 to discover offers for this device/account.")
+                return
+            offer = self._extra_offers[step - 5]
+            if not (step == 5 and offer.legacy_checkout_supported):
+                self._set_status(f"Step {step} · Review offer only")
+                self.query_one("#step_result", Static).update(offer_details(offer))
+                self.push_screen(SKUExplorer(serial=self._offer_ready_device,
+                                             initial_sku=offer.product,
+                                             on_result=self._sku_result_received))
+                return
         if step >= 2 and not self._offer_check_ready:
             self._set_status("Check Device & Offers first")
             self._set_message("Connect Android and complete the offer check before starting a paid step.")
@@ -970,7 +1022,13 @@ class GoogleAITUI(App[None]):
         # Part of Step 1: inspect additional ProductDetails after device/account
         # verification. Never changes completion flags or runs a paid step.
         serial = self._checked_device if self._verified_account and self._checked_device else None
-        self.push_screen(SKUExplorer(serial=serial))
+        self.push_screen(SKUExplorer(serial=serial, on_result=self._sku_result_received))
+
+    def _sku_result_received(self, result: dict) -> None:
+        """Add verified-device SKU observations to Step 5+ without changing billing gates."""
+        if not self.is_mounted or not self._offer_check_ready:
+            return
+        self._update_discovered(parse_sku_check(result))
 
     @on(Button.Pressed, "#quickstart")
     def quickstart_pressed(self) -> None:
