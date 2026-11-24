@@ -27,10 +27,6 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Static
 
 from sku_explorer import SKUExplorer
-
-# UI-only stage placed between read-only Step 1 and paid Step 2.
-# Preserve the original 0–5 CLI mapping and checkout safeguards.
-SKU_STEP = 6
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
     readable_issue_line, report_summary, safe_launch_diagnostic, validate_step
@@ -298,6 +294,7 @@ class GoogleAITUI(App[None]):
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
     #choose_account { width: 18; min-width: 18; height: 3; margin: 0 0 0 1; }
     #quickstart { display: block; width: 100%; height: 3; margin: 0; }
+    #sku_explorer { display: block; width: 100%; height: 3; margin: 0; }
     #quickstart.checking:disabled, #run.checking:disabled {
         background: #123b31; color: #e5fff2; text-style: bold;
         text-opacity: 1; opacity: 1;
@@ -451,9 +448,6 @@ class GoogleAITUI(App[None]):
                         for stage in STAGES:
                             yield Static(f"○  {stage.number}. {stage.label}",
                                          id=f"stage_{stage.number}", classes="workflow-step")
-                            if stage.number == 1:
-                                yield Static("○  1A. Check SKU (read-only)",
-                                             id="stage_sku", classes="workflow-step")
                     yield Button("Help & Guide", id="nav_help")
                     yield Button("Diagnose Android connection", id="diagnose")
                     yield Button("Show technical details", id="debug")
@@ -470,6 +464,7 @@ class GoogleAITUI(App[None]):
                             else "Check MuMu connection and Google AI offers without opening checkout.",
                             id="quick_hint")
                         yield Button("Check Device & Offers", id="quickstart", variant="success")
+                        yield Button("Check SKU & prices  (Step 1)", id="sku_explorer")
                         yield Button("Stop after current step", id="stop", disabled=True)
                         yield Button("Verified in Google Play → Next", id="next", disabled=True)
                         yield Button("Choose another step  +", id="advanced_toggle")
@@ -480,11 +475,7 @@ class GoogleAITUI(App[None]):
                                     yield Static("Choose a step", id="advanced_label")
                                     yield Select(
                                         [(f"{stage.number}. {stage.label}", stage.number)
-                                         for stage in STAGES[:2]] +
-                                        [("1A. Check SKU (read-only)", SKU_STEP)] +
-                                        [(f"{stage.number}. {stage.label}", stage.number)
-                                         for stage in STAGES[2:]] +
-                                        [("More run options…", 99)],
+                                         for stage in STAGES] + [("More run options…", 99)],
                                         value=self.initial_step, id="step", allow_blank=False)
                                 with Vertical(classes="field", id="mode_field"):
                                     yield Static("After this step", id="mode_label")
@@ -805,11 +796,8 @@ class GoogleAITUI(App[None]):
             self.query_one("#step", Select).value = self._last_selected_step
             self.toggle_more_modes()
             return
-        if isinstance(event.value, int) and event.value in (*range(6), SKU_STEP):
+        if isinstance(event.value, int) and event.value in range(6):
             self._last_selected_step = event.value
-            if event.value == SKU_STEP:
-                # SKU queries are never a part of paid/sequence modes.
-                self.query_one("#mode", Select).value = "single"
         self._update_run_mode()
 
     def _update_run_mode(self) -> None:
@@ -821,17 +809,6 @@ class GoogleAITUI(App[None]):
             return
         mode = self.query_one("#mode", Select).value
         step = self.query_one("#step", Select).value
-        if step == SKU_STEP:
-            if mode != "single":
-                self.query_one("#mode", Select).value = "single"
-            self.query_one("#step", Select).disabled = False
-            self.query_one("#run", Button).disabled = False
-            self.query_one("#run", Button).label = "Run Check SKU (read-only)"
-            self.query_one("#refresh_offers", Button).display = False
-            self.query_one("#mode_hint", Static).update(
-                "Step 1A is read-only. Run Step 1 first, then inspect a SKU. No checkout or next step."
-            )
-            return
         if mode == "all":
             if self.query_one("#step", Select).value != 2:
                 self.query_one("#step", Select).value = 2
@@ -897,32 +874,11 @@ class GoogleAITUI(App[None]):
         self.query_one("#state", Static).update(value)
 
     def _selected(self) -> int:
-        step = int(self.query_one("#step", Select).value)
-        return SKU_STEP if step == SKU_STEP else validate_step(step)
-
-    def _set_sku_workflow(self, state: str) -> None:
-        marker = {"running": "●", "done": "✓", "review": "!"}.get(state, "○")
-        self.query_one("#stage_sku", Static).update(
-            f"{marker}  1A. Check SKU (read-only)"
-        )
-
-    def _sku_closed(self, status: str | None) -> None:
-        if status in ("observed", "no_offers", "not_returned"):
-            self._set_sku_workflow("done")
-            self._set_status("Check SKU completed — eligibility not verified")
-        elif status and status != "not_run":
-            self._set_sku_workflow("review")
-            self._set_status("Check SKU needs review")
-        else:
-            self._set_sku_workflow("pending")
-        # A read-only SKU result must never unlock any paid step.
+        return validate_step(int(self.query_one("#step", Select).value))
 
     def _confirm_stage(self, step: int, sequence: bool,
                        previous_verified: bool = False) -> None:
         if self.busy or self._diagnosing or isinstance(self.screen, SKUExplorer):
-            return
-        if step == SKU_STEP:
-            self.open_sku_explorer()
             return
         if step >= 2 and not self._offer_check_ready:
             self._set_status("Check Device & Offers first")
@@ -981,17 +937,14 @@ class GoogleAITUI(App[None]):
         self.push_screen(Approval(title, message),
                          lambda approved: self._start(step, sequence) if approved else None)
 
+    @on(Button.Pressed, "#sku_explorer")
     def open_sku_explorer(self) -> None:
         if self.busy or self._diagnosing or self._accounts_loading:
             return
-        # Step 1 establishes the device and Play-account state. This dialog
-        # cannot change checkout readiness or start any paid step.
-        # A missing default Pro offer must not block inspecting another SKU.
-        # This is read-only and never sets the paid-stage readiness flag.
+        # Part of Step 1: inspect additional ProductDetails after device/account
+        # verification. Never changes completion flags or runs a paid step.
         serial = self._checked_device if self._verified_account and self._checked_device else None
-        self._set_sku_workflow("running")
-        self._set_status("Step 1A · Check SKU (read-only)")
-        self.push_screen(SKUExplorer(serial=serial), self._sku_closed)
+        self.push_screen(SKUExplorer(serial=serial))
 
     @on(Button.Pressed, "#quickstart")
     def quickstart_pressed(self) -> None:
@@ -1007,9 +960,6 @@ class GoogleAITUI(App[None]):
     @on(Button.Pressed, "#run")
     def selected_pressed(self) -> None:
         if self.busy or self._diagnosing:
-            return
-        if self._selected() == SKU_STEP:
-            self._confirm_stage(SKU_STEP, False)
             return
         mode = self.query_one("#mode", Select).value
         if mode == "all":
@@ -1185,7 +1135,7 @@ class GoogleAITUI(App[None]):
             self.query_one("#exit", Button).disabled = True
 
     def _start(self, step: int, sequence: bool) -> None:
-        if step == SKU_STEP or self.busy or self._diagnosing or isinstance(self.screen, SKUExplorer):
+        if step not in range(len(STAGES)) or self.busy or self._diagnosing or isinstance(self.screen, SKUExplorer):
             return
         if step >= 2 and not self._offer_check_ready:
             self._set_status("Check Device & Offers first")
