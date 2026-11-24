@@ -595,6 +595,8 @@ class GoogleAITUI(App[None]):
         if not account or self.busy:
             return
         self._selected_account = account
+        self._extra_scan_generation += 1
+        self._update_discovered([], replace=True)
         self._show_history(account)
         self._verified_account = None
         self._offer_ready_account = None
@@ -614,6 +616,8 @@ class GoogleAITUI(App[None]):
         if self.busy or self._diagnosing:
             return
         self._invalidate_connection_polls()
+        self._extra_scan_generation += 1
+        self._update_discovered([], replace=True)
         self._offer_check_ready = False
         self._initial_offer_ready = False
         self._offer_ready_device = None
@@ -740,6 +744,8 @@ class GoogleAITUI(App[None]):
             self._offer_check_ready = False
             self._initial_offer_ready = False
             self._offer_ready_device = None
+            self._extra_scan_generation += 1
+            self._update_discovered([], replace=True)
             self.sequence = False
             self.query_one("#next", Button).display = False
             self.query_one("#next", Button).disabled = True
@@ -919,17 +925,22 @@ class GoogleAITUI(App[None]):
             [] if replace else self._extra_offers, new_items
         )
         self.query_one("#stage_5", Static).display = bool(self._extra_offers)
-        for widget in list(self.query("#workflow .extra-offer-step")):
-            widget.remove()
+        existing = list(self.query("#workflow .extra-offer-step"))
         for index, offer in enumerate(self._extra_offers):
             step = 5 + index
             if step == 5:
                 self._set_workflow(step, "pending")
+            elif index - 1 < len(existing):
+                widget = existing[index - 1]
+                widget.update(f"○  {offer_step_label(step, offer)}")
+                widget.display = True
             else:
                 self.query_one("#workflow", Vertical).mount(
                     Static(f"○  {offer_step_label(step, offer)}",
                            id=f"stage_{step}", classes="workflow-step extra-offer-step")
                 )
+        for widget in existing[max(0, len(self._extra_offers) - 1):]:
+            widget.display = False
         choices = [(f"{stage.number}. {stage.label}", stage.number)
                    for stage in STAGES[:5]]
         choices += [(offer_step_label(index + 5, offer), index + 5)
@@ -1345,6 +1356,8 @@ class GoogleAITUI(App[None]):
             text=True, encoding="utf-8", errors="replace", bufsize=1, **options
         ) as child:
             self._child = child
+            if self.current_step == 1:
+                self._real_step1_run = True
             if self._cancel_requested and child.poll() is None:
                 try:
                     if os.name == "nt":
@@ -1567,6 +1580,12 @@ class GoogleAITUI(App[None]):
                 # The Stage 1 transport is authoritative; the previous idle
                 # poll may describe a different device from before the check.
                 self._connection_state = ConnectionStatus("connected", (self._offer_ready_device,))
+            if self._offer_check_ready and self._real_step1_run and self._offer_ready_device:
+                self.scan_known_skus(
+                    self._offer_ready_device, self._offer_ready_account or "",
+                    self._extra_scan_generation
+                )
+                self._real_step1_run = False
             self._initial_offer_ready = bool(self._offer_check_ready and any(
                 isinstance(offer, dict) and offer.get("id") == "12months-eft"
                 and str(offer.get("micros")) == "0"
