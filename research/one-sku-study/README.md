@@ -10,7 +10,7 @@ The source describes querying SKU families through Android Play Billing, includi
 
 ## Existing architecture on main
 
-- `ultra0.py`: existing Android / ADB / Frida / Play Billing engine. **Do not duplicate the Android connection or billing implementation.**
+- `ultra0.py`: existing Android / ADB / Frida / Play Billing engine. The SKU runner delegates device and PID verification to its `get_target_frida_device` helper. The read-only JS payload is intentionally separate from the checkout-capable payload so it cannot accidentally launch checkout. It owns only its own short-lived read-only connection, never calls the checkout engine, and is independently checked for forbidden purchase operations.
 - `tui_core.py`: pure state, step model, report/outcome interpretation.
 - `tui.py`: Textual presentation and user approval gates.
 - Step 1: list/check offers; no checkout. Steps 2–5 may initiate a real transaction and require separate explicit approvals.
