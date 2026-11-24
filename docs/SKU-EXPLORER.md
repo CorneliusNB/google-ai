@@ -12,7 +12,7 @@ Step 1 includes **SKU inspection automatically**. There is only one action: **Ch
    - `g1.play.ai.pro`
    - `g1.30tb`
 4. **SUPPORTED OFFERS · FIRST PHASE ONLY** shows observed offers that match an existing checkout step and have a zero-priced first phase.
-5. The existing Steps **2, 3 and 4** remain in the step picker. The optional **Step 5** appears only when the primary Step 1 report returns its exact supported product/offer with a zero-priced first phase. Additional SKU results are inspect-only and are not verified for the selected Play account.
+5. The existing Steps **2, 3 and 4** remain in the step picker. The optional **Step 5** appears only when the primary Step 1 report returns its exact supported product/offer with a zero-priced first phase. Additional SKU results are inspect-only. The catalogue explicitly labels them **PLAY ACCOUNT UNVERIFIED** before displaying prices; the serial and stored account used for the callback only identify the original Step 1 session, not the active Play profile that produced these observations. They never populate the optional Step 5 choice.
 
 ## Supported operations and safety
 
