@@ -1,60 +1,43 @@
-# Using SKU Explorer (read-only)
+# Step 1 — Unified SKU and Offer Discovery
 
-This feature is available on the research branch `research/one-sku-billing-study` and its PR until merged. It is **not yet available on the default `main` release**. Google Play product metadata is not a subscription or eligibility guarantee.
+Step 1 includes **SKU inspection automatically**. There is only one action: **Check Device & Offers**. Do not click a separate SKU button or open a SKU Explorer window.
 
-## Start the app
+## Usage
 
-Use your existing installation, but check out the research branch first (first-time clone only):
+1. Start ePlus AI Toolkit, select the intended Android device and Google Play account.
+2. Click **Check Device & Offers** (Step 1). The existing checks verify the device/account and fetch the normal Pro offer listing.
+3. After a successful **real, verified** Step 1, the toolkit also queries the following known ProductDetails SKUs **automatically**, using the same verified device:
+   - `g1.2tb.ai.subs_variant`
+   - `g1.play.20tb`
+   - `g1.play.ai.pro`
+   - `g1.30tb`
+4. The existing **AVAILABLE OFFERS · SKU / OFFER / PRICE PHASES** panel displays the original offer list, plus each returned SKU, base plan, offer ID and ordered pricing phases. Products not returned are explicitly marked **Not returned**, *not* "ineligible". Failed SKU checks display a diagnostic message rather than inventing offers.
+5. Existing Steps **2, 3 and 4** remain unchanged. Any distinct additional offers actually observed in Step 1 appear dynamically as **Step 5, Step 6, Step 7…**, up to 12 extras. If there are none, Step 5+ is hidden.
 
-```sh
-git fetch origin
-git switch --track origin/research/one-sku-billing-study
-git pull --ff-only
-```
+## Supported operations and safety
 
-- Windows: launch `./run-all.ps1` in PowerShell (use `.\run-all.ps1` on Windows).
-- macOS: `sh run-macos.sh`.
-- Linux (on branches with the Linux launcher): `sh run-linux.sh`.
+The original Pro optional +6-month operation is only available as Step 5 when its exact product/offer is observed in Step 1; it retains its original explicit approval and checkout preflight. Unknown discovered offers are **inspect-only** and never initiate a generic purchase. The guided checkout sequence does not automatically continue beyond Step 4.
 
-If you already have the branch locally, run `git switch research/one-sku-billing-study` followed by `git pull --ff-only` instead.
+Step 1's SKU check invokes `sku_check_runner.py` using a separate read-only Frida `queryProductDetailsAsync` script. It does **not** call `launchBillingFlow`, read a purchase token, switch accounts or automatically activate any plan. Finding a SKU, seeing a zero-priced phase, or seeing an offer ID **does not prove account eligibility, an active subscription, a free month or successful payment**. Verify terms and charges in Google Play before any optional checkout.
 
-### Check SKU from the Textual dashboard
+The candidate SKUs are a **bounded, known shortlist**, not an exhaustive Google Play catalogue, and returned offers may vary by region, time and account. GitHub Actions cannot confirm the device integration without a real authorized emulator.
 
-1. Start your Android device/emulator and confirm Google Play Store and Google One are installed, signed in to the account you intend to check, with ADB and Frida available.
-2. Click **Check Device & Offers** (Step 1) first. This establishes the device and Play-account status. Step 1 can perform environment preparation; read [SECURITY.md](../SECURITY.md) before running.
-3. In the **Step 1** card, click **Check SKU & prices** next to **Check Device & Offers**. Check SKU is now an *option within Step 1*, not an additional numbered step or sidebar navigation item.
-4. In the SKU details window select **AI Pro**, **Ultra** or **Custom**, then click **Check SKU (read-only)**. Custom expects a full Google Play product ID starting with `g1.`, e.g. `g1.2tb.ai.subs_variant`.
-5. Review the observed base plans, offer IDs, ordered price phases and billing periods. A displayed 0 price is **not** evidence of eligibility or an active subscription.
-6. Click **Close SKU Explorer** to return to Step 1. This lookup cannot start Step 2 or change account/device or checkout readiness. The original numbered Steps 0–5 remain unchanged.
+New scans clear stale extra steps and SKU results. When the selected account/device changes, the old offer catalog is cleared so it cannot be mistaken for the current account.
 
-If the modal’s **Check SKU** button is disabled, complete Step 1 again and confirm the active Google Play account. If it shows **Device/Google One/Frida is not ready**, verify that the same device and Google One process are running, and that the existing billing module and Frida server were prepared by Step 1. SKU Explorer intentionally does **not** auto-start, repair or install tooling.
+## CI screenshots and tests
 
-**Safety and limits:** one manually chosen SKU per click; one bounded ProductDetails query; no billing flow, Subscribe tap, token export, account switching or automatic retry. Cancelling the check terminates the query process. No on-device or subscription result has been validated from this PR's CI; tests and screenshots use mocks/synthetic states.
+See [PR #85](https://github.com/hoangsvit/google-ai/pull/85), the **Terminal UI previews** comment. GitHub Actions captures the actual running Textual dashboard with synthetic data and posts the images directly:
 
-## Dynamic Step 5+ discovery
+- `09-step1-sku-offers.png`: one Step 1 button, original offers and the combined SKU/price listing.
+- `10-step1-sku-missing.png`: SKU returned no offers or was not returned.
+- `11-step1-discovered-offers.png`: additional observed offers dynamically listed as Steps 5+.
 
-**Step 1** now aggregates additional observed offers (not a separate step):
+Automated tests: `tests/test_sku_check.py`, `tests/test_offer_discovery.py`, plus the existing TUI, Linux, macOS and Windows regression suites.
 
-- The normal **Check Device & Offers** report supplies its offer IDs for the selected account/device.
-- After a *real and verified* Step 1 execution, one bounded read-only query checks three existing known candidate product IDs (`g1.play.20tb`, `g1.play.ai.pro`, `g1.30tb`). The candidate list is not an exhaustive Google Play catalogue.
-- **Check SKU & prices** can inspect a custom product manually; its sanitized returned offers are also added to the same Step 1 results.
-- Steps **2, 3 and 4** remain the original Pro workflow, even if no extra offers are found.
-- Additional distinct offers appear as **Step 5, Step 6, Step 7…**, with stable sorting, deduplication and a limit of 12 extra entries. If no additional offers are observed, Step 5+ is hidden.
-- The pre-existing optional Pro +6-month operation is retained *only if* the corresponding known offer `6months-eft-ss-2026` on `g1.2tb.ai.subs_variant` is observed. In that case it is Step 5, and retains explicit payment approval and preflight checks.
-- Unknown extra offers are **inspect-only**. Seeing a Step number does not authorize payment or mean the offer is redeemable; no generic checkout is inferred, and the guided sequence never automatically advances beyond Step 4.
-- Discovered entries are session-bound. They are cleared when Step 1 is rerun or the selected account/device changes. No offers or product IDs are stored as new subscription status.
+## Source files
 
-## Preview screenshots
-
-Open [PR #85](https://github.com/hoangsvit/google-ai/pull/85) and find the automated **Terminal UI previews** comment. Images **09-sku-explorer.png**, **10-step1-check-sku.png** and **11-step1-discovered-offers.png** show the live SKU details window and the **Check SKU & prices** button beside the offer-check action inside Step 1, using synthetic data only. Both the main dashboard and SKU modal are captured without connecting a real Android device.
-
-## Developer boundaries
-
-- Dedicated query-only JS: `assets/frida/sku_query_readonly.js`.
-- Runtime query bridge: `sku_check_runner.py`.
-- Sanitization and price phase model: `sku_check_core.py`.
-- Live Textual modal: `sku_explorer.py`.
-- Offline tests: `tests/test_sku_check.py`.
-- Original `query_sku.py` is **not** used; it previously printed offer tokens and loaded a JS module containing checkout functions.
-
-If the selected device/account changes, rerun Step 1. Results are read-only metadata observations and must never unlock paid steps.
+- `tui.py`: Step 1 workflow, automatic SKU candidate scan, unified display and dynamic steps.
+- `sku_check_runner.py`: bounded device-bound ProductDetails query.
+- `sku_check_core.py`: validation, sanitized offer data and safe pricing display.
+- `offer_discovery.py`: deduplication and dynamic Step 5+ numbering.
+- `assets/frida/sku_query_readonly.js`: query-only Android Billing instrumentation.
