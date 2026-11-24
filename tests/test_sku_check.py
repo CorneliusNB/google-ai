@@ -157,9 +157,10 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                 rendered = "\n".join(segment.text for strip in
                                      app.query_one("#offer_view", RichLog).lines
                                      for segment in strip)
-                self.assertNotIn("g1.play.20tb", rendered)
-                self.assertNotIn("promo-2026", rendered)
-                self.assertNotIn("g1.30tb", rendered)
+                self.assertIn("g1.play.20tb", rendered)
+                self.assertIn("promo-2026", rendered)
+                self.assertIn("g1.30tb", rendered)
+                self.assertIn("UNVERIFIED", rendered)
                 self.assertIn("12months-eft", rendered)
 
     async def test_real_step_one_launches_automatic_sku_scan(self):
@@ -258,6 +259,31 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                                          "emulator-5554", "verified@example.test",
                                          app._extra_scan_generation - 1)
                 self.assertIs(app._sku_report, previous)
+
+    async def test_late_scan_cannot_mutate_running_stage(self):
+        from tempfile import TemporaryDirectory
+        from textual.widgets import Button, Select
+        from tui import GoogleAITUI
+
+        with TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)):
+                app._offer_check_ready = True
+                app._offer_ready_device = "emulator-5554"
+                app._offer_ready_account = "preview@example.invalid"
+                app.busy = True
+                app._update_run_mode()
+                self.assertTrue(app.query_one("#step", Select).disabled)
+                self.assertTrue(app.query_one("#run", Button).disabled)
+                app._known_skus_finished({"status": "observed"}, "emulator-5554",
+                                         "preview@example.invalid", app._extra_scan_generation)
+                self.assertIsNone(app._sku_report)
+                app.busy = False
+                app._sku_pending = True
+                app.stop_pressed()
+                self.assertTrue(app._sku_cancel.is_set())
+                app._start(2, False)
+                self.assertFalse(app.busy)
 
     async def test_no_unobserved_step_five_execution(self):
         from tempfile import TemporaryDirectory
