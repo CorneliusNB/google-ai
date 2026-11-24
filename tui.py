@@ -980,7 +980,7 @@ class GoogleAITUI(App[None]):
                 return
             offer = self._extra_offers[step - 5]
             if not (step == 5 and offer.legacy_checkout_supported):
-                self._set_status(f"Step {step} · Review offer only")
+                self._set_status(f"Step {step} · Offer metadata (inspect only)")
                 self.query_one("#step_result", Static).update(offer_details(offer))
                 self._set_message("Observed in Step 1. Inspection only: no checkout for this newly discovered offer.")
                 self.query_one("#status_panel").scroll_end(animate=False)
