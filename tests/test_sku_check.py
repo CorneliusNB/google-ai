@@ -216,7 +216,7 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                     app.selected_pressed()
                     await pilot.pause()
                     checkout.assert_not_called()
-                self.assertIs(app.screen, app)
+                self.assertEqual(len(app.screen_stack), 1)  # No SKU modal opened.
                 self.assertIn("metadata", str(app.query_one("#state", Static).render()).lower())
                 self.assertFalse(app.busy)
 
