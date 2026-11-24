@@ -73,9 +73,7 @@ def summarize_offer(raw: Mapping[str, Any]) -> dict[str, Any]:
     ):
         raise ValueError("Invalid currency")
     offer_id = raw.get("offerId", raw.get("id", ""))
-    if offer_id and (
-        not isinstance(offer_id, str) or not _OFFER_ID_RE.fullmatch(offer_id)
-    ):
+    if not isinstance(offer_id, str) or (offer_id and not _OFFER_ID_RE.fullmatch(offer_id)):
         raise ValueError("Invalid offer ID")
     return {
         "sku": sku,
