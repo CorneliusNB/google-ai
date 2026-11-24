@@ -279,6 +279,8 @@ Verify subscription, payment amount, currency and renewal terms under **[Google 
 
 If you need help installing or using ePlus AI Toolkit, see the [ePlus Telegram support/discussion post](https://t.me/eplus_news/29) to get in touch and exchange troubleshooting tips with the community. You can also [open a GitHub Issue](https://github.com/hoangsvit/google-ai/issues) for reproducible bugs. **Never post passwords, 2FA codes, purchase/offer tokens, full unredacted logs, or payment-card details.** Community support is not an official Google support channel.
 
+**Support the project with Telegram Boosts:** If ePlus AI Toolkit has been helpful and you have Telegram Premium, consider using an available boost to [boost @eplus_news](https://t.me/eplus_news?boost). Your support helps unlock more community features on our Telegram channel. Boosting is entirely optional and does not affect toolkit access, features or support.
+
 **Can't access the Google AI Pro offer?** You may also explore [Muse Invite Hub](https://github.com/ePlus-DEV/muse-invite-hub) ([browse or share Muse invite codes](https://muse.eplus.dev/)), another ePlus.DEV community project. Muse invite codes are for a **separate service**, are not a substitute for Google AI Pro subscriptions, and do **not** unlock or guarantee Google AI Pro access. Muse code availability and eligibility may vary.
 
 ## Repository structure
