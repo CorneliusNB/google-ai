@@ -1046,6 +1046,9 @@ class GoogleAITUI(App[None]):
         if self.busy or self._diagnosing:
             return
         mode = self.query_one("#mode", Select).value
+        if self._selected() >= 5:
+            self._confirm_stage(self._selected(), False)
+            return
         if mode == "all":
             self._confirm_stage(2, True)
         elif mode == "from":
@@ -1060,8 +1063,11 @@ class GoogleAITUI(App[None]):
     @on(Button.Pressed, "#sequence")
     def sequence_pressed(self) -> None:
         step = self._selected()
+        if step >= 5:
+            self._confirm_stage(step, False)
+            return
         if step < 2:
-            self._set_message("Choose Step 2, 3, 4 or 5 to start the subscription sequence.")
+            self._set_message("Choose Step 2, 3 or 4 to start the subscription sequence.")
             return
         self._confirm_stage(step, True)
 
@@ -1072,7 +1078,8 @@ class GoogleAITUI(App[None]):
         if self._last_outcome is None or not self._last_outcome.can_review:
             return
         next_step = self.current_step + 1
-        if next_step > 5:
+        # Unknown observed offers can never be launched automatically.
+        if next_step > 4:
             return
         self._save_history(self._history_account, self.current_step, "user_verified")
         self._confirm_stage(next_step, True, previous_verified=True)
@@ -1221,6 +1228,11 @@ class GoogleAITUI(App[None]):
     def _start(self, step: int, sequence: bool) -> None:
         if step not in range(len(STAGES)) or self.busy or self._diagnosing or isinstance(self.screen, SKUExplorer):
             return
+        if step == 5 and not (
+            self._extra_offers and self._extra_offers[0].legacy_checkout_supported
+            and self._offer_check_ready
+        ):
+            return
         if step >= 2 and not self._offer_check_ready:
             self._set_status("Check Device & Offers first")
             self._set_message("Connect Android and complete the offer check before starting a paid step.")
@@ -1239,6 +1251,9 @@ class GoogleAITUI(App[None]):
         self._save_history(self._history_account, step, "started")
         self._checked_device = None
         if step <= 1:
+            self._extra_scan_generation += 1
+            self._update_discovered([], replace=True)
+            self._real_step1_run = False
             self._environment_checked = False
             self._set_workflow(0, "pending")
             self._offer_check_ready = False
@@ -1519,6 +1534,9 @@ class GoogleAITUI(App[None]):
         if self._environment_checked:
             self._set_workflow(0, "done")
         if step == 1:
+            # Step 1's fresh report is the only initial discovery source.
+            # Never infer eligibility from any listed offer or price.
+            self._update_discovered(parse_step1(report), replace=True)
             detected = str((report or {}).get("detected_play_account") or "").strip().lower()
             verified = (self._verified_account or "").strip().lower()
             offers = (report or {}).get("offers")
@@ -1637,7 +1655,7 @@ class GoogleAITUI(App[None]):
                     self.query_one("#account", Static).update(
                         "Account  •  " + escape(mask_email(detected))
                     )
-        if outcome.can_review and self.sequence and step < 5 and not self._stop_after_step:
+        if outcome.can_review and self.sequence and step < 4 and not self._stop_after_step:
             self.query_one("#next", Button).disabled = False
             self.query_one("#next", Button).display = True
             self.query_one("#quickstart", Button).display = False
