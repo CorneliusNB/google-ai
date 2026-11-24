@@ -106,33 +106,67 @@ def sanitize_offers(raw: object, requested: list[str]) -> dict:
     return {
         "status": "observed" if offers else ("no_offers" if products_without_offers else "not_returned"),
         "items": offers,
+        "requested_skus": requested,
         "missing_skus": [sku for sku in requested if sku not in observed_products],
+        "no_offer_skus": [sku for sku in requested if sku in products_without_offers],
         "eligibility_verified": False,
         "subscription_active_verified": False,
     }
 
 
 def render_result(result: dict) -> str:
-    """Compact terminal-friendly summary; never render raw inputs or payloads."""
+    """Readable SKU + offer catalogue; never infer eligibility or expose tokens."""
     status = result.get("status", "query_error")
-    if status != "observed":
-        messages = {
-            "not_returned": "Google Play returned no matching product metadata.",
-            "no_offers": "Product details returned, but no subscription offers were listed.",
-            "account_unverified": "Play account not verified. Recheck Step 1.",
-            "device_not_ready": "Device/Google One/Frida is not ready. Check Step 1.",
-            "billing_unavailable": "BillingClient did not return data.",
-            "timeout": "The read-only SKU query timed out.",
-            "cancelled": "SKU query cancelled.",
-            "query_error": "Could not complete SKU query. Check device and try again.",
-        }
-        return messages.get(status, "SKU metadata is unavailable.")
-    lines = ["OBSERVED OFFERS (NOT ELIGIBILITY)"]
-    for row in result.get("items", [])[:MAX_OFFERS]:
-        lines.append(f"{row['sku']}  /  {row['base_plan_id']}  /  {row['offer_id'] or '(base)'}")
-        for index, phase in enumerate(row["phases"][:MAX_PHASES], 1):
-            amt = Decimal(phase["price_amount_micros"]) / Decimal(1_000_000)
-            lines.append(f"  Phase {index}: {amt:,.2f} {phase['currency']} / {phase['billing_period']}")
+    messages = {
+        "not_returned": "Google Play returned no matching product metadata.",
+        "no_offers": "Product details returned without available subscription offers.",
+        "account_unverified": "Play account not verified. Recheck Step 1.",
+        "device_not_ready": "Device/Google One/Frida is not ready. Recheck Step 1.",
+        "billing_unavailable": "BillingClient did not return data.",
+        "timeout": "SKU scan timed out; results are not complete.",
+        "cancelled": "SKU scan cancelled.",
+        "query_error": "SKU scan could not complete. Check device and try again.",
+    }
+    lines = ["SKU / PRODUCT / OFFER (OBSERVED; NOT ELIGIBILITY)"]
+    items = result.get("items") if isinstance(result.get("items"), list) else []
+    for row in items[:MAX_OFFERS]:
+        if not isinstance(row, dict):
+            continue
+        sku = row.get("sku", "")
+        base = row.get("base_plan_id", "")
+        offer = row.get("offer_id") or "(base plan)"
+        if any(not isinstance(x, str) or not ID_RE.fullmatch(x)
+               for x in (sku, base)) or not isinstance(offer, str):
+            continue
+        if offer != "(base plan)" and not ID_RE.fullmatch(offer):
+            continue
+        lines.append(f"SKU: {sku}  |  Base: {base}  |  Offer: {offer}")
+        phases = row.get("phases") if isinstance(row.get("phases"), list) else []
+        for index, phase in enumerate(phases[:MAX_PHASES], 1):
+            if not isinstance(phase, dict):
+                continue
+            try:
+                amt = Decimal(phase["price_amount_micros"]) / Decimal(1_000_000)
+                currency = phase["currency"]
+                period = phase["billing_period"]
+                if (not isinstance(currency, str) or not CURRENCY_RE.fullmatch(currency)
+                        or not isinstance(period, str) or not PERIOD_RE.fullmatch(period)):
+                    continue
+                lines.append(f"  Phase {index}: {amt:,.2f} {currency} / {period}")
+            except (KeyError, TypeError, ArithmeticError):
+                continue
+    if status in messages:
+        lines.append(messages[status])
+    missing = result.get("missing_skus")
+    if isinstance(missing, list):
+        for sku in missing[:MAX_SKUS]:
+            if isinstance(sku, str) and SKU_RE.fullmatch(sku):
+                lines.append(f"SKU: {sku}  |  Not returned (eligibility unknown)")
+    no_offers = result.get("no_offer_skus")
+    if isinstance(no_offers, list):
+        for sku in no_offers[:MAX_SKUS]:
+            if isinstance(sku, str) and SKU_RE.fullmatch(sku):
+                lines.append(f"SKU: {sku}  |  No subscription offers returned")
     lines.append("Eligibility: UNVERIFIED  |  Subscription: UNVERIFIED")
-    lines.append("No purchase, checkout, or subscription changes were requested.")
+    lines.append("No checkout or subscription change was requested.")
     return "\n".join(lines)
