@@ -163,7 +163,7 @@ class SKUExplorerUITests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause()
                 self.assertEqual(len(app._extra_offers), 2)
                 self.assertTrue(app.query_one("#stage_5", Static).display)
-                self.assertIn("5. Offer:", str(app.query_one("#stage_5", Static).render()))
+                self.assertIn("5. Ultra:", str(app.query_one("#stage_5", Static).render()))
                 self.assertIn("6. Ultra:", str(app.query_one("#stage_6", Static).render()))
                 app.query_one("#step", Select).value = 5
                 await pilot.pause()
