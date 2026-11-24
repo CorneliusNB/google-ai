@@ -878,7 +878,7 @@ class GoogleAITUI(App[None]):
 
     def _confirm_stage(self, step: int, sequence: bool,
                        previous_verified: bool = False) -> None:
-        if self.busy or self._diagnosing:
+        if self.busy or self._diagnosing or isinstance(self.screen, SKUExplorer):
             return
         if step >= 2 and not self._offer_check_ready:
             self._set_status("Check Device & Offers first")
@@ -1116,6 +1116,8 @@ class GoogleAITUI(App[None]):
         )
 
     def action_run_selected(self) -> None:
+        if isinstance(self.screen, SKUExplorer):
+            return
         self.selected_pressed()
 
     def action_quit_safely(self) -> None:
@@ -1133,7 +1135,7 @@ class GoogleAITUI(App[None]):
             self.query_one("#exit", Button).disabled = True
 
     def _start(self, step: int, sequence: bool) -> None:
-        if self.busy or self._diagnosing:
+        if self.busy or self._diagnosing or isinstance(self.screen, SKUExplorer):
             return
         if step >= 2 and not self._offer_check_ready:
             self._set_status("Check Device & Offers first")
