@@ -1,6 +1,6 @@
 # One-SKU / Play Billing research (isolated)
 
-Status: **research only**. This directory is not imported by the production engine, Textual UI, launchers, or release builds.
+Status: **research branch**. The offline helper in this directory is not imported by production. A separate, manually triggered read-only Check SKU implementation is now integrated into the Textual UI on this research branch; see [usage](../../docs/SKU-EXPLORER.md). It has not been validated against a real Android/Google Play session.
 
 ## Source and provenance
 
