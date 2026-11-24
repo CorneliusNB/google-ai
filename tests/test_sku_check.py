@@ -380,6 +380,95 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(app._sku_report, {"status": "cancelled"})
                 self.assertFalse(app._sku_pending)
 
+    async def test_optional_step_five_survives_retry_with_same_verified_identity(self):
+        from tempfile import TemporaryDirectory
+        from device_diagnostics import ConnectionStatus
+        from textual.widgets import Button, Select
+        from tui import Approval, GoogleAITUI
+        from tui_core import Outcome
+
+        with TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._checked_device = "fixture-device"
+                app._verified_account = "preview@example.invalid"
+                app._connection_state = ConnectionStatus("connected", ("fixture-device",))
+                app._finished(1, Outcome("listed", "Offers loaded", "Review"), {
+                    "status": "listed",
+                    "detected_play_account": "preview@example.invalid",
+                    "offers": [
+                        {"product": "g1.2tb.ai.subs_variant", "id": "12months-eft", "micros": "0"},
+                        {"product": "g1.2tb.ai.subs_variant", "id": "6months-eft-ss-2026", "micros": "0"},
+                    ],
+                })
+                await pilot.pause()
+                app.screen.dismiss(False)
+                await pilot.pause()
+                self.assertTrue(app._offer_check_ready)
+                for step in (2, 3, 4, 5):
+                    app.query_one("#step", Select).value = step
+                    app._update_run_mode()
+                    self.assertFalse(app.query_one("#run", Button).disabled)
+                app.current_step = 5
+                app._checked_device = "fixture-device"
+                app._verified_account = "preview@example.invalid"
+                app._finished(5, Outcome("purchase_unavailable", "Unavailable", "Review Google Play"), None)
+                await pilot.pause()
+                self.assertTrue(app._offer_check_ready)
+                self.assertFalse(app.query_one("#run", Button).disabled)
+                with patch.object(app, "run_stage") as run:
+                    app._confirm_stage(5, False)
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, Approval)
+                    self.assertIn("RETRY SAFETY", app.screen.message_text)
+                    run.assert_not_called()
+                    app.screen.dismiss(False)
+                    await pilot.pause()
+                    run.assert_not_called()
+
+    async def test_sku_query_failure_does_not_revoke_primary_step_one(self):
+        from tempfile import TemporaryDirectory
+        from device_diagnostics import ConnectionStatus
+        from textual.widgets import Button, Select
+        from tui import GoogleAITUI
+        from tui_core import Outcome
+
+        with TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._checked_device = "fixture-device"
+                app._verified_account = "preview@example.invalid"
+                app._connection_state = ConnectionStatus("connected", ("fixture-device",))
+                app._real_step1_run = True
+                report = {"status": "listed", "detected_play_account": "preview@example.invalid",
+                          "offers": [
+                              {"product": "g1.2tb.ai.subs_variant", "id": "12months-eft", "micros": "0"},
+                              {"product": "g1.2tb.ai.subs_variant", "id": "6months-eft-ss-2026", "micros": "0"},
+                          ]}
+                with patch.object(app, "scan_known_skus") as scan:
+                    app._finished(1, Outcome("listed", "Offers loaded", "Review"), report)
+                    scan.assert_called_once_with("fixture-device", "preview@example.invalid",
+                                                 app._extra_scan_generation)
+                self.assertTrue(app._sku_pending)
+                self.assertTrue(app.query_one("#run", Button).disabled)
+                app._known_skus_finished({"status": "timeout"}, "fixture-device",
+                                         "preview@example.invalid", app._extra_scan_generation)
+                await pilot.pause()
+                app.screen.dismiss(False)
+                await pilot.pause()
+                self.assertIs(app._offer_report, report)
+                self.assertEqual(app._sku_report["status"], "timeout")
+                self.assertTrue(app._offer_check_ready)
+                for step in (2, 3, 4, 5):
+                    app.query_one("#step", Select).value = step
+                    app._update_run_mode()
+                    self.assertFalse(app.query_one("#run", Button).disabled)
+                app._connection_polled(ConnectionStatus("disconnected"), startup=True)
+                self.assertFalse(app._offer_check_ready)
+                self.assertFalse(app._extra_offers)
+                self.assertIsNone(app._offer_report)
+                self.assertIsNone(app._sku_report)
+
     async def test_no_unobserved_step_five_execution(self):
         from tempfile import TemporaryDirectory
         from tui import GoogleAITUI
