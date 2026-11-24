@@ -339,7 +339,8 @@ class LinuxDashboardTests(unittest.IsolatedAsyncioTestCase):
                             self.assertEqual(app.query_one("#mode", Select).value, "from" if guided else "single")
                             self.assertEqual(app.query_one("#step", Select).value, 2 if guided else 1)
                             self.assertEqual(app.query_one("#workflow_actions").display, guided)
-                            self.assertEqual(len(app.query("#workflow .workflow-step")), 6)
+                            self.assertEqual(len(app.query("#workflow .workflow-step")), 7)
+                            self.assertTrue(app.query_one("#stage_sku").visible)
                             run.assert_not_called()
 
     async def test_decline_quick_check_stop_and_checkout_exit(self):
