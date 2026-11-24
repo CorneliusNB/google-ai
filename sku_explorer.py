@@ -26,7 +26,7 @@ class SKUExplorer(ModalScreen[None]):
     CSS = """
     SKUExplorer { align: center middle; background: #071526 88%; }
     #sku_card {
-        width: 105; max-width: 96%; height: auto; max-height: 94%;
+        width: 105; max-width: 96%; height: auto; max-height: 97%;
         background: #10253d; border: round #3c97b8; padding: 0 2;
     }
     #sku_title { color: #b4eafa; text-style: bold; }
@@ -41,7 +41,7 @@ class SKUExplorer(ModalScreen[None]):
     #sku_cancel { width: 15; }
     #sku_clear { width: 13; }
     #sku_results {
-        height: 8; min-height: 6; max-height: 10;
+        height: 6; min-height: 5; max-height: 8;
         border: round #365c7b; background: #0a1b30;
         margin-top: 0; padding: 0 1; overflow-y: auto;
     }
@@ -49,7 +49,7 @@ class SKUExplorer(ModalScreen[None]):
     #sku_warning { color: #9dcce0; height: auto; margin-top: 0; }
     #sku_close { width: 27; height: 3; margin-top: 0; }
     Screen.compact #sku_card { padding: 0 1; }
-    Screen.compact #sku_results { height: 7; }
+    Screen.compact #sku_results { height: 5; }
     """
 
     def __init__(self, *, serial: str | None = None, preview: bool = False) -> None:
@@ -96,8 +96,7 @@ class SKUExplorer(ModalScreen[None]):
                     id="sku_output",
                 )
             yield Static(
-                "Google Play pricing phases are shown as returned; unknown renewal stays unknown.\n"
-                "NO CHECKOUT • No purchase token, Subscribe tap or account switching.",
+                "NO CHECKOUT  •  No token, account switch or payment. Pricing terms are not verified.",
                 id="sku_warning",
             )
             yield Button("Close SKU Explorer", id="sku_close")
