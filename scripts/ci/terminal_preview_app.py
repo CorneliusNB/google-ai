@@ -126,6 +126,8 @@ class PreviewApp(GoogleAITUI):
             self.advanced_pressed()
             self.query_one("#step", Select).value = 5
             self._update_run_mode()
+            # Display the real advanced hint in the same screenshot as Run.
+            self.call_after_refresh(lambda: self._reveal_step_control("#mode_hint"))
             return
         if scenario in ("sku_offers", "sku_missing", "sku_extra_steps"):
             # Real dashboard widgets, simulated ProductDetails, no Android.
