@@ -20,7 +20,7 @@ from sku_check_core import sanitize_offers, validate_skus
 
 ROOT = Path(__file__).resolve().parent
 PKG = "com.google.android.apps.subscriptions.red"
-SERIAL_RE = re.compile(r"^[A-Za-z0-9._:/-]{1,90}$")
+SERIAL_RE = re.compile(r"^[A-Za-z0-9._:-]{1,90}$")
 ALLOWED_CODES = {
     "observed", "no_offers", "not_returned", "device_not_ready",
     "billing_unavailable", "timeout", "query_error",
