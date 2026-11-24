@@ -1,6 +1,6 @@
 # One-SKU / Play Billing research (isolated)
 
-Status: **research branch**. The offline helper in this directory is not imported by production. A separate, manually triggered read-only Check SKU implementation is now integrated into the Textual UI on this research branch; see [usage](../../docs/SKU-EXPLORER.md). It has not been validated against a real Android/Google Play session.
+Status: **research branch**. The offline helper in this directory is not imported by production. A bounded, read-only SKU query automatically follows a verified Step 1 and is integrated into the Textual UI on this research branch; see [usage](../../docs/SKU-EXPLORER.md). It has not been validated against a real Android/Google Play session.
 
 ## Source and provenance
 
@@ -35,9 +35,9 @@ python -m unittest discover -s tests -p 'test_one_sku_research.py' -v
 
 ## Detailed Check SKU proposal
 
-See [CHECK-SKU-DESIGN.md](CHECK-SKU-DESIGN.md) for the dedicated query-only architecture, UI layout, full pricing-phase response contract, threat model, tests and rollout gates. **No live Check SKU or checkout is implemented on this branch.**
+See [CHECK-SKU-DESIGN.md](CHECK-SKU-DESIGN.md) for the dedicated query-only architecture, UI layout, full pricing-phase response contract, threat model, tests and rollout gates. **The offline helper is not the live query implementation.** See the current usage guide for the integrated read-only scan.
 
-## Integration design — not implemented yet
+## Historical integration design
 
 1. **Inventory existing offer-query API** in `ultra0.py`. If safe and compatible, extend the existing read-only Step 1 query to accept a **bounded, manually chosen** list of SKU candidates. Avoid importing the third-party `pro0.py`, running unreviewed BAT scripts, or automatically brute-forcing the Play Store.
 2. **Validate returned product details** against the active Google Play account, actual current offer and server-provided billing terms. Treat the full offer structure (introductory phases, recurrence, region, renewal pricing) separately from display labels.
