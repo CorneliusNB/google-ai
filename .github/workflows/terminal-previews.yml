@@ -6,7 +6,6 @@ on:
     paths:
       - 'tui.py'
       - 'tui_core.py'
-      - 'sku_explorer.py'
       - 'sku_check_core.py'
       - 'sku_check_runner.py'
       - 'offer_discovery.py'
