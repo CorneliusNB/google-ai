@@ -9,6 +9,8 @@ on:
       - 'sku_explorer.py'
       - 'sku_check_core.py'
       - 'sku_check_runner.py'
+      - 'offer_discovery.py'
+      - 'tests/test_offer_discovery.py'
       - 'assets/frida/sku_query_readonly.js'
       - 'tests/test_sku_check.py'
       - 'device_diagnostics.py'
