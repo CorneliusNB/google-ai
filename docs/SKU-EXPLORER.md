@@ -22,10 +22,10 @@ If you already have the branch locally, run `git switch research/one-sku-billing
 
 1. Start your Android device/emulator and confirm Google Play Store and Google One are installed, signed in to the account you intend to check, with ADB and Frida available.
 2. Click **Check Device & Offers** (Step 1) first. This establishes the device and Play-account status. Step 1 can perform environment preparation; read [SECURITY.md](../SECURITY.md) before running.
-3. In the **left sidebar**, click **SKU Explorer · Check SKU**. (It is separate from the green Step 1 button, so Live Status remains visible.)
-4. Pick **AI Pro**, **Ultra** or **Custom** to fill the SKU, then click **Check SKU (read-only)**. Custom requires a full product ID starting with `g1.`, e.g. `g1.2tb.ai.subs_variant`.
-5. Review each returned offer/base plan and its ordered price phases in the scrollable result area. A price of 0 is **only** a displayed phase, not eligibility confirmation. A missing SKU does not prove it is discontinued.
-6. Click **Close SKU Explorer** to return to the main screen. The SKU lookup never starts Steps 2–5, changes the account, or opens checkout.
+3. In the **STEPS** list, look for **1A. Check SKU (read-only)**, between **1. Available offers** and **2. Pro 12 months**. The original numbered Steps 0–5 are unchanged.
+4. Click **Choose another step +**, select **1A. Check SKU (read-only)** from the same dropdown used for normal steps, then click **Run Check SKU (read-only)**. It uses single-step mode only; no checkout sequence starts.
+5. In the SKU step panel, choose **AI Pro**, **Ultra** or **Custom** to fill the product ID, then click **Check SKU (read-only)**. Custom requires a full ID beginning with `g1.`, e.g. `g1.2tb.ai.subs_variant`.
+6. Review returned offer/base plan and ordered price phases. A zero-priced phase does **not** confirm eligibility. Click **Close SKU Explorer** to return to the dashboard. The 1A indicator reflects only query completion, not subscription activation.
 
 If **Check SKU** is disabled, do Step 1 again and confirm the active Google Play account. If it shows **Device/Google One/Frida is not ready**, verify that the same device and Google One process are running, and that the existing billing module and Frida server were prepared by Step 1. SKU Explorer intentionally does **not** auto-start, repair or install tooling.
 
@@ -33,7 +33,7 @@ If **Check SKU** is disabled, do Step 1 again and confirm the active Google Play
 
 ## Preview screenshots
 
-Open [PR #85](https://github.com/hoangsvit/google-ai/pull/85) and find the automated **Terminal UI previews** comment. The latest image **09-sku-explorer.png** shows the *same* dialog component used in the application with synthetic data. Both the main dashboard and SKU modal are captured without connecting a real Android device.
+Open [PR #85](https://github.com/hoangsvit/google-ai/pull/85) and find the automated **Terminal UI previews** comment. Images **09-sku-explorer.png** and **10-sku-step-selection.png** show the real step dialog and the native dropdown route from the dashboard, using synthetic data only. Both the main dashboard and SKU modal are captured without connecting a real Android device.
 
 ## Developer boundaries
 
