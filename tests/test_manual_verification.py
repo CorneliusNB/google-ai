@@ -25,9 +25,15 @@ class ManualVerificationTests(unittest.TestCase):
             CompletedProcess([], 1, stdout=stale, stderr=b"dump failed"),
             CompletedProcess([], 0, stdout=fresh, stderr=b""),
         ]
-        with patch.object(ultra0.subprocess, "run", side_effect=results) as run:
+        stderr = io.StringIO()
+        stdout = io.StringIO()
+        with patch.object(ultra0.subprocess, "run", side_effect=results) as run, \
+             patch.object(ultra0.sys, "stderr", stderr), \
+             patch.object(ultra0.sys, "stdout", stdout):
             self.assertEqual(ultra0.ui_xml(), "")
             self.assertEqual(ultra0.ui_xml(), fresh.decode())
+        self.assertEqual(stderr.getvalue(), "Android UI capture failed: dump failed\n")
+        self.assertEqual(stdout.getvalue(), "")
 
         first, second = (call.args[0][-1] for call in run.call_args_list)
         for command in (first, second):
@@ -37,6 +43,20 @@ class ManualVerificationTests(unittest.TestCase):
                 r"uiautomator dump \1 >/dev/null && cat \1$",
             )
         self.assertNotEqual(first, second)
+
+    def test_ui_dump_failure_without_stderr_is_reported(self):
+        with patch.object(ultra0, "sh", side_effect=RuntimeError("")), \
+             patch.object(ultra0.sys, "stderr", io.StringIO()) as stderr:
+            self.assertEqual(ultra0.ui_xml(), "")
+        self.assertIn("no stderr diagnostic", stderr.getvalue())
+
+    def test_ui_dump_failure_does_not_log_xml(self):
+        with patch.object(ultra0, "sh", side_effect=RuntimeError(
+                '<hierarchy><node text="private"/></hierarchy>')), \
+             patch.object(ultra0.sys, "stderr", io.StringIO()) as stderr:
+            self.assertEqual(ultra0.ui_xml(), "")
+        self.assertIn("XML diagnostic omitted", stderr.getvalue())
+        self.assertNotIn("private", stderr.getvalue())
 
     def test_incomplete_ui_dump_is_ignored(self):
         with patch.object(ultra0, "sh", return_value="<hierarchy><node/>"):

@@ -443,7 +443,13 @@ def ui_xml() -> str:
     )
     try:
         xml = sh("shell", command, check=True)
-    except RuntimeError:
+    except RuntimeError as exc:
+        # Keep the machine-readable stdout protocol clean; never log UI XML.
+        diagnostic = " ".join(str(exc).split())
+        if "<" in diagnostic:
+            diagnostic = "XML diagnostic omitted"
+        print("Android UI capture failed: " + (diagnostic or "no stderr diagnostic"),
+              file=sys.stderr, flush=True)
         return ""
     return xml if xml.endswith("</hierarchy>") else ""
 
