@@ -1,5 +1,16 @@
 # Check SKU / SKU Explorer — implementation design
 
+> **Implemented design supersedes this historical proposal (PR #85):**
+> Step 1 has **one** `Check Device & Offers` button. Its successful verified
+> offer check automatically queries the known ProductDetails SKU shortlist and
+> lists SKU, offer/base plan and pricing phases in the **Available Offers** panel.
+> No independent SKU Explorer button, modal, or Step 1A is exposed.
+> Steps 2–4 remain fixed; observed new offers appear as dynamic Step 5+ entries
+> (inspect-only unless the exact original optional Pro offer is supported).
+> See [Step 1 — Unified SKU and Offer Discovery](../../docs/SKU-EXPLORER.md).
+> The remaining sections below are historical research notes, **not current UI instructions**.
+>
+
 **Status:** design proposal committed to `research/one-sku-billing-study`. **Not a live scanner, not a checkout implementation.**
 
 **Scope:** a manually initiated, bounded Google Play product-details inspection in the existing Textual dashboard. The process may attach to an authorized Android / Google One runtime, but must not request purchases, open a billing sheet, change accounts, modify subscription state or automatically install/repair Android tooling. No hidden subscription unlocks, and no changes to existing Steps 2–5.
