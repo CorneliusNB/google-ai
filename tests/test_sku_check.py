@@ -343,7 +343,7 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
         child = Mock()
         child.poll.return_value = None
         child.pid = 98765
-        with patch("tui.os.name", "posix"), patch("tui.os.killpg") as kill:
+        with patch("tui.os.name", "posix"), patch("tui.os.killpg", create=True) as kill:
             GoogleAITUI._stop_sku_process(child)
         import signal
         kill.assert_called_once_with(98765, signal.SIGTERM)
@@ -391,6 +391,7 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory))
             async with app.run_test(size=(110, 35)) as pilot:
                 app._checked_device = "fixture-device"
+                app._selected_account = "preview@example.invalid"
                 app._verified_account = "preview@example.invalid"
                 app._connection_state = ConnectionStatus("connected", ("fixture-device",))
                 app._finished(1, Outcome("listed", "Offers loaded", "Review"), {
@@ -411,6 +412,7 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(app.query_one("#run", Button).disabled)
                 app.current_step = 5
                 app._checked_device = "fixture-device"
+                app._selected_account = "preview@example.invalid"
                 app._verified_account = "preview@example.invalid"
                 app._finished(5, Outcome("purchase_unavailable", "Unavailable", "Review Google Play"), None)
                 await pilot.pause()
@@ -437,6 +439,7 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
             app = GoogleAITUI(repo=Path(directory))
             async with app.run_test(size=(110, 35)) as pilot:
                 app._checked_device = "fixture-device"
+                app._selected_account = "preview@example.invalid"
                 app._verified_account = "preview@example.invalid"
                 app._connection_state = ConnectionStatus("connected", ("fixture-device",))
                 app._real_step1_run = True
