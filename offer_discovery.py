@@ -76,8 +76,8 @@ def parse_sku_check(result: dict | None) -> list[ExtraOffer]:
         base = _safe(row.get("base_plan_id"))
         if not product or not base or (product == _PRO and offer_id in _FIXED_IDS):
             continue
-        if not offer_id:
-            offer_id = "base-plan-" + base
+        if row.get("offer_id") not in ("", None) and not offer_id:
+            continue
         phases = row.get("phases")
         first = phases[0] if isinstance(phases, list) and phases and isinstance(phases[0], dict) else {}
         entries.append(ExtraOffer(
@@ -113,12 +113,13 @@ def offer_step_label(step: int, offer: ExtraOffer) -> str:
     if offer.legacy_checkout_supported:
         return f"{step}. Optional +6 months"
     kind = "Ultra" if ("20tb" in offer.product or "30tb" in offer.product) else "Offer"
-    return f"{step}. {kind}: {offer.offer_id[:17]} (view)"
+    label = offer.offer_id or f"base-plan-{offer.base_plan}"
+    return f"{step}. {kind}: {label[:17]} (view)"
 
 
 def offer_details(offer: ExtraOffer) -> str:
     lines = [
-        f"Product: {offer.product}", f"Offer: {offer.offer_id}",
+        f"Product: {offer.product}", f"Offer: {offer.offer_id or '(base plan)'}",
         f"Base plan: {offer.base_plan or 'Not returned'}",
         f"First phase: {offer.price_micros or 'Unknown'} micros / {offer.period or 'Unknown'}",
         f"Currency: {offer.currency or 'Not returned by Step 1'}",
