@@ -28,9 +28,9 @@ New scans clear stale extra steps and SKU results. When the selected account/dev
 
 See [PR #85](https://github.com/hoangsvit/google-ai/pull/85), the **Terminal UI previews** comment. GitHub Actions captures the actual running Textual dashboard with synthetic data and posts the images directly:
 
-- `09-step1-sku-offers.png`: one Step 1 button, original offers and the combined SKU/price listing.
-- `10-step1-sku-missing.png`: SKU returned no offers or was not returned.
-- `11-step1-discovered-offers.png`: additional observed offers dynamically listed as Steps 5+.
+- `09-step1-sku-offers.png`: one Step 1 button and the supported offer list.
+- `10-step1-sku-missing.png`: no supported offers found in a synthetic scan.
+- `11-step1-discovered-offers.png`: the supported optional Step 5 is visible in a synthetic scan; unsupported offers are not shown as extra steps.
 
 Automated tests: `tests/test_sku_check.py`, `tests/test_offer_discovery.py`, plus the existing TUI, Linux, macOS and Windows regression suites.
 
