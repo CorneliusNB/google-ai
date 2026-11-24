@@ -43,7 +43,7 @@ def _micros(value: object) -> str:
     return value if value.isascii() and value.isdecimal() and len(value) <= 18 else ""
 
 
-def parse_step1(report: dict | None) -> list[ExtraOffer]:
+def parse_step1(report: dict | None, *, include_fixed: bool = False) -> list[ExtraOffer]:
     """Parse only the sanitized offer identifiers from a fresh Step 1 report."""
     if not isinstance(report, dict) or not isinstance(report.get("offers"), list):
         return []
@@ -52,7 +52,7 @@ def parse_step1(report: dict | None) -> list[ExtraOffer]:
         if not isinstance(raw, dict):
             continue
         product, offer_id = _safe(raw.get("product")), _safe(raw.get("id"))
-        if not product or not offer_id or (product == _PRO and offer_id in _FIXED_IDS):
+        if not product or not offer_id or (not include_fixed and product == _PRO and offer_id in _FIXED_IDS):
             continue
         entries.append(ExtraOffer(
             product=product, offer_id=offer_id, period=_safe(raw.get("period")),
