@@ -29,6 +29,42 @@ CASES = [
     ("06-play-review", "review", 110, 35, ("Verified in Google Play",)),
     ("07-linux-startup", "linux_startup", 110, 35, ("GET STARTED", "Diagnose Android connection", "Ready — no check started")),
     ("08-linux-step-picker", "linux_step_picker", 110, 35, ("Choose a step", "Run this step")),
+    ("09-step1-sku-offers", "sku_offers", 120, 55,
+     ("SKU / PRODUCT / OFFER", "PLAY ACCOUNT UNVERIFIED", "g1.play.20tb", "19.99 USD", "Check Device & Offers")),
+    ("10-step1-sku-missing", "sku_missing", 120, 55,
+     ("No subscription offers returned", "Not returned", "Check Device & Offers")),
+    ("11-step1-discovered-offers", "sku_extra_steps", 120, 55,
+     ("5. Optional", "6months-eft-ss-2026", "PRODUCT / OFFER", "Check Device & Offers")),
+    ("12-step0-ready", "environment_ready", 120, 42,
+     ("Environment ready (SIMULATED)", "Check Device & Offers")),
+    ("13-step0-adb-missing", "adb_missing", 120, 42,
+     ("ADB not found", "Retry connection", "Got it")),
+    ("14-account-picker", "account_picker", 120, 42,
+     ("Choose a Google account on this device", "preview.one@example.invalid", "Use selected account")),
+    ("15-step1-error", "offer_error", 120, 42,
+     ("Offer check failed (SIMULATED)", "Check Android connection", "Got it")),
+    ("16-step1-running", "offer_running", 120, 42,
+     ("Checking offers", "Checking device and offers (SIMULATED)", "Stop")),
+    ("17-step3-approval", "approval_3", 120, 42,
+     ("Start Step 3 (+6 months)?", "Card check 2 of 3", "Cancel", "Continue")),
+    ("18-step4-approval", "approval_4", 120, 42,
+     ("Start Step 4 (+6 months)?", "Card check 3 of 3", "Cancel", "Continue")),
+    ("19-step5-approval", "approval_5", 120, 42,
+     ("Start Step 5 (+6 months)?", "Step 5 is optional", "Cancel", "Continue")),
+    ("20-step3-review", "review_3", 120, 42,
+     ("Step 3 submitted (SIMULATED)", "Verified in Google Play")),
+    ("21-step4-review", "review_4", 120, 42,
+     ("Step 4 submitted (SIMULATED)", "Review the actual subscription in Google Play")),
+    ("22-step5-review", "review_5", 120, 42,
+     ("Step 5 submitted (SIMULATED)", "Review the actual subscription in Google Play")),
+    ("23-step3-retry", "retry_3", 120, 42,
+     ("Start Step 3 (+6 months)?", "RETRY SAFETY", "Cancel", "Continue")),
+    ("24-step1-unverified", "account_unverified", 120, 42,
+     ("Review the offer check", "Verify the active Play account", "Got it")),
+    ("25-step2-approval-wide", "approval_2", 120, 42,
+     ("Start initial 12-month checkout", "Card check 1 of 3", "Cancel", "Continue")),
+    ("26-step5-picker", "optional_picker", 120, 52,
+     ("5. Optional", "Run optional Step 5", "Known optional offer")),
 ]
 
 
@@ -65,6 +101,7 @@ def main():
                 deadline = time.monotonic() + 12
                 found = False
                 found_at = None
+                visible = ""
                 try:
                     while time.monotonic() < deadline:
                         ready, _, _ = select.select([master], [], [], 0.1)
@@ -81,12 +118,21 @@ def main():
                             break
                         visible = page.evaluate('''() => Array.from({length:term.rows}, (_,i) =>
                             term.buffer.active.getLine(i)?.translateToString(true) || '').join('\\n')''')
-                        if all(label in visible for label in expected) and found_at is None:
+                        matches = all(label in visible for label in expected)
+                        if scenario.startswith("sku_"):
+                            # Unsupported synthetic offers must not appear as purchasable steps.
+                            matches = matches and "6. Ultra" not in visible
+                            if scenario != "sku_extra_steps":
+                                matches = matches and "5. Optional" not in visible
+                        if not matches:
+                            found_at = None
+                        elif found_at is None:
                             found_at = time.monotonic()
-                        if found_at is not None and time.monotonic() - found_at >= 0.5 and all(label in visible for label in expected):
+                        if matches and found_at is not None and time.monotonic() - found_at >= 0.5:
                             found = True
                             break
                     if not found:
+                        print(f"{name} missing preview labels; visible screen:\n{visible}", flush=True)
                         raise RuntimeError(f"{name}: expected visible text not found: {expected!r}")
                     page.screenshot(path=str(OUTPUT / f"{name}.png"))
                     print(f"Captured {name}: {cols}x{rows} (fixture: {scenario})", flush=True)

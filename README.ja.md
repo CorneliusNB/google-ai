@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 日本語
 
-<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
+<!-- Source README.md git-blob: 00970df832b386d5507a536a7348ded599d43c54 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -135,6 +135,8 @@ sh run-linux.sh
 
 
 **Check Device & Offers** を押すと **Step 1 — Available offers** が実行され、オファーを照会します。**購入処理は開始しません**。**Live Status** と **Show technical details** で進行状況を確認します。ログ更新が 30 秒ない場合の警告は、フリーズの確定ではありません。
+
+ダッシュボードの Step 1 で確認が完了すると、同じ操作で既存の端末照合を使った範囲限定の読み取り専用 SKU メタデータ照会が自動実行されます。許可された Android プロセスを計測し、価格の各段階、未返却の SKU、オファーなしの状態を表示します。決済の開始や新たな決済ステップの許可は行いません。オファー一覧をスクロールして確認してください。照会中は操作がロックされ、**Stop SKU scan** または Exit で中止を要求できます。ガイド付きの決済は Step 4 で終了し、任意の Step 5 は Step 1 の主レポートに該当する既存オファーがある場合のみ、別途確認して利用できます。[SKU 照会](docs/SKU-EXPLORER.md)を参照してください。
 
 画面が待機中は、既存の ADB 接続を約5秒ごとに確認します。ADB または Android 端末が見つからない場合は、対処方法をポップアップで案内します。確認は自動的に続き、端末の状態が更新されますが、再接続だけで決済ステップは解除されません。ステップ実行中や別のダイアログ表示中は監視を一時停止します。バックグラウンドでのインストールや端末への接続は行いませんが、`adb devices` により PC 上の ADB サーバーが起動する場合があります。
 

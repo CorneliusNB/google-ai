@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Français
 
-<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
+<!-- Source README.md git-blob: 00970df832b386d5507a536a7348ded599d43c54 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
@@ -136,6 +136,8 @@ Lorsqu'une étape est en cours, les commandes **Check Device & Offers**, **Run**
 
 
 **Check Device & Offers** exécute **Step 1 — Available offers**, pour consulter les offres **sans déclencher de paiement**. Surveillez **Live Status** et **Show technical details** ; l'absence de nouveaux journaux pendant 30 secondes ne signifie pas forcément que l'outil est bloqué.
+
+Après la vérification du Step 1 dans le tableau de bord, la même action lance automatiquement une consultation limitée et en lecture seule des métadonnées SKU, en réutilisant l’identification existante de l’appareil. Elle instrumente le processus Android autorisé et affiche les phases tarifaires ainsi que les SKU non renvoyés ou sans offre ; elle ne déclenche aucun paiement et n’autorise aucune nouvelle étape payante. Faites défiler la liste pour consulter les données. Les commandes restent verrouillées jusqu’à la fin de la consultation ; **Stop SKU scan** ou Exit demandent son annulation. La séquence guidée s’arrête au Step 4 ; le Step 5 facultatif exige l’offre compatible exacte dans le rapport principal du Step 1 et une confirmation distincte. Voir [consultation des SKU](docs/SKU-EXPLORER.md).
 
 Lorsque l’interface est inactive, l’outil vérifie les connexions ADB existantes environ toutes les cinq secondes. Si ADB ou l’appareil Android est introuvable, une fenêtre indique les vérifications à effectuer. La recherche continue automatiquement et l’état de l’appareil est mis à jour ; une reconnexion ne déverrouille pas à elle seule les étapes de paiement. La surveillance est suspendue pendant une étape ou l’affichage d’une autre boîte de dialogue. Elle n’installe ni ne connecte d’appareil en arrière-plan, même si `adb devices` peut démarrer le serveur ADB local.
 

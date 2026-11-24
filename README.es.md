@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
+<!-- Source README.md git-blob: 00970df832b386d5507a536a7348ded599d43c54 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -136,6 +136,8 @@ Mientras se ejecuta un paso, se desactivan **Check Device & Offers**, **Run** y 
 
 
 **Check Device & Offers** ejecuta **Step 1 — Available offers**: consulta ofertas y **no inicia el pago**. Supervisa **Live Status** y **Show technical details**; 30 segundos sin nuevos mensajes no implican necesariamente un bloqueo.
+
+Tras verificar el Step 1 del panel, la misma acción ejecuta automáticamente una consulta limitada de metadatos SKU, de solo lectura, mediante la identificación de dispositivo existente. Instrumenta el proceso Android autorizado y muestra las fases de precio y los estados de SKU no devuelto o sin ofertas; no inicia pagos ni autoriza nuevos pasos de pago. Desplázate por la lista para consultar los datos. Los controles permanecen bloqueados hasta que termine la consulta; **Stop SKU scan** o Exit solicitan su cancelación. La secuencia guiada termina en Step 4; el Step 5 opcional requiere la oferta compatible exacta en el informe principal de Step 1 y una confirmación independiente. Consulta [inspección de SKU](docs/SKU-EXPLORER.md).
 
 Mientras la interfaz está inactiva, la herramienta comprueba las conexiones ADB existentes aproximadamente cada cinco segundos. Si no encuentra ADB o el dispositivo Android, muestra una ventana con indicaciones. Sigue comprobando y actualiza el estado del dispositivo; reconectarlo no desbloquea por sí solo los pasos de pago. La supervisión se pausa durante un paso o mientras hay otros diálogos abiertos. No instala ni conecta dispositivos en segundo plano, aunque `adb devices` puede iniciar el servidor ADB local.
 

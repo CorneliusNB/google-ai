@@ -145,6 +145,8 @@ The `main` branch is the stable entrypoint for Linux after this integration merg
 3. Check the account and offer information on the Android screen. A listed offer is **not** a guarantee of eligibility or a successful subscription.
 4. Expand **Choose another step** only when you deliberately need to select a different stage.
 
+After a verified dashboard Step 1, the same action automatically runs a bounded, read-only SKU metadata scan using the existing device mapping. The scan instruments the authorized Android process, displays observed pricing phases and missing/no-offer statuses, and never starts checkout or authorizes a new paid step. Scroll the offer list to inspect metadata. Controls stay locked until the scan completes; **Stop SKU scan** or Exit requests cancellation. Guided checkout ends at Step 4; optional Step 5 requires the exact supported offer in the primary Step 1 report and separate approval. See [SKU inspection](docs/SKU-EXPLORER.md).
+
 While the dashboard is idle, it checks existing ADB connections about every five seconds. If ADB or Android is unavailable, a popup explains what to check. It checks again automatically and updates the device status; reconnecting alone does not unlock paid steps. Monitoring pauses during a running step and other dialogs. It does not install or connect devices in the background, though `adb devices` may start the local ADB server.
 
 On Windows, **Check Device & Offers** looks for ADB and, if necessary, attempts to download official Android SDK Platform-Tools. Downloads or installation can fail; check **Show technical details** if they do. On macOS, install Platform-Tools following the Mac instructions. Install and start MuMu separately, enable root and ADB debugging, and sign in to Google Play and Google One.
@@ -153,7 +155,7 @@ Steps 2–5 stay locked until a fresh Step 1 check returns offers and verifies t
 
 **Important distinction:** Step 1 does not initiate a purchase, but underlying environment preflight can still install or repair ADB/Frida and change emulator/network settings. **Step 0 — Environment** is a setup/diagnostics stage, not a purchase-free guarantee of zero local side effects.
 
-The sidebar lists the six stages. Android Device / Google Account cards update from observed output; account identifiers are masked. Original-author and maintainer credits link to their GitHub profiles in supported terminals.
+The sidebar lists Steps 0–4 and the supported optional Step 5 when observed. Android Device / Google Account cards update from observed output; account identifiers are masked. Original-author and maintainer credits link to their GitHub profiles in supported terminals.
 
 The Device card shows the Android release, SDK, CPU ABI and ADB transport when read; hover for full details. **Choose account**, beside the Account card, lists signed-in Android account candidates. Select the intended profile in both Play Store and Google One, then repeat Step 1. When Play Store exposes an explicit active-profile email, the toolkit can distinguish it from other signed-in accounts.
 
@@ -172,7 +174,7 @@ By default, only the selected step runs. In **Choose another step**, select **Mo
 | Mode | Behavior |
 | --- | --- |
 | **Stop after this step** | Runs only the selected Step **0–5**. |
-| **Offer the next step** | Begins a guided checkout sequence at the chosen Step **2–5**, without replaying earlier checkout steps. |
+| **Offer the next step** | Begins a guided checkout sequence at the chosen Step **2–4**, without replaying earlier checkout steps; ends at Step 4. |
 | **Start at Step 2** | Begins the guided checkout sequence at **Step 2**. Step **5** is optional. |
 
 **Reported 24-month example (subject to Google Play confirmation):**
@@ -203,7 +205,7 @@ If Google Play already shows an active subscription, do **not** repeat Step 2. T
 
 While a stage is running, **Check Device & Offers**, Run, Run mode and Step selection are locked so another stage cannot be started. Help and technical details remain accessible.
 
-- **Stop check (Steps 0–1):** requests cancellation of the local process tree. Cancellation can fail if a child process is stuck; inspect technical details.
+- **Stop check (Steps 0–1), including Stop SKU scan:** requests cancellation of the local process tree. Cancellation can fail if a child process is stuck; inspect technical details.
 - **Stop after this step (Steps 2–5):** prevents further stages, but **does not force-kill a checkout in progress**. The remote payment outcome could otherwise become unknown.
 - **Exit toolkit / Q:** exits immediately while idle; during Steps 0–1 it requests cancellation and exits afterward, and during Steps 2–5 it queues exit after the current stage.
 - **D** toggles technical details; **R** uses the selected advanced run mode. A **Next** button is available only for a reviewable checkout outcome in a guided sequence.
