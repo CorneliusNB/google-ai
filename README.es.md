@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: 00970df832b386d5507a536a7348ded599d43c54 -->
+<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -248,6 +248,8 @@ Los registros están en `logs/` y los informes en `ultra0-report/`. **No compart
 ## Soporte comunitario y proyectos relacionados
 
 Si tienes problemas para instalar o utilizar ePlus AI Toolkit, puedes contactar e intercambiar consejos con la comunidad en la [publicación de soporte y debate de ePlus en Telegram](https://t.me/eplus_news/29). Para errores reproducibles, también puedes [abrir un Issue en GitHub](https://github.com/hoangsvit/google-ai/issues). **No compartas contraseñas, códigos OTP/2FA, tokens de ofertas o compras, registros sin anonimizar ni datos de tarjetas.** No es un canal de soporte oficial de Google.
+
+**Apoya el proyecto con los boosts de Telegram:** Si ePlus AI Toolkit te ha resultado útil y tienes Telegram Premium, considera utilizar uno de tus boosts disponibles para [impulsar @eplus_news](https://t.me/eplus_news?boost). Tu apoyo ayuda a desbloquear más funciones comunitarias en el canal. Es totalmente voluntario y no afecta al acceso a la herramienta, sus funciones ni al soporte.
 
 **¿No puedes acceder a la oferta de Google AI Pro?** Puedes conocer otro proyecto comunitario de ePlus.DEV: [Muse Invite Hub](https://github.com/ePlus-DEV/muse-invite-hub), donde es posible [buscar o compartir códigos de invitación de Muse](https://muse.eplus.dev/). **Muse es un servicio distinto**: sus códigos **no activan ni sustituyen** una suscripción a Google AI Pro. La disponibilidad de los códigos y los requisitos de acceso pueden variar.
 
