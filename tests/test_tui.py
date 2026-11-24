@@ -1017,24 +1017,38 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn("fixture@example.test", label)
                     self.assertFalse(app._offer_check_ready)
 
-    async def test_startup_account_probe_resolves_multiple_transports(self):
+    async def test_startup_account_probe_skips_ambiguous_transports(self):
         from device_diagnostics import ConnectionStatus
         from tui import GoogleAITUI
         from textual.widgets import Static
         with tempfile.TemporaryDirectory() as directory:
             app = GoogleAITUI(repo=Path(directory), startup_probe=True)
-            with patch.object(app, "discover_account_candidates") as discover:
+            with patch.object(app, "discover_account_candidates") as discover, patch.object(app, "_poll_connection"):
                 async with app.run_test(size=(110, 35)):
-                    generation = app._connection_generation
-                    app._connection_polled(ConnectionStatus("connected", ("fixture-a", "fixture-b")), generation, True)
-                    discover.assert_called_once_with("", generation)
-                    account = app.query_one("#account", Static)
-                    app._show_detected_accounts("", generation, [])
-                    self.assertIn("device not resolved", str(account.render()))
-                    app._show_detected_accounts("fixture-b", generation, ["fixture@example.test"])
-                    self.assertIn("Play unverified", str(account.render()))
-                    self.assertNotIn("fixture@example.test", str(account.render()))
+                    app._connection_polled(ConnectionStatus("connected", ("fixture-a", "fixture-b")),
+                                           app._connection_generation, True)
+                    discover.assert_not_called()
+                    self.assertIn("device not resolved", str(app.query_one("#account", Static).render()))
                     self.assertFalse(app._offer_check_ready)
+
+    async def test_reconnect_invalidates_old_account_result(self):
+        from device_diagnostics import ConnectionStatus
+        from tui import GoogleAITUI
+        from textual.widgets import Static
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory), startup_probe=True)
+            with patch.object(app, "discover_account_candidates"), patch.object(app, "_poll_connection"):
+                async with app.run_test(size=(110, 35)):
+                    connected = ConnectionStatus("connected", ("fixture-device",))
+                    app._connection_polled(connected, app._connection_generation, True)
+                    old = app._connection_generation
+                    app._connection_polled(ConnectionStatus("disconnected"), old, True)
+                    app._connection_polled(connected, app._connection_generation, True)
+                    app._show_detected_accounts("fixture-device", old, ["old@example.test"])
+                    label = str(app.query_one("#account", Static).render())
+                    self.assertNotIn("Play unverified", label)
+                    app._show_detected_accounts("fixture-device", app._connection_generation, ["new@example.test"])
+                    self.assertIn("Play unverified", str(app.query_one("#account", Static).render()))
 
     async def test_account_picker_updates_card_before_selection(self):
         from tui import AccountPicker, GoogleAITUI
