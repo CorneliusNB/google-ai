@@ -1,5 +1,6 @@
 """Offline tests for explicit, fail-closed manual Android verification."""
 import io
+from subprocess import CompletedProcess
 import threading
 import unittest
 from unittest.mock import patch
@@ -17,6 +18,30 @@ class BlockingInput:
 
 
 class ManualVerificationTests(unittest.TestCase):
+    def test_ui_dump_failure_cannot_return_an_old_hierarchy(self):
+        stale = b'<hierarchy><node text="stale"/></hierarchy>'
+        fresh = b'<hierarchy><node text="fresh"/></hierarchy>'
+        results = [
+            CompletedProcess([], 1, stdout=stale, stderr=b"dump failed"),
+            CompletedProcess([], 0, stdout=fresh, stderr=b""),
+        ]
+        with patch.object(ultra0.subprocess, "run", side_effect=results) as run:
+            self.assertEqual(ultra0.ui_xml(), "")
+            self.assertEqual(ultra0.ui_xml(), fresh.decode())
+
+        first, second = (call.args[0][-1] for call in run.call_args_list)
+        for command in (first, second):
+            self.assertRegex(
+                command,
+                r"^trap 'rm -f (/sdcard/eplus-ui-[0-9a-f]{32}\.xml)' EXIT; "
+                r"uiautomator dump \1 >/dev/null && cat \1$",
+            )
+        self.assertNotEqual(first, second)
+
+    def test_incomplete_ui_dump_is_ignored(self):
+        with patch.object(ultra0, "sh", return_value="<hierarchy><node/>"):
+            self.assertEqual(ultra0.ui_xml(), "")
+
     def test_enter_acknowledgement_allows_continue(self):
         with patch.object(ultra0.sys, "stdin", io.StringIO("\n")):
             self.assertTrue(ultra0.wait_human("Test-only prompt", timeout=1))
