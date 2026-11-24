@@ -86,6 +86,19 @@ class SKUMetadataTests(unittest.TestCase):
             find.assert_not_called()
         self.assertEqual(out["status"], "device_not_ready")
 
+    def test_runner_delegates_device_mapping_to_shared_engine(self):
+        import ultra0
+        from unittest.mock import sentinel
+
+        original = ultra0.ADB
+        with patch.object(ultra0, "get_target_frida_device",
+                          return_value=sentinel.device) as shared:
+            self.assertIs(runner._frida_device("mock-adb", "fixture-device", 123),
+                          sentinel.device)
+            shared.assert_called_once_with(123, "fixture-device")
+        self.assertIs(ultra0.ADB, original)
+        self.assertNotIn("enumerate_devices", (ROOT / "sku_check_runner.py").read_text(encoding="utf-8"))
+
     def test_query_javascript_has_no_checkout_path(self):
         js = (ROOT / "assets/frida/sku_query_readonly.js").read_text(encoding="utf-8")
         for forbidden in (
