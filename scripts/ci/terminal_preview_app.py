@@ -8,12 +8,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tui import GoogleAITUI  # noqa: E402
 from tui_core import Outcome  # noqa: E402
 from device_diagnostics import ConnectionStatus  # noqa: E402
-from textual.widgets import Button  # noqa: E402
-from sku_explorer import SKUExplorer  # noqa: E402
+from textual.widgets import Static  # noqa: E402
 from offer_discovery import parse_step1  # noqa: E402
+from sku_check_core import sanitize_offers  # noqa: E402
 
 SCENARIOS = {"startup", "disconnected", "offer_found", "step_picker", "approval", "review",
-             "linux_startup", "linux_step_picker", "sku_explorer", "sku_step",
+             "linux_startup", "linux_step_picker", "sku_offers", "sku_missing",
              "sku_extra_steps"}
 scenario = os.environ.get("PREVIEW_SCENARIO", "")
 if scenario not in SCENARIOS:
@@ -42,19 +42,46 @@ class PreviewApp(GoogleAITUI):
     def prepare_scenario(self):
         if scenario in {"startup", "linux_startup"}:
             return
-        if scenario == "sku_explorer":
-            self.push_screen(SKUExplorer(preview=True))
-            return
-        if scenario == "sku_step":
-            # Show Check SKU directly alongside the Step 1 offer check.
-            self.query_one("#sku_explorer", Button).focus()
-            return
-        if scenario == "sku_extra_steps":
-            self._update_discovered(parse_step1({"offers": [
-                {"product": "g1.2tb.ai.subs_variant", "id": "12months-eft", "micros": "0"},
-                {"product": "g1.2tb.ai.subs_variant", "id": "6months-eft-ss-2026", "micros": "0"},
-                {"product": "g1.play.20tb", "id": "promo-2026", "micros": "19990000"},
-            ]}))
+        if scenario in ("sku_offers", "sku_missing", "sku_extra_steps"):
+            # Real dashboard widgets, simulated ProductDetails, no Android.
+            primary = [
+                {"product": "g1.2tb.ai.subs_variant", "id": "12months-eft",
+                 "micros": "0", "period": "P1Y"},
+            ]
+            if scenario == "sku_extra_steps":
+                primary += [
+                    {"product": "g1.2tb.ai.subs_variant", "id": "6months-eft-ss-2026",
+                     "micros": "0", "period": "P6M"},
+                    {"product": "g1.play.20tb", "id": "promo-2026",
+                     "micros": "19990000", "period": "P1M"},
+                ]
+            self._offer_report = {"status": "listed", "offers": primary}
+            requested = ["g1.2tb.ai.subs_variant", "g1.play.20tb",
+                         "g1.play.ai.pro", "g1.30tb"]
+            if scenario == "sku_missing":
+                rows = [
+                    {"sku": "g1.2tb.ai.subs_variant", "no_offers": True},
+                    {"sku": "g1.play.20tb", "no_offers": True},
+                ]
+            else:
+                rows = [
+                    {"sku": "g1.2tb.ai.subs_variant",
+                     "offer_id": "12months-eft", "base_plan_id": "annual",
+                     "phases": [{"price_amount_micros": "0", "currency": "USD",
+                                 "billing_period": "P1Y"}]},
+                    {"sku": "g1.play.20tb",
+                     "offer_id": "promo-2026", "base_plan_id": "monthly",
+                     "phases": [{"price_amount_micros": "19990000",
+                                 "currency": "USD", "billing_period": "P1M"}]},
+                ]
+            self._sku_report = sanitize_offers(rows, requested)
+            self._update_discovered(parse_step1(self._offer_report))
+            self._render_offer_catalog()
+            self.query_one("#state", Static).update(
+                "Step 1 complete · SKU scan results (SIMULATED)")
+            self.query_one("#activity", Static).update(
+                "Checked four candidate SKUs; see offer list below.")
+            self.query_one("#status_panel").scroll_end(animate=False)
             return
         if scenario == "disconnected":
             self._connection_polled(ConnectionStatus("disconnected"))
