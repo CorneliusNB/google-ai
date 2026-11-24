@@ -20,6 +20,8 @@ The original Pro optional +6-month operation is only available as Step 5 when it
 
 Step 1's SKU check invokes `sku_check_runner.py` using a separate read-only Frida `queryProductDetailsAsync` script. It does **not** call `launchBillingFlow`, read a purchase token, switch accounts or automatically activate any plan. Finding a SKU, seeing a zero-priced phase, or seeing an offer ID **does not prove account eligibility, an active subscription, a free month or successful payment**. Verify terms and charges in Google Play before any optional checkout.
 
+The SKU runner reuses `ultra0.get_target_frida_device` for strict device/PID mapping. The separate query-only JavaScript is intentional: unlike the existing checkout-capable billing script, it has no checkout or purchase operation. Offline tests verify both the shared lookup delegation and this isolation.
+
 The candidate SKUs are a **bounded, known shortlist**, not an exhaustive Google Play catalogue, and returned offers may vary by region, time and account. GitHub Actions cannot confirm the device integration without a real authorized emulator.
 
 New scans clear stale extra steps and SKU results. When the selected account/device changes, the old offer catalog is cleared so it cannot be mistaken for the current account.
