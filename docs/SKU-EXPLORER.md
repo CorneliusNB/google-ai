@@ -22,7 +22,7 @@ If you already have the branch locally, run `git switch research/one-sku-billing
 
 1. Start your Android device/emulator and confirm Google Play Store and Google One are installed, signed in to the account you intend to check, with ADB and Frida available.
 2. Click **Check Device & Offers** (Step 1) first. This establishes the device and Play-account status. Step 1 can perform environment preparation; read [SECURITY.md](../SECURITY.md) before running.
-3. In the **Step 1** card, click **Check SKU & prices (Step 1)** directly beneath **Check Device & Offers**. Check SKU is now an *option within Step 1*, not an additional numbered step or sidebar navigation item.
+3. In the **Step 1** card, click **Check SKU & prices** next to **Check Device & Offers**. Check SKU is now an *option within Step 1*, not an additional numbered step or sidebar navigation item.
 4. In the SKU details window select **AI Pro**, **Ultra** or **Custom**, then click **Check SKU (read-only)**. Custom expects a full Google Play product ID starting with `g1.`, e.g. `g1.2tb.ai.subs_variant`.
 5. Review the observed base plans, offer IDs, ordered price phases and billing periods. A displayed 0 price is **not** evidence of eligibility or an active subscription.
 6. Click **Close SKU Explorer** to return to Step 1. This lookup cannot start Step 2 or change account/device or checkout readiness. The original numbered Steps 0–5 remain unchanged.
@@ -33,7 +33,7 @@ If the modal’s **Check SKU** button is disabled, complete Step 1 again and con
 
 ## Preview screenshots
 
-Open [PR #85](https://github.com/hoangsvit/google-ai/pull/85) and find the automated **Terminal UI previews** comment. Images **09-sku-explorer.png** and **10-step1-check-sku.png** show the live SKU details window and the **Check SKU & prices** button inside Step 1, using synthetic data only. Both the main dashboard and SKU modal are captured without connecting a real Android device.
+Open [PR #85](https://github.com/hoangsvit/google-ai/pull/85) and find the automated **Terminal UI previews** comment. Images **09-sku-explorer.png** and **10-step1-check-sku.png** show the live SKU details window and the **Check SKU & prices** button beside the offer-check action inside Step 1, using synthetic data only. Both the main dashboard and SKU modal are captured without connecting a real Android device.
 
 ## Developer boundaries
 
