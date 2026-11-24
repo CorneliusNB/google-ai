@@ -23,6 +23,10 @@ class OneSkuResearchTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             sku_research.generate_candidates(("2tb.ai;rm -rf",), ("12months",))
 
+    def test_rejects_oversized_combined_candidate(self):
+        with self.assertRaises(ValueError):
+            sku_research.generate_candidates(("a" * 64,), ("b" * 64,))
+
     def test_scrubs_tokens_and_account_identifiers(self):
         summary = sku_research.summarize_offer({
             "product": "g1.2tb.ai.12months_eft",
