@@ -47,7 +47,7 @@ class SKUExplorer(ModalScreen[None]):
     }
     #sku_output { color: #deedf9; height: auto; }
     #sku_warning { color: #9dcce0; height: auto; margin-top: 1; }
-    #sku_close { width: 19; height: 3; margin-top: 1; }
+    #sku_close { width: 27; height: 3; margin-top: 1; }
     Screen.compact #sku_card { padding: 0 1; }
     Screen.compact #sku_results { height: 7; }
     """
