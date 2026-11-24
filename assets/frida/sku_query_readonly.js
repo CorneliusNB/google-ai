@@ -32,6 +32,7 @@ rpc.exports = {
 function skuLoader(loader) { Java.classFactory.loader = loader; }
 function skuBoot() {
   Java.perform(function () {
+    if (skuFinished) return;
     try {
       skuLoader(null);
       var app = Java.use("android.app.ActivityThread").currentApplication();
