@@ -60,6 +60,13 @@ class OneSkuResearchTests(unittest.TestCase):
         self.assertFalse(summary["first_phase_zero_price"])
         self.assertEqual(summary["first_phase_price_micros"], 1990000)
 
+    def test_rejects_non_string_offer_ids(self):
+        for value in (None, False, 0, [], {}):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                sku_research.summarize_offer({
+                    "sku": "g1.example", "micros": 0, "offerId": value
+                })
+
     def test_rejects_invalid_prices_and_skus(self):
         for bad in (-1, True, "NaN", "1.5", None):
             with self.subTest(bad=bad):
