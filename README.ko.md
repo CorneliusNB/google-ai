@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 한국어
 
-<!-- Source README.md git-blob: 00970df832b386d5507a536a7348ded599d43c54 -->
+<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -248,6 +248,8 @@ ADB에서 실제로 표시되는 시리얼만 사용하세요. `-Force`는 계�
 ## 커뮤니티 지원 및 관련 프로젝트
 
 ePlus AI Toolkit 설치나 사용에 문제가 있다면 [ePlus Telegram 지원·토론 게시물](https://t.me/eplus_news/29)에서 커뮤니티와 연락하고 해결 방법을 공유할 수 있습니다. 재현 가능한 버그는 [GitHub Issue](https://github.com/hoangsvit/google-ai/issues)로도 제보해 주세요. **비밀번호, OTP/2FA 코드, 오퍼/구매 토큰, 개인정보가 포함된 원본 로그, 카드 정보를 공개하지 마세요.** Google 공식 지원 채널은 아닙니다.
+
+**Telegram Boost로 프로젝트 응원하기:** ePlus AI Toolkit이 도움이 되었고 Telegram Premium을 이용 중이라면, 보유한 부스트로 [@eplus_news 채널을 부스트](https://t.me/eplus_news?boost)해 주세요. 채널의 더 많은 커뮤니티 기능을 활성화하는 데 도움이 됩니다. 부스트는 전적으로 자율이며 도구 이용, 기능 또는 지원에 영향을 주지 않습니다.
 
 **Google AI Pro 프로모션에 참여할 수 없나요?** 별도의 ePlus.DEV 커뮤니티 프로젝트인 [Muse Invite Hub](https://github.com/ePlus-DEV/muse-invite-hub)에서 [Muse 초대 코드를 찾거나 공유](https://muse.eplus.dev/)할 수 있습니다. **Muse는 별도 서비스**이며 초대 코드로 **Google AI Pro 구독을 활성화하거나 대신할 수 없습니다**. 코드 이용 가능 여부 및 지역·계정 자격은 보장되지 않습니다.
 
