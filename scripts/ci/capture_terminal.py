@@ -35,6 +35,36 @@ CASES = [
      ("No supported offers found in this scan.", "Check Device & Offers")),
     ("11-step1-discovered-offers", "sku_extra_steps", 110, 35,
      ("5. Optional", "6months-eft-ss-2026", "PRODUCT / OFFER", "Check Device & Offers")),
+    ("12-step0-ready", "environment_ready", 120, 42,
+     ("Environment ready (SIMULATED)", "Check Device & Offers")),
+    ("13-step0-adb-missing", "adb_missing", 120, 42,
+     ("ADB not found", "Retry connection", "Got it")),
+    ("14-account-picker", "account_picker", 120, 42,
+     ("Choose a Google account on this device", "preview.one@example.invalid", "Use selected account")),
+    ("15-step1-error", "offer_error", 120, 42,
+     ("Offer check failed (SIMULATED)", "Check Android connection", "Got it")),
+    ("16-step1-running", "offer_running", 120, 42,
+     ("Checking offers", "Checking device and offers (SIMULATED)", "Stop")),
+    ("17-step3-approval", "approval_3", 120, 42,
+     ("Start Step 3 (+6 months)?", "Card check 2 of 3", "Cancel", "Continue")),
+    ("18-step4-approval", "approval_4", 120, 42,
+     ("Start Step 4 (+6 months)?", "Card check 3 of 3", "Cancel", "Continue")),
+    ("19-step5-approval", "approval_5", 120, 42,
+     ("Start Step 5 (+6 months)?", "Step 5 is optional", "Cancel", "Continue")),
+    ("20-step3-review", "review_3", 120, 42,
+     ("Step 3 submitted (SIMULATED)", "Verified in Google Play")),
+    ("21-step4-review", "review_4", 120, 42,
+     ("Step 4 submitted (SIMULATED)", "Review the actual subscription in Google Play")),
+    ("22-step5-review", "review_5", 120, 42,
+     ("Step 5 submitted (SIMULATED)", "Review the actual subscription in Google Play")),
+    ("23-step3-retry", "retry_3", 120, 42,
+     ("Start Step 3 (+6 months)?", "RETRY SAFETY", "Cancel", "Continue")),
+    ("24-step1-unverified", "account_unverified", 120, 42,
+     ("Review the offer check", "Verify the active Play account", "Got it")),
+    ("25-step2-approval-wide", "approval_2", 120, 42,
+     ("Start initial 12-month checkout", "Card check 1 of 3", "Cancel", "Continue")),
+    ("26-step5-picker", "optional_picker", 120, 42,
+     ("5. Optional", "Run optional Step 5", "Known optional offer")),
 ]
 
 
@@ -71,6 +101,7 @@ def main():
                 deadline = time.monotonic() + 12
                 found = False
                 found_at = None
+                visible = ""
                 try:
                     while time.monotonic() < deadline:
                         ready, _, _ = select.select([master], [], [], 0.1)
