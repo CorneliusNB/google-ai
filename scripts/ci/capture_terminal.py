@@ -32,6 +32,9 @@ CASES = [
     ("09-sku-explorer", "sku_explorer", 110, 35, ("SKU EXPLORER", "SIMULATED DATA ONLY", "PREVIEW RESULT", "NO CHECKOUT", "Close SKU Explorer")),
     ("10-step1-check-sku", "sku_step", 110, 35,
      ("1. Available", "Check Device & Offers", "Check SKU & prices")),
+    ("11-step1-discovered-offers", "sku_extra_steps", 110, 35,
+     ("1. Available", "2. Pro 12 months", "3. Pro +6 months",
+      "5. Optional", "6. Ultra")),
 ]
 
 
