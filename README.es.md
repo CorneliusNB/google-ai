@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: a3845e5770429f2a91707307b99e04681170d01e -->
+<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -271,6 +271,6 @@ La documentación incluye [estructura del proyecto](docs/PROJECT.md), [uso del p
 
 ## Créditos
 
-**Autor original:** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **Mantenedor:** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). El aviso MIT del autor original permanece en `THIRD_PARTY_NOTICES.md`.
+Gracias al autor original, al mantenedor y a todas las personas que contribuyen. Consulta la [lista de créditos y colaboradores](CONTRIBUTORS.md). El aviso MIT original se conserva en [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); por sí solo no concede una licencia a contribuciones nuevas no relacionadas.
 
 [Centro de documentación](docs/README.md) · [Guía histórica en español](docs/i18n/README.es.md) · [Seguridad de pagos](docs/SAFETY.md)

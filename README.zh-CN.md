@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: a3845e5770429f2a91707307b99e04681170d01e -->
+<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -271,6 +271,6 @@ CLI 确认选项为 **1 = Continue（继续）、2 = End run（结束）、0 = S
 
 ## 致谢
 
-**原作者：**[@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra)。**维护者：**[David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev)。原始 MIT 版权声明保留在 `THIRD_PARTY_NOTICES.md`。
+感谢原作者、维护者及所有贡献者。详情请见[贡献者与致谢名单](CONTRIBUTORS.md)。原始 MIT 声明保留在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 中；该声明并不自动为无关的新贡献授予许可。
 
 [文档主页](docs/README.md) · [历史中文参考指南](docs/i18n/README.zh-CN.md) · [付款安全](docs/SAFETY.md)

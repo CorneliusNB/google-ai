@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 日本語
 
-<!-- Source README.md git-blob: a3845e5770429f2a91707307b99e04681170d01e -->
+<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -271,6 +271,6 @@ ePlus AI Toolkit のインストールや使用に問題があれば、[ePlus �
 
 ## クレジット
 
-**原作者：**[@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra)。**メンテナー：**[David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev)。元の MIT 著作権表示は `THIRD_PARTY_NOTICES.md` に保持しています。
+原作者、メンテナー、すべての貢献者に感謝します。詳細は[貢献者一覧とクレジット](CONTRIBUTORS.md)をご覧ください。元の MIT 著作権表示は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) に保持されており、無関係な新規の貢献に自動的にライセンスを付与するものではありません。
 
 [ドキュメント一覧](docs/README.md) · [旧版の日本語参考資料](docs/i18n/README.ja.md) · [決済の注意事項](docs/SAFETY.md)
