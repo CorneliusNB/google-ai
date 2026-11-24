@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 한국어
 
-<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
+<!-- Source README.md git-blob: 00970df832b386d5507a536a7348ded599d43c54 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -136,6 +136,8 @@ sh run-linux.sh
 
 **Check Device & Offers**는 **Step 1 — Available offers**를 실행하여 프로모션을 조회합니다. **구독 결제를 시작하지 않습니다**. **Live Status**와 **Show technical details**에서 진행 상황을 확인하세요. 30초 동안 로그가 없다는 경고는 반드시 프로그램이 멈췄다는 뜻이 아닙니다.
 
+대시보드의 Step 1에서 확인이 완료되면 같은 동작으로 기존 기기 매핑을 이용한 제한된 읽기 전용 SKU 메타데이터 조회를 자동 실행합니다. 허가된 Android 프로세스를 계측하여 가격 단계, SKU 미반환 및 혜택 없음 상태를 표시하며, 결제를 시작하거나 새로운 유료 단계를 허용하지 않습니다. 혜택 목록을 스크롤하여 확인할 수 있습니다. 조회가 끝날 때까지 조작이 잠기며 **Stop SKU scan** 또는 Exit로 취소를 요청할 수 있습니다. 안내 순서는 Step 4에서 종료되고, 선택 사항인 Step 5는 기본 Step 1 보고서에 정확히 일치하는 지원 혜택이 있을 때만 제공되며 별도 확인이 필요합니다. [SKU 조회](docs/SKU-EXPLORER.md)를 참고하세요.
+
 화면이 대기 중일 때 도구는 기존 ADB 연결을 약 5초마다 확인합니다. ADB나 Android 기기를 찾지 못하면 팝업으로 조치 방법을 알려 줍니다. 이후에도 자동으로 확인하고 기기 상태를 갱신하지만, 다시 연결된 것만으로 결제 단계가 열리지는 않습니다. 단계가 실행 중이거나 다른 대화상자가 열려 있으면 모니터링을 잠시 멈춥니다. 백그라운드에서 기기를 설치하거나 연결하지 않으며, `adb devices` 실행 시 PC의 로컬 ADB 서버가 시작될 수 있습니다.
 
 Windows에서 **Check Device & Offers**를 실행하면 ADB를 찾고, 필요한 경우 공식 Android SDK Platform-Tools 다운로드를 시도합니다. 다운로드나 설치가 실패할 수 있으므로 오류가 나면 **Show technical details**를 확인하세요. macOS에서는 Mac 안내에 따라 Platform-Tools를 설치합니다. MuMu는 별도로 설치하고 실행한 뒤 root와 ADB 디버깅을 켜고 Google Play와 Google One에 로그인해야 합니다.
@@ -149,7 +151,7 @@ Windows에서 **Check Device & Offers**를 실행하면 ADB를 찾고, 필요한
 | 모드 | 기능 |
 | --- | --- |
 | **Stop after this step** | 선택한 Step 0–5 하나만 실행 |
-| **Offer the next step** | 선택한 Step(2–5)부터 안내에 따라 여러 단계를 진행 |
+| **Offer the next step** | 선택한 Step(2–4)부터 안내에 따라 여러 단계를 진행 |
 | **Start at Step 2** | Step 2부터 순서대로 진행하며, Step 5는 선택할 수 있음 |
 
 | Step | 기능 | 위험 |
