@@ -26,6 +26,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Static
 
+from sku_explorer import SKUExplorer
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
     readable_issue_line, report_summary, safe_launch_diagnostic, validate_step
@@ -293,6 +294,7 @@ class GoogleAITUI(App[None]):
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
     #choose_account { width: 18; min-width: 18; height: 3; margin: 0 0 0 1; }
     #quickstart { display: block; width: 100%; height: 3; margin: 0; }
+    #sku_explorer { display: block; width: 100%; height: 3; margin: 0; }
     #quickstart.checking:disabled, #run.checking:disabled {
         background: #123b31; color: #e5fff2; text-style: bold;
         text-opacity: 1; opacity: 1;
@@ -462,6 +464,7 @@ class GoogleAITUI(App[None]):
                             else "Check MuMu connection and Google AI offers without opening checkout.",
                             id="quick_hint")
                         yield Button("Check Device & Offers", id="quickstart", variant="success")
+                        yield Button("SKU Explorer · Check SKU (read-only)", id="sku_explorer")
                         yield Button("Stop after current step", id="stop", disabled=True)
                         yield Button("Verified in Google Play → Next", id="next", disabled=True)
                         yield Button("Choose another step  +", id="advanced_toggle")
@@ -933,6 +936,15 @@ class GoogleAITUI(App[None]):
                        + message)
         self.push_screen(Approval(title, message),
                          lambda approved: self._start(step, sequence) if approved else None)
+
+    @on(Button.Pressed, "#sku_explorer")
+    def open_sku_explorer(self) -> None:
+        if self.busy or self._diagnosing or self._accounts_loading:
+            return
+        # Step 1 establishes the device and Play-account state. This dialog
+        # cannot change checkout readiness or start any paid step.
+        serial = self._checked_device if self._offer_check_ready else None
+        self.push_screen(SKUExplorer(serial=serial))
 
     @on(Button.Pressed, "#quickstart")
     def quickstart_pressed(self) -> None:
