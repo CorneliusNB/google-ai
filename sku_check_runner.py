@@ -32,6 +32,7 @@ def fail(code: str) -> dict:
     return {
         "status": code if code in ALLOWED_CODES else "query_error",
         "items": [], "missing_skus": [],
+        "account_binding_verified": False,
         "eligibility_verified": False, "subscription_active_verified": False,
     }
 
