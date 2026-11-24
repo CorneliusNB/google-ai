@@ -61,7 +61,7 @@ class SKUExplorer(ModalScreen[None]):
 
     def compose(self):
         with Vertical(id="sku_card"):
-            yield Static("STEP 1  /  SKU EXPLORER  /  CHECK SKU", id="sku_title")
+            yield Static("STEP 1  /  SKU EXPLORER  /  READ-ONLY CHECK SKU", id="sku_title")
             yield Static(
                 "SIMULATED DATA ONLY  •  No device/account/checkout."
                 if self.preview else
