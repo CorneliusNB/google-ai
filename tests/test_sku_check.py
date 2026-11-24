@@ -163,6 +163,32 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("g1.30tb", rendered)
                 self.assertIn("12months-eft", rendered)
 
+    async def test_real_step_one_launches_automatic_sku_scan(self):
+        from tempfile import TemporaryDirectory
+        from tui import GoogleAITUI
+        from tui_core import Outcome
+
+        with TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                app._checked_device = "emulator-5554"
+                app._verified_account = "verified@example.test"
+                app._real_step1_run = True
+                with patch.object(app, "scan_known_skus") as scan:
+                    app._finished(1, Outcome("listed", "Offers listed",
+                                             "Review the available offers."), {
+                        "status": "listed",
+                        "detected_play_account": "verified@example.test",
+                        "offers": [{"id": "12months-eft", "micros": "0",
+                                    "product": "g1.2tb.ai.subs_variant"}],
+                    })
+                    self.assertTrue(app._offer_check_ready)
+                    scan.assert_called_once_with("emulator-5554",
+                                                 "verified@example.test",
+                                                 app._extra_scan_generation)
+                await pilot.pause()
+                self.assertEqual(len(app.query("#sku_explorer")), 0)
+
     async def test_new_offers_appear_from_step_five_without_checkout(self):
         from tempfile import TemporaryDirectory
         from textual.widgets import Button, Select, Static
