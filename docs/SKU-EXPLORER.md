@@ -32,6 +32,8 @@ See [PR #85](https://github.com/hoangsvit/google-ai/pull/85), the **Terminal UI 
 - `10-step1-sku-missing.png`: no supported offers found in a synthetic scan.
 - `11-step1-discovered-offers.png`: the supported optional Step 5 is visible in a synthetic scan; unsupported offers are not shown as extra steps.
 
+Additional synthetic terminal previews cover Step 0 environment checks, account selection, Step 1 progress and failures, individual Step 2–5 approval and review screens, retry safety, and optional Step 5 selection. The 26 screenshots are captured from real Textual widgets; no emulator, purchase, or real account is used. CI validates expected labels before publishing.
+
 Automated tests: `tests/test_sku_check.py`, `tests/test_offer_discovery.py`, plus the existing TUI, Linux, macOS and Windows regression suites.
 
 ## Source files
