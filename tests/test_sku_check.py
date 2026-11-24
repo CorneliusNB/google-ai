@@ -285,6 +285,20 @@ class StepOneSKUUITests(unittest.IsolatedAsyncioTestCase):
                 app._start(2, False)
                 self.assertFalse(app.busy)
 
+    def test_scan_process_requests_graceful_cleanup_before_force(self):
+        from unittest.mock import Mock
+        from tui import GoogleAITUI
+
+        child = Mock()
+        child.poll.return_value = None
+        child.pid = 98765
+        with patch("tui.os.name", "posix"), patch("tui.os.killpg") as kill:
+            GoogleAITUI._stop_sku_process(child)
+        import signal
+        kill.assert_called_once_with(98765, signal.SIGTERM)
+        child.communicate.assert_called_once_with(timeout=5)
+        child.kill.assert_not_called()
+
     async def test_no_unobserved_step_five_execution(self):
         from tempfile import TemporaryDirectory
         from tui import GoogleAITUI
