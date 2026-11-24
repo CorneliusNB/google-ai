@@ -36,6 +36,8 @@ def generate_candidates(
             generated.add(f"g1.{tier}.{period}_eft")
             generated.add(f"g1.{tier}.{period}_ip_90p")
             generated.add(f"g1.{tier}.{period}_ip_95p.acq")
+    if any(not _SKU_RE.fullmatch(value) for value in generated):
+        raise ValueError("Combined SKU components exceed the supported format or length")
     return sorted(generated)
 
 
