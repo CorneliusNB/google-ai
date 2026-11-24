@@ -27,6 +27,8 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Static
 
 from sku_explorer import SKUExplorer
+from offer_discovery import (ExtraOffer, parse_step1, parse_sku_check,
+                             merge_extra_offers, offer_step_label, offer_details)
 from tui_core import STAGES, Outcome, command_for_step, mask_email, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
     readable_issue_line, report_summary, safe_launch_diagnostic, validate_step
@@ -288,6 +290,8 @@ class GoogleAITUI(App[None]):
     .section { color: #6cdbf8; text-style: bold; margin: 0 0 1 0; }
     #workflow { height: auto; margin-bottom: 1; }
     .workflow-step { color: #b4cbe0; height: 1; }
+    #stage_5 { display: none; }
+    .extra-offer-step { color: #9fc9e8; }
     #nav_help, #diagnose, #debug, #reload, #exit {
         width: 100%; height: 3; margin: 0;
     }
@@ -423,6 +427,9 @@ class GoogleAITUI(App[None]):
         self.more_modes_visible = False
         self._last_selected_step = self.initial_step
         self._last_mode = "single"
+        self._extra_offers: list[ExtraOffer] = []
+        self._extra_scan_generation = 0
+        self._real_step1_run = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -679,7 +686,7 @@ class GoogleAITUI(App[None]):
             self.advanced_visible = True
             self.query_one("#workflow_actions", Vertical).display = True
             self.query_one("#advanced_toggle", Button).label = "Hide step selection  −"
-        self._update_run_mode()
+        self._update_discovered([], replace=True)
 
     def _invalidate_connection_polls(self) -> None:
         """A pre-operation poll must never overwrite a newer stage or diagnosis."""
@@ -798,7 +805,8 @@ class GoogleAITUI(App[None]):
             self.query_one("#step", Select).value = self._last_selected_step
             self.toggle_more_modes()
             return
-        if isinstance(event.value, int) and event.value in range(6):
+        if isinstance(event.value, int) and (event.value in range(5) or
+                                               5 <= event.value < 5 + len(self._extra_offers)):
             self._last_selected_step = event.value
         self._update_run_mode()
 
@@ -811,6 +819,22 @@ class GoogleAITUI(App[None]):
             return
         mode = self.query_one("#mode", Select).value
         step = self.query_one("#step", Select).value
+        if isinstance(step, int) and 5 <= step < 5 + len(self._extra_offers):
+            offer = self._extra_offers[step - 5]
+            if mode != "single":
+                self.query_one("#mode", Select).value = "single"
+            self.query_one("#step", Select).disabled = False
+            self.query_one("#run", Button).label = (
+                "Run optional Step 5" if offer.legacy_checkout_supported and step == 5
+                else "Inspect observed offer"
+            )
+            self.query_one("#run", Button).disabled = not self._offer_check_ready
+            self.query_one("#refresh_offers", Button).display = not self._offer_check_ready
+            self.query_one("#mode_hint", Static).update(
+                "Known optional offer: checkout approval required." if offer.legacy_checkout_supported and step == 5
+                else "Discovered metadata only. No automatic checkout or subscription changes."
+            )
+            return
         if mode == "all":
             if self.query_one("#step", Select).value != 2:
                 self.query_one("#step", Select).value = 2
@@ -826,7 +850,7 @@ class GoogleAITUI(App[None]):
             self.query_one("#step", Select).disabled = False
             self.query_one("#run", Button).label = "Run this step"
             hint = "Only this step will run. Steps 2–5 can request payment."
-        paid_selected = mode == "all" or (mode in ("single", "from") and step in (2, 3, 4, 5))
+        paid_selected = mode == "all" or (mode in ("single", "from") and step in (2, 3, 4))
         self.query_one("#refresh_offers", Button).display = paid_selected and not self._offer_check_ready
         self.query_one("#run", Button).disabled = paid_selected and not self._offer_check_ready
         if paid_selected and not self._offer_check_ready:
