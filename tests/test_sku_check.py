@@ -104,5 +104,26 @@ class SKUMetadataTests(unittest.TestCase):
         self.assertNotIn("run-all.ps1", source)
 
 
+class SKUExplorerUITests(unittest.IsolatedAsyncioTestCase):
+    async def test_sidebar_opens_real_modal_and_blocks_step_shortcut(self):
+        from tempfile import TemporaryDirectory
+
+        from textual.widgets import Button
+        from sku_explorer import SKUExplorer
+        from tui import GoogleAITUI
+
+        with TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                self.assertGreater(app.query_one("#sku_explorer", Button).region.width, 10)
+                await pilot.click("#sku_explorer")
+                await pilot.pause()
+                self.assertIsInstance(app.screen, SKUExplorer)
+                self.assertTrue(app.screen.query_one("#sku_check", Button).disabled)
+                with patch.object(app, "selected_pressed") as start:
+                    app.action_run_selected()
+                    start.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
