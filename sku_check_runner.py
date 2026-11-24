@@ -75,9 +75,13 @@ def _frida_device(adb: str, serial: str, pid: int):
     import contextlib
     import io
     import ultra0
-    ultra0.ADB = adb
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-        return ultra0.get_target_frida_device(pid, serial)
+    previous_adb = ultra0.ADB
+    try:
+        ultra0.ADB = adb
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            return ultra0.get_target_frida_device(pid, serial)
+    finally:
+        ultra0.ADB = previous_adb
 
 
 def check_skus(serial: str, skus: list[str], timeout: int = 25) -> dict:
