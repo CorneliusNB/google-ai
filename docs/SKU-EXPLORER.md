@@ -22,7 +22,7 @@ If you already have the branch locally, run `git switch research/one-sku-billing
 
 1. Start your Android device/emulator and confirm Google Play Store and Google One are installed, signed in to the account you intend to check, with ADB and Frida available.
 2. Click **Check Device & Offers** (Step 1) first. This establishes the device and Play-account status. Step 1 can perform environment preparation; read [SECURITY.md](../SECURITY.md) before running.
-3. Click **SKU Explorer · Check SKU (read-only)** on the main dashboard, immediately below the Step 1 button.
+3. In the **left sidebar**, click **SKU Explorer · Check SKU**. (It is separate from the green Step 1 button, so Live Status remains visible.)
 4. Pick **AI Pro**, **Ultra** or **Custom** to fill the SKU, then click **Check SKU (read-only)**. Custom requires a full product ID starting with `g1.`, e.g. `g1.2tb.ai.subs_variant`.
 5. Review each returned offer/base plan and its ordered price phases in the scrollable result area. A price of 0 is **only** a displayed phase, not eligibility confirmation. A missing SKU does not prove it is discontinued.
 6. Click **Close SKU Explorer** to return to the main screen. The SKU lookup never starts Steps 2–5, changes the account, or opens checkout.
