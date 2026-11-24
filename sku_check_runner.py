@@ -9,13 +9,14 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import signal
 import shutil
 import subprocess
 import sys
 import threading
 from pathlib import Path
 
-from device_selector import boot_uuid, online_serials
+from device_selector import online_serials
 from sku_check_core import sanitize_offers, validate_skus
 
 ROOT = Path(__file__).resolve().parent
@@ -23,7 +24,7 @@ PKG = "com.google.android.apps.subscriptions.red"
 SERIAL_RE = re.compile(r"^[A-Za-z0-9._:-]{1,90}$")
 ALLOWED_CODES = {
     "observed", "no_offers", "not_returned", "device_not_ready",
-    "billing_unavailable", "timeout", "query_error",
+    "billing_unavailable", "timeout", "query_error", "cancelled",
 }
 
 
@@ -68,21 +69,15 @@ def _adb_output(adb: str, serial: str, *args: str) -> str:
         return ""
 
 
-def _frida_device(adb: str, serial: str):
-    import frida
-    candidates = [dev for dev in frida.get_device_manager().enumerate_devices()
-                  if getattr(dev, "type", None) == "usb"]
-    exact = [dev for dev in candidates if getattr(dev, "id", None) == serial]
-    if len(exact) == 1:
-        return exact[0]
-    if len(candidates) == 1:
-        alias = str(candidates[0].id)
-        online = online_serials(adb)
-        if alias in online:
-            a, b = boot_uuid(adb, serial), boot_uuid(adb, alias)
-            if a and b and a == b:
-                return candidates[0]
-    return None
+def _frida_device(adb: str, serial: str, pid: int):
+    # Reuse the existing engine's strict device/PID mapping. It writes local
+    # diagnostics, so discard them here rather than corrupting the JSON output.
+    import contextlib
+    import io
+    import ultra0
+    ultra0.ADB = adb
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        return ultra0.get_target_frida_device(pid, serial)
 
 
 def check_skus(serial: str, skus: list[str], timeout: int = 25) -> dict:
@@ -103,7 +98,7 @@ def check_skus(serial: str, skus: list[str], timeout: int = 25) -> dict:
         module = _adb_output(adb, serial, "ls", "/data/local/tmp/module_521.apk")
         if "module_521.apk" not in module:
             return fail("device_not_ready")
-        dev = _frida_device(adb, serial)
+        dev = _frida_device(adb, serial, pid)
         if dev is None:
             return fail("device_not_ready")
         if _adb_output(adb, serial, "pidof", PKG) != str(pid):
@@ -117,6 +112,7 @@ def check_skus(serial: str, skus: list[str], timeout: int = 25) -> dict:
             return fail("query_error")
         source = source.replace(needle, "var SKU_REQUEST = " + json.dumps(validated) + ";")
         session = None
+        script = None
         done = threading.Event()
         raw: list[dict] = []
         completed = {"code": "query_error"}
@@ -152,6 +148,11 @@ def check_skus(serial: str, skus: list[str], timeout: int = 25) -> dict:
                 return fail("device_not_ready")
             return sanitize_offers(raw, validated)
         finally:
+            if script is not None:
+                try:
+                    script.exports_sync.close()
+                except Exception:
+                    pass
             if session is not None:
                 try:
                     session.detach()
@@ -167,8 +168,15 @@ def main(argv=None) -> int:
     parser.add_argument("--serial", required=True)
     parser.add_argument("--sku", action="append", required=True)
     args = parser.parse_args(argv)
+    def interrupted(_signum, _frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, interrupted)
+    if hasattr(signal, "SIGBREAK"):
+        signal.signal(signal.SIGBREAK, interrupted)
     try:
         result = check_skus(args.serial, args.sku)
+    except KeyboardInterrupt:
+        result = fail("cancelled")
     except (Exception, SystemExit):
         result = fail("query_error")
     print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))
