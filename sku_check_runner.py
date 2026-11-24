@@ -10,12 +10,12 @@ import argparse
 import json
 import re
 import signal
-import shutil
 import subprocess
 import sys
 import threading
 from pathlib import Path
 
+from device_diagnostics import locate_adb
 from device_selector import online_serials
 from sku_check_core import sanitize_offers, validate_skus
 
@@ -37,25 +37,24 @@ def fail(code: str) -> dict:
 
 
 def find_adb() -> str | None:
-    """Find an already installed ADB binary; NEVER run an installer."""
-    paths = [
-        __import__("os").environ.get("ADB_PATH", ""),
-        shutil.which("adb"),
-        shutil.which("adb.exe"),
-        r"C:\Program Files\Netease\MuMuPlayer-12.0\shell\adb.exe",
-        r"C:\Program Files\Netease\MuMuPlayerGlobal-12.0\shell\adb.exe",
-        r"C:\Program Files\Netease\MuMu\nx_main\adb.exe",
-    ]
-    for path in paths:
-        if not path:
-            continue
+    """Use the shared non-installing locator, including local platform-tools."""
+    return locate_adb()
+
+
+def _bounded_cleanup(action, timeout: float = 2.0) -> bool:
+    """Do not let an unresponsive native cleanup block CLI output indefinitely."""
+    completed = threading.Event()
+
+    def run():
         try:
-            p = subprocess.run([path, "version"], capture_output=True, timeout=5)
-            if p.returncode == 0:
-                return str(path)
-        except (OSError, subprocess.TimeoutExpired):
+            action()
+        except Exception:
             pass
-    return None
+        finally:
+            completed.set()
+
+    threading.Thread(target=run, daemon=True, name="sku-cleanup").start()
+    return completed.wait(timeout)
 
 
 def _adb_output(adb: str, serial: str, *args: str) -> str:
@@ -168,15 +167,9 @@ def check_skus(serial: str, skus: list[str], timeout: int = 25) -> dict:
                                    truncated=truncated)
         finally:
             if script is not None:
-                try:
-                    script.exports_sync.close()
-                except Exception:
-                    pass
+                _bounded_cleanup(lambda: script.exports_sync.close())
             if session is not None:
-                try:
-                    session.detach()
-                except Exception:
-                    pass
+                _bounded_cleanup(session.detach)
     except (Exception, SystemExit):
         # Never print exceptions: Frida/debug strings can expose device details.
         return fail("query_error")
