@@ -30,6 +30,17 @@ def resolve_value(command, serial=None):
         if command == "connect-device":
             import setup_env
             return setup_env.connect_emulator(setup_env.find_adb()) or ""
+        if command == "play-accounts-existing":
+            # Startup must not install ADB or connect to emulator ports.
+            from device_diagnostics import locate_adb
+            from device_selector import online_serials
+            import ultra0
+            adb = locate_adb()
+            if not adb or not serial or serial not in online_serials(adb):
+                raise RuntimeError("Existing Android transport unavailable")
+            ultra0.ADB = adb
+            ultra0.SERIAL = serial
+            return json.dumps(ultra0.available_google_accounts(), separators=(",", ":"))
         if command in ("play-account", "play-accounts"):
             import ultra0
             ultra0.ADB = ultra0.find_adb()
@@ -43,10 +54,10 @@ def resolve_value(command, serial=None):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="ASCII-safe runtime metadata lookup")
-    parser.add_argument("command", choices=("adb", "device", "connect-device", "play-account", "play-accounts"))
+    parser.add_argument("command", choices=("adb", "device", "connect-device", "play-account", "play-accounts", "play-accounts-existing"))
     parser.add_argument("--serial", help="ADB device serial (required for play-account)")
     args = parser.parse_args(argv)
-    if args.command in ("play-account", "play-accounts") and not args.serial:
+    if args.command in ("play-account", "play-accounts", "play-accounts-existing") and not args.serial:
         parser.error("--serial is required for Play account lookup")
     try:
         value = resolve_value(args.command, args.serial)
