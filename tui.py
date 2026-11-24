@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import json
 import os
 import signal
@@ -574,7 +575,9 @@ class GoogleAITUI(App[None]):
                     raise RuntimeError("Android account lookup failed")
                 return base64.b64decode(match.group(1), validate=True).decode("utf-8")
             if not serial:
-                serial = (self._checked_device if generation is None else None) or read_value("device")
+                if generation is not None:
+                    raise RuntimeError("Startup account lookup needs a unique existing transport")
+                serial = self._checked_device or read_value("device")
             if not serial or not re.fullmatch(r"[A-Za-z0-9._:/-]{1,90}", serial):
                 raise RuntimeError("No unambiguous Android device was found")
             raw = json.loads(read_value("play-accounts", serial))
@@ -771,6 +774,10 @@ class GoogleAITUI(App[None]):
         previous = self._connection_state
         self._connection_state = result
         changed = previous != result
+        if changed:
+            # Invalidate results from the prior connection observation, even
+            # when the same serial disconnects and later reconnects.
+            self._connection_generation += 1
         if result.state == "connected":
             label = "Android connected (ADB)" if len(result.devices) == 1 else "Multiple ADB devices"
             self.query_one("#device", Static).update("Device  •  " + label)
@@ -807,9 +814,12 @@ class GoogleAITUI(App[None]):
             if self._detected_account_device and self._detected_account_device not in result.devices:
                 self.query_one("#account", Static).update("Account  •  Not checked")
                 self._detected_account_device = None
-            if result.state == "connected" and result.devices and not self._accounts_loading:
-                serial = result.devices[0] if len(result.devices) == 1 else ""
-                self.discover_account_candidates(serial, self._connection_generation)
+            if result.state == "connected" and not self._accounts_loading:
+                if len(result.devices) == 1:
+                    self.discover_account_candidates(result.devices[0], self._connection_generation)
+                else:
+                    self.query_one("#account", Static).update(
+                        "Account  •  Android device not resolved; choose account manually")
         if not startup and result.state in ("missing_adb", "disconnected", "adb_error") and changed:
             if isinstance(self.screen, ConnectionNotice):
                 return
@@ -1102,8 +1112,9 @@ class GoogleAITUI(App[None]):
                      else ["No supported offers found in this scan."]):
             view.write(line)
         # Step 1 observations without a supported operation remain inspect-only.
-        unknown = [item for item in parse_step1(self._offer_report)
-                   if not item.legacy_checkout_supported]
+        unknown = [item for item in parse_step1(self._offer_report, include_fixed=True)
+                   if not (item.product == "g1.2tb.ai.subs_variant"
+                           and item.offer_id in offers and item.price_micros == "0")]
         if unknown:
             view.write("ADDITIONAL OBSERVED OFFERS (READ-ONLY)")
             for item in unknown[:12]:
@@ -1212,12 +1223,17 @@ class GoogleAITUI(App[None]):
         if not self._offer_check_ready:
             self._update_run_mode()
             return
+        if self._sku_cancel.is_set():
+            result = {"status": "cancelled"}
         self._sku_report = result
         self._real_step1_run = False
         # SKU metadata cannot enable additional checkout operations.
         self._render_offer_catalog()
         self._update_run_mode()
-        self.query_one("#activity", Static).update("SKU scan finished. Eligibility remains unverified.")
+        self.query_one("#activity", Static).update(
+            "SKU scan cancelled; primary Step 1 report retained."
+            if result.get("status") == "cancelled"
+            else "SKU scan finished. Eligibility remains unverified.")
         if was_pending and result.get("status") != "cancelled":
             if self._initial_offer_ready:
                 self.push_screen(CheckComplete(), lambda proceed: self._confirm_stage(2, True) if proceed else None)
@@ -1618,7 +1634,12 @@ class GoogleAITUI(App[None]):
                         except (OSError, ValueError):
                             pass
                 connection = poll_connection()
-                self.call_from_thread(self._remember_linux_transport, connection)
+                # Match only the transport that actually produced this
+                # invocation's report; a later poll is not proof of origin.
+                binding = report.pop("device_binding", "") if report else ""
+                if step >= 2 and self._offer_ready_device:
+                    binding = hashlib.sha256(self._offer_ready_device.encode("utf-8")).hexdigest()
+                self.call_from_thread(self._remember_linux_transport, connection, binding)
             else:
                 return_code = self._execute(command)
                 report = read_fresh_report(self.repo / "ultra0-report", step, started,
@@ -1642,13 +1663,15 @@ class GoogleAITUI(App[None]):
         finally:
             self._child = None
 
-    def _remember_linux_transport(self, result: ConnectionStatus) -> None:
-        # Do not display serials. The selected transport must be unique.
+    def _remember_linux_transport(self, result: ConnectionStatus, binding: str = "") -> None:
+        # Only accept the uniquely connected transport if the private
+        # invocation report binds it to the actual Step 1 device.
         self._connection_state = result
-        self._checked_device = (
-            result.devices[0] if result.state == "connected" and len(result.devices) == 1
-            else None
-        )
+        self._checked_device = None
+        if result.state == "connected" and len(result.devices) == 1 and binding:
+            serial = result.devices[0]
+            if hashlib.sha256(serial.encode("utf-8")).hexdigest() == binding:
+                self._checked_device = serial
 
     def _record_internal_diagnostic(self, diagnostic: str) -> None:
         # Do not add to _run_output: protocol parsing only accepts child output.
@@ -1767,7 +1790,8 @@ class GoogleAITUI(App[None]):
             verified = (self._verified_account or "").strip().lower()
             offers = (report or {}).get("offers")
             if self.linux_mode:
-                # Linux publishes no email or device serial in its result.
+                # Linux publishes no raw email or device serial in its result.
+                # The private report binding is checked against the later poll.
                 # The bridge validates an explicitly selected account against
                 # the Step 1 Play listing; it repeats live lookup before billing.
                 selected = (self._selected_account or "").strip().lower()
