@@ -89,18 +89,23 @@ def parse_sku_check(result: dict | None) -> list[ExtraOffer]:
 
 def merge_extra_offers(*groups: list[ExtraOffer]) -> list[ExtraOffer]:
     """Deduplicate and allocate stable positions. Prefer the known optional offer at Step 5."""
-    by_key: dict[tuple[str, str], ExtraOffer] = {}
+    by_key: dict[tuple[str, str, str], ExtraOffer] = {}
     for group in groups:
         for item in group:
             if not isinstance(item, ExtraOffer):
                 continue
-            key = (item.product, item.offer_id)
-            existing = by_key.get(key)
+            existing = by_key.get(item.key)
             if existing is None or (item.source == "sku" and existing.source != "sku"):
-                by_key[key] = item
-    return sorted(by_key.values(), key=lambda x: (
-        0 if x.legacy_checkout_supported else 1, x.product, x.offer_id
-    ))[:MAX_EXTRA_OFFERS]
+                by_key[item.key] = item
+    # A primary report has no base-plan ID. Prefer the concrete observations
+    # without collapsing distinct base plans into one record.
+    concrete = {(x.product, x.offer_id) for x in by_key.values() if x.base_plan}
+    return sorted(
+        (x for x in by_key.values()
+         if x.base_plan or (x.product, x.offer_id) not in concrete),
+        key=lambda x: (0 if x.legacy_checkout_supported else 1,
+                       x.product, x.offer_id, x.base_plan)
+    )[:MAX_EXTRA_OFFERS]
 
 
 def offer_step_label(step: int, offer: ExtraOffer) -> str:
