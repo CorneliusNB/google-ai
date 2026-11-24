@@ -103,8 +103,8 @@ jobs:
           labels = ['Start', 'Disconnected', 'Offers found', 'Choose a step (90×20)',
                     'Step 2 confirmation (90×20)', 'Review in Google Play',
                     'Linux dashboard (110×35)', 'Linux step picker (110×35)',
-                    'Step 1 — integrated SKU and offer list', 'Step 1 — missing/no-offer SKU statuses',
-                    'Step 1 discovery — dynamic Steps 5+ (synthetic)']
+                    'Step 1 — supported offer list (synthetic)', 'Step 1 — no supported offers (synthetic)',
+                    'Step 1 — optional Step 5 (synthetic)']
           paths = sorted(p.name for p in Path('images').iterdir())
           if paths != expected:
               raise SystemExit('Unexpected preview artifact contents')
