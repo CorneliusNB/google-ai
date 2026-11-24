@@ -1,13 +1,13 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: 4e4e7fb0cee059f91a74b1aab5d7daa323e74968 -->
+<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
 
 > **Tài liệu gốc:** [README tiếng Anh](README.md). Nội dung bên dưới được diễn đạt bằng tiếng Việt để dễ theo dõi, đồng thời giữ nguyên các lệnh, điều kiện và lưu ý an toàn. Khi thông tin khác với chương trình thực tế, hãy ưu tiên kiểm tra mã nguồn và tài liệu gốc.
 
-**ePlus AI Toolkit** giúp bạn kiểm tra các ưu đãi Google AI Pro được hiển thị qua Google One và Google Play trên thiết bị Android. Công cụ chạy trên **Windows và macOS**: Windows sử dụng PowerShell, còn macOS sử dụng Terminal (zsh/bash). Cả giao diện Textual lẫn chế độ dòng lệnh đều dùng chung bộ xử lý Python, ADB và Frida.
+**ePlus AI Toolkit** giúp bạn kiểm tra các ưu đãi Google AI Pro được hiển thị qua Google One và Google Play trên thiết bị Android. Công cụ chạy trên **Windows, macOS và Linux**: Windows sử dụng PowerShell, còn macOS sử dụng Terminal (zsh/bash). Cả giao diện Textual lẫn chế độ dòng lệnh đều dùng chung bộ xử lý Python, ADB và Frida.
 
 ![Giao diện ePlus AI Toolkit](images/terminal-ui-overview.png)
 
@@ -25,16 +25,16 @@ ePlus AI Toolkit là dự án độc lập, **không thuộc và không được
 
 **Chọn hướng dẫn phù hợp với hệ điều hành đang dùng.** Trên Mac, bạn không cần cài hay chạy PowerShell.
 
-| Thành phần | Windows | macOS |
-| --- | --- | --- |
-| Terminal | **PowerShell 5.1 trở lên** | **Terminal** với zsh hoặc bash |
-| Python | **3.10 trở lên**, dùng lệnh `python` | **3.10 trở lên**, dùng `python3`; công cụ tự tạo môi trường `.venv` |
-| Git | Git for Windows | Git từ Xcode Command Line Tools hoặc Homebrew |
-| Android | Thiết bị hoặc máy ảo đã bật root và ADB; hướng dẫn của dự án hỗ trợ **MuMuPlayer cho Windows** | Thiết bị Android có root hoặc máy ảo tương thích; **MuMuPlayer Pro cho Mac** chỉ phù hợp với Apple Silicon, không hỗ trợ Intel Mac |
-| Ứng dụng Android | Google Play Store và Google One, đã đăng nhập đúng tài khoản | Tương tự trên thiết bị Android bạn sử dụng |
-| ADB | Công cụ có thể tìm hoặc tải Android SDK Platform-Tools | Cần cài riêng, chẳng hạn `brew install android-platform-tools`; kiểm tra bằng `adb devices` |
-| Frida | **16.5.9**; trình thiết lập Windows có thể chuẩn bị khi cần | **16.5.9** trong `.venv`; vẫn phải kiểm tra khả năng tương thích với Android |
-| Lệnh khởi chạy | `.\run-all.ps1` | `sh run-macos.sh` hoặc `ePlus-AI-Toolkit.command` |
+| Thành phần | Windows | macOS | Linux |
+| --- | --- | --- | --- |
+| Terminal | **PowerShell 5.1 trở lên** | **Terminal** với zsh hoặc bash | **Terminal (sh/bash)**; không cần PowerShell |
+| Python | **3.10 trở lên**, dùng lệnh `python` | **3.10 trở lên**, dùng `python3`; công cụ tự tạo môi trường `.venv` | **3.10+** (`python3`), tạo `.venv` |
+| Git | Git for Windows | Git từ Xcode Command Line Tools hoặc Homebrew | Git từ trình quản lý gói |
+| Android | Thiết bị hoặc máy ảo đã bật root và ADB; hướng dẫn của dự án hỗ trợ **MuMuPlayer cho Windows** | Thiết bị Android có root hoặc máy ảo tương thích; **MuMuPlayer Pro cho Mac** chỉ phù hợp với Apple Silicon, không hỗ trợ Intel Mac | Điện thoại Android đã root qua USB, một kết nối ADB được cấp quyền |
+| Ứng dụng Android | Google Play Store và Google One, đã đăng nhập đúng tài khoản | Tương tự trên thiết bị Android bạn sử dụng | Google Play Store và Google One trên điện thoại |
+| ADB | Công cụ có thể tìm hoặc tải Android SDK Platform-Tools | Cần cài riêng, chẳng hạn `brew install android-platform-tools`; kiểm tra bằng `adb devices` | Cài Platform-Tools riêng; dùng `PATH` hoặc `ADB_PATH` |
+| Frida | **16.5.9**; trình thiết lập Windows có thể chuẩn bị khi cần | **16.5.9** trong `.venv`; vẫn phải kiểm tra khả năng tương thích với Android | **16.5.9**, chặn Android 16+ |
+| Lệnh khởi chạy | `.\run-all.ps1` | `sh run-macos.sh` hoặc `ePlus-AI-Toolkit.command` | `sh run-linux.sh` |
 
 Dù dùng Windows hay macOS, bạn vẫn cần một môi trường Android đã thiết lập đúng và có quyền truy cập. Mã nguồn hỗ trợ các bước 0–5 trên macOS, nhưng **chưa xác minh được quy trình thanh toán trên Mac/MuMu thực tế**. Xem hướng dẫn riêng cho [Windows](docs/INSTALLATION.md) và [macOS](docs/MACOS-PREVIEW.md).
 
@@ -106,6 +106,30 @@ sh run-macos.sh
 ```
 
 Lệnh `sh run-macos.sh` mở cùng giao diện Textual với **Steps 0–5**. `--check` kiểm tra môi trường (có thể thay đổi cấu hình), `--list` chỉ liệt kê ưu đãi, và `--step 2` chỉ mở TUI với Step 2 được chọn — **không tự thanh toán**. Các Steps 2–5 có thể phát sinh phí thật và yêu cầu xác nhận riêng. **Chưa kiểm thử giao dịch trên Mac/MuMu thực tế.** Xem [hướng dẫn Mac chi tiết](docs/MACOS-PREVIEW.md).
+
+## Linux — Cài đặt và khởi chạy
+
+Trên Ubuntu x86_64, hãy cài Git, Python 3.10 trở lên kèm `venv` và `pip`, cùng Android SDK Platform-Tools. Thêm `adb` vào `PATH` hoặc đặt `ADB_PATH` trỏ tới tệp thực thi. Kết nối qua USB với điện thoại Android đã root và có Google Play Store, Google One. Bật gỡ lỗi USB, mở khóa điện thoại và chấp nhận yêu cầu cấp quyền. ADB phải hiển thị một thiết bị ở trạng thái `device`.
+
+```sh
+git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
+cd google-ai
+"${ADB_PATH:-adb}" devices
+sh run-linux.sh
+```
+
+**Dùng nhánh `main`:** Sau khi phần Linux được tích hợp, hãy clone trực tiếp `main` theo lệnh trên. Không cần chuyển sang nhánh nghiên cứu hay nhánh PR.
+
+Dùng phiên bản có tệp `run-linux.sh`. Tập lệnh mở giao diện và cài các phiên bản Textual và Frida 16.5.9 đã định sẵn vào `.venv` cục bộ. Nếu Ubuntu không tạo được môi trường, hãy cài `python3-venv` hoặc gói venv dành cho phiên bản Python đang dùng.
+
+- `sh run-linux.sh --check` chạy Bước 0 và có thể thay đổi cài đặt Android, Frida hoặc mạng.
+- `sh run-linux.sh --list` chạy Bước 1 để xem ưu đãi mà không yêu cầu thanh toán. Lệnh vẫn có thể thiết lập môi trường Android.
+- `sh run-linux.sh --step 3` mở phần nâng cao với Bước 3 đã chọn. `sh run-linux.sh --sequence` mở chế độ hướng dẫn từ Bước 2. Cả hai lệnh chỉ mở giao diện.
+
+**Android 16 trở lên:** Tập lệnh Linux dừng trước khi thiết lập thiết bị vì Frida 16.5.9 chưa hỗ trợ Android 16. Bạn vẫn có thể kiểm tra USB bằng **Diagnose Android connection**.
+
+**Các bước 2–5 có thể phát sinh khoản thanh toán thật trên Google Play.** Mỗi bước cần xác nhận riêng, tài khoản Play đang dùng đã được xác minh, và kết quả mới chứa đúng ưu đãi có kỳ đầu giá 0. Trước khi tiếp tục chuỗi, hãy xác minh gói thuê bao và ngày gia hạn trong Google Play. Luồng thanh toán trên Linux được kiểm thử bằng mô phỏng. Kiểm tra trọn quy trình trên thiết bị thật vẫn chưa hoàn tất. [Cài đặt Linux, xử lý lỗi USB và kiểm tra](docs/LINUX.md).
+
 
 ## 3. Sử dụng giao diện
 
@@ -255,6 +279,6 @@ Bạn cũng có thể tham khảo [cấu trúc dự án](docs/PROJECT.md), [các
 
 ## Ghi công
 
-**Tác giả gốc:** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **Người duy trì:** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). Giữ nguyên thông báo MIT của tác giả gốc trong [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); giấy phép này không mặc nhiên áp dụng cho các đóng góp mới không liên quan. [Danh sách người đóng góp](https://github.com/hoangsvit/google-ai/graphs/contributors).
+Xin cảm ơn tác giả gốc, người duy trì và tất cả những người đóng góp. Xem [danh sách ghi công và đóng góp](CONTRIBUTORS.md). Thông báo MIT của tác giả gốc được giữ nguyên trong [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); thông báo này không mặc nhiên cấp phép cho các đóng góp mới không liên quan.
 
 [Trung tâm tài liệu](docs/README.md) · [Tài liệu tham khảo cũ (tiếng Việt)](docs/i18n/README.vi.md) · [An toàn thanh toán](docs/SAFETY.md)

@@ -11,13 +11,21 @@ from device_diagnostics import ConnectionStatus  # noqa: E402
 from sku_explorer_preview import SKUExplorerPreview  # noqa: E402
 
 SCENARIOS = {"startup", "disconnected", "offer_found", "step_picker", "approval", "review",
-             "sku_explorer"}
+             "linux_startup", "linux_step_picker", "sku_explorer"}
 scenario = os.environ.get("PREVIEW_SCENARIO", "")
 if scenario not in SCENARIOS:
     raise SystemExit("Invalid preview scenario")
 
 
 class PreviewApp(GoogleAITUI):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Synthetic states; never invoke real Android/Google Play operations.
+        # Linux scenarios explicitly activate the native Linux UI path.
+        self.linux_mode = scenario.startswith("linux_")
+        self.macos_mode = False
+        self.native_mode = self.linux_mode
+
     def _poll_connection(self):
         pass  # Never probe host devices from a screenshot run.
 
@@ -29,7 +37,7 @@ class PreviewApp(GoogleAITUI):
         self.set_timer(0.5, self.prepare_scenario)
 
     def prepare_scenario(self):
-        if scenario == "startup":
+        if scenario in {"startup", "linux_startup"}:
             return
         if scenario == "sku_explorer":
             self.push_screen(SKUExplorerPreview())
@@ -45,7 +53,7 @@ class PreviewApp(GoogleAITUI):
                 "status": "listed", "detected_play_account": "preview@example.invalid",
                 "offers": [{"id": "12months-eft", "micros": "0", "period": "P1Y"}],
             })
-        elif scenario == "step_picker":
+        elif scenario in {"step_picker", "linux_step_picker"}:
             self.advanced_pressed()
         elif scenario == "approval":
             self._offer_check_ready = True

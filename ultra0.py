@@ -333,12 +333,17 @@ def read_purchase_token(sku_short: str, expected_account: str = "") -> str:
             now_ms = int(time.time() * 1000)
             picked = None
             try:
-                with sqlite3.connect(str(local)) as con:
+                # The sqlite3 context manager commits but does not close its
+                # handle; on Windows this prevents deletion of the temp Play DB.
+                con = sqlite3.connect(str(local))
+                try:
                     rows = con.execute(
                         "select account, subs_valid_until_time, inapp_purchase_data "
                         "from ownership where doc_id like ?",
                         (f"%{sku_short}%",),
                     ).fetchall()
+                finally:
+                    con.close()
                 for account, valid, data in rows:
                     if not data:
                         continue

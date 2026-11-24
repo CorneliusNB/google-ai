@@ -8,6 +8,9 @@
 | --- | --- |
 | **MuMu / ADB not detected** | Install/start MuMu separately, enable root/ADB, verify the correct connected Android instance and authorization. |
 | **Frida setup failure** | Review technical details; Frida **16.5.9** must be compatible with the host and device. |
+| **Linux: ADB missing** | Install Platform-Tools; use `PATH` or `ADB_PATH`, then run `"${ADB_PATH:-adb}" devices`. |
+| **Linux: USB unauthorized / permission denied** | Check the USB cable, unlock the phone, approve debugging and inspect Linux USB/udev rules rather than Windows MuMu settings. |
+| **Linux: Android 16+** | SDK 36+ is blocked for device setup with pinned Frida 16.5.9. USB-only diagnostics remain available. |
 | **No offers / `offer_query_failed`** | Open Google One and Google Play on the target Android instance and run Step 1 again. |
 | **Google One or Google Play Store could not be opened** | The read-only offer check tries reopening the app once. If that fails in MuMu, close and reopen MuMu, wait for Android to finish booting, then run **Check Device & Offers** again from Step 1. On other devices, restart Android before running the check again. |
 | **MuMu is open but ADB has no device** | When a Windows stage starts with no online ADB device, the toolkit tries the existing local emulator connection routine, then reads the ADB list again. If it still fails, check MuMu ADB debugging and run **Check Device & Offers** again. |
@@ -26,7 +29,7 @@ The disconnected-device popup includes **Retry connection**. While it checks, th
 
 Verify subscription, payment amount, currency and renewal terms under **[Google Play Subscriptions](https://play.google.com/store/account/subscriptions)**. For developer-facing status codes and advanced platform/Frida problems, see [Detailed setup and troubleshooting](DETAILED-GUIDE.md).
 
-**Platform support:** The repository contains Windows and macOS launchers. Mac host CI does not establish real Android/MuMu compatibility or Google Play payment success; see the [Mac setup and limitations](MACOS-PREVIEW.md).
+**Platform support:** See the [Mac setup and limitations](MACOS-PREVIEW.md) and [Linux setup and USB troubleshooting](LINUX.md). Real Mac/MuMu checkout and Linux end-to-end device validation remain pending.
 
 ## Community support and related projects
 

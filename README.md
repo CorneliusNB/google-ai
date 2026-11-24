@@ -2,7 +2,7 @@
 
 **Languages:** **English** · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-A terminal toolkit for **Windows and macOS** to inspect Google AI Pro offers through Android, ADB, Frida and Google Play. The shared Textual dashboard uses a PowerShell/Python launcher on Windows and a native Python adapter on macOS.
+A terminal toolkit for **Windows, macOS and Linux** to inspect Google AI Pro offers through Android, ADB, Frida and Google Play. Windows uses a PowerShell/Python launcher; macOS and Linux use native shell launchers with a shared Python adapter.
 
 ![ePlus AI Toolkit — full dashboard (110×35, Steps 0–5)](images/terminal-ui-overview.png)
 
@@ -22,20 +22,20 @@ Read the **[full disclaimer](DISCLAIMER.md)** and [security precautions](SECURIT
 
 ## Install and prepare
 
-**Choose the instructions for your operating system.** Windows runs PowerShell; macOS runs Terminal with a POSIX shell (zsh/bash). **PowerShell is not required or used on macOS.**
+**Choose instructions for your operating system.** Windows runs PowerShell; macOS and Linux run native Terminal shells (zsh/bash or sh). **PowerShell is not required on macOS or Linux.**
 
-| Software / configuration | Windows | macOS |
-| --- | --- | --- |
-| Terminal and shell | **PowerShell 5.1+** | Built-in **Terminal**, using **zsh** or **bash**; **no PowerShell** |
-| Python | **3.10+** (command: `python`) | **3.10+** (command: `python3`); launcher creates a local `.venv` |
-| Git | Install Git for Windows | Install Git (Xcode Command Line Tools or Homebrew are options) |
-| Android connection | Rooted, ADB-enabled Android instance; **MuMuPlayer for Windows** is supported by the project workflow | Rooted Android device or compatible emulator; **MuMuPlayer Pro for Mac** is an Apple Silicon option, not an Intel Mac solution |
-| Android apps | Google Play Store and Google One, signed in to the intended account | Same; must be available on the chosen Android device/emulator |
-| ADB / Platform-Tools | Launcher can locate/download ADB when needed | Install separately, e.g. `brew install android-platform-tools`; verify with `adb devices` |
-| Frida | **16.5.9**, prepared by the Windows setup helper as needed | **16.5.9**, installed into the local `.venv` by the Mac launcher; Android-side compatibility must be checked |
-| Start command | `.\run-all.ps1` | `sh run-macos.sh` (or `ePlus-AI-Toolkit.command`) |
+| Software / configuration | Windows | macOS | Linux |
+| --- | --- | --- | --- |
+| Terminal and shell | **PowerShell 5.1+** | Built-in **Terminal**, using **zsh** or **bash**; **no PowerShell** | **Terminal (sh/bash)**; no PowerShell |
+| Python | **3.10+** (command: `python`) | **3.10+** (command: `python3`); launcher creates a local `.venv` | **3.10+** (`python3`), local `.venv` |
+| Git | Install Git for Windows | Install Git (Xcode Command Line Tools or Homebrew are options) | Git from package manager |
+| Android connection | Rooted, ADB-enabled Android instance; **MuMuPlayer for Windows** is supported by the project workflow | Rooted Android device or compatible emulator; **MuMuPlayer Pro for Mac** is an Apple Silicon option, not an Intel Mac solution | Rooted USB Android device, one authorized ADB connection |
+| Android apps | Google Play Store and Google One, signed in to the intended account | Same; must be available on the chosen Android device/emulator | Google Play Store and Google One on the phone |
+| ADB / Platform-Tools | Launcher can locate/download ADB when needed | Install separately, e.g. `brew install android-platform-tools`; verify with `adb devices` | Install Platform-Tools separately; `PATH` or `ADB_PATH` |
+| Frida | **16.5.9**, prepared by the Windows setup helper as needed | **16.5.9**, installed into the local `.venv` by the Mac launcher; Android-side compatibility must be checked | **16.5.9**, Android 16+ blocked |
+| Start command | `.\run-all.ps1` | `sh run-macos.sh` (or `ePlus-AI-Toolkit.command`) | `sh run-linux.sh` |
 
-Both platforms need an authorized, correctly configured Android environment. The macOS implementation covers Steps 0–5 in code, but real Mac/MuMu checkout compatibility has **not** been verified. See the dedicated [Windows guide](docs/INSTALLATION.md) and [macOS guide](docs/MACOS-PREVIEW.md).
+All three platforms need an authorized, correctly configured Android environment. macOS and Linux expose Steps 0–5, but real Mac/MuMu checkout and Linux rooted-device end-to-end tests remain **unverified**. See the [Windows guide](docs/INSTALLATION.md), [macOS guide](docs/MACOS-PREVIEW.md) and [Linux guide](docs/LINUX.md).
 
 ### Windows requirements
 
@@ -112,6 +112,28 @@ sh run-macos.sh
 The launcher prepares Textual and Frida 16.5.9 in a local `.venv`. Optional commands: `sh run-macos.sh --check` (Android/Frida check; may alter settings), `sh run-macos.sh --list` (offers only), and `sh run-macos.sh --step 2` (preselect Step 2 in the TUI; **does not automatically pay**). The `ePlus-AI-Toolkit.command` file is a Finder-friendly Terminal launcher, **not a signed or notarized .app**.
 
 The macOS adapter exposes **Steps 0–5**. **Steps 2–5 may initiate real Google Play charges** and require explicit confirmation. No real Mac/MuMu checkout or subscription activation has been validated. [Full macOS guide](docs/MACOS-PREVIEW.md).
+
+
+## Linux — Install and run
+
+On Ubuntu x86_64, install Git, Python 3.10+ with `venv` and `pip`, and Android SDK Platform-Tools. Put `adb` on `PATH` or set `ADB_PATH` to its executable. Connect a rooted Android phone with Google Play Store and Google One over USB. Enable USB debugging, unlock the phone, and approve the authorization prompt. Check that ADB reports one device with status `device`.
+
+```sh
+git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
+cd google-ai
+"${ADB_PATH:-adb}" devices
+sh run-linux.sh
+```
+
+The `main` branch is the stable entrypoint for Linux after this integration merges. The launcher opens the dashboard and installs pinned Textual and Frida 16.5.9 dependencies into a local `.venv`. If Ubuntu cannot create that environment, install `python3-venv` or the venv package for your Python version.
+
+- `sh run-linux.sh --check` runs Step 0, which can modify Android, Frida or network settings.
+- `sh run-linux.sh --list` runs Step 1 to list offers without requesting checkout. It can also prepare the Android environment.
+- `sh run-linux.sh --step 3` opens Advanced controls with Step 3 selected. `sh run-linux.sh --sequence` opens guided controls starting at Step 2. Neither starts a stage on launch.
+
+**Android 16 and later:** The Linux launcher stops before device setup because pinned Frida 16.5.9 predates Android 16 support. **Diagnose Android connection** remains available for USB checks.
+
+**Steps 2–5 can incur real Google Play charges.** Each requires separate approval, a verified current Play account and a fresh exact-match offer with a zero-priced first phase. Guided continuation requires verifying the subscription and renewal date in Google Play. Linux checkout coverage uses mocks, and an end-to-end device check is pending. [Linux setup, USB troubleshooting and verification](docs/LINUX.md).
 
 
 ## Use the dashboard (recommended)
@@ -249,7 +271,7 @@ Only use a `-Serial` observed through ADB. `-Email` constrains the account expec
 
 Verify subscription, payment amount, currency and renewal terms under **[Google Play Subscriptions](https://play.google.com/store/account/subscriptions)**. For developer-facing status codes and advanced platform/Frida problems, see [Detailed setup and troubleshooting](docs/DETAILED-GUIDE.md).
 
-**Platform support:** Windows and macOS use separate launchers. The macOS port has not been validated with a real Mac/MuMu or Google Play transaction; see [macOS guide](docs/MACOS-PREVIEW.md).
+**Platform support:** Windows, macOS and Linux have separate launchers. Real macOS/MuMu checkout and Linux rooted-device end-to-end validation remain pending; see the [macOS guide](docs/MACOS-PREVIEW.md) and [Linux guide](docs/LINUX.md).
 
 ## Community support and related projects
 
@@ -259,12 +281,13 @@ If you need help installing or using ePlus AI Toolkit, see the [ePlus Telegram s
 
 ## Repository structure
 
-Active launchers and the Python modules they invoke stay at the repository root. **Use `run-all.ps1` on Windows or `run-macos.sh` on macOS.**
+Active launchers and the Python modules they invoke stay at the repository root. **Use `run-all.ps1` on Windows, `run-macos.sh` on macOS or `run-linux.sh` on Linux.**
 
 | Location | Purpose |
 | --- | --- |
 | `run-all.ps1` | Windows entrypoint (Textual dashboard and guided CLI) |
-| `run-macos.sh`, `ePlus-AI-Toolkit.command`, `macos_runner.py` | macOS launcher and adapter (Steps 0–5; real-device checkout not validated) |
+| `run-macos.sh`, `ePlus-AI-Toolkit.command`, `macos_runner.py` | macOS launcher and shared native adapter (Steps 0–5; checkout not hardware-validated) |
+| `run-linux.sh` | Ubuntu x86_64 launcher (Steps 0–5, rooted USB Android; live-device tests pending) |
 | `tui.py`, `tui_core.py`, `ultra0.py`, `setup_env.py`, `device_selector.py`, `query_sku.py` | Active Python runtime and supporting tools; kept in place for compatibility |
 | [`tools/windows/`](tools/windows/README.md) | Optional manual Windows setup shortcut; not required for normal launch |
 | [`legacy/windows/`](legacy/windows/README.md) | Historical batch shortcuts; some bypass account checks with `--force` and may initiate a **real charge**. Use the maintained launcher instead |
@@ -276,6 +299,7 @@ Active launchers and the Python modules they invoke stay at the repository root.
 - [Documentation hub](docs/README.md)
 - [Repository structure and maintenance](docs/PROJECT.md)
 - [Dashboard usage & PowerShell CLI](docs/USAGE.md)
+- [Linux installation, prerequisites and limitations](docs/LINUX.md)
 - [Billing safety](docs/SAFETY.md)
 
 - [Install guide — GitHub Wiki](https://github.com/hoangsvit/google-ai/wiki/Install)
@@ -290,8 +314,6 @@ GitHub Actions checks Python, PowerShell, Textual and mocked Frida/Billing behav
 
 ## Credits
 
-- **Original author:** [@gylive](https://github.com/gylive) — upstream [google-ultra](https://github.com/gylive/google-ultra), including the original Python/ADB/Frida/Google Play approach.
-- **Maintainer:** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev) — Windows/MuMu adaptation, terminal UI, compatibility fixes, tests and documentation.
-- [Community contributors](https://github.com/hoangsvit/google-ai/graphs/contributors)
+Thank you to the original author, maintainer and everyone who has contributed. See [contributors and credits](CONTRIBUTORS.md) for the full acknowledgements.
 
 The upstream MIT notice is retained in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); that notice does not independently license unrelated new contributions.

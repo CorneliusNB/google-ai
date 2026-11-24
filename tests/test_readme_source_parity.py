@@ -15,12 +15,17 @@ TECHNICAL = (
     "docs/SAFETY.md", "docs/PROJECT.md", "THIRD_PARTY_NOTICES.md",
     "legacy/windows/", "brew install android-platform-tools",
     "adb devices", "sh run-macos.sh", ".\\run-all.ps1",
+    "docs/LINUX.md", "Ubuntu x86_64", "ADB_PATH", "python3-venv", "Android 16",
+    "sh run-linux.sh --check", "sh run-linux.sh --list",
+    "sh run-linux.sh --step 3", "sh run-linux.sh --sequence",
     "[!CAUTION]", "[!NOTE]", "2–5", "16.5.9",
 )
 
 class ReadmeSourceParityTests(unittest.TestCase):
     def test_all_locales_track_exact_source_blob(self):
         source = (ROOT / "README.md").read_bytes()
+        # Git blobs use LF, even when Windows core.autocrlf checks out CRLF.
+        source = source.replace(b"\r\n", b"\n")
         payload = ("blob " + str(len(source)) + "\0").encode("ascii") + source
         sha = hashlib.sha1(payload).hexdigest()
         for locale in LOCALES:
@@ -109,6 +114,26 @@ class ReadmeSourceParityTests(unittest.TestCase):
                                "Retry connection", "Retrying…", "Reload toolkit",
                                "Run this step", "↺"):
                     self.assertIn(detail, content)
+
+    def test_credits_are_centralized(self):
+        for target in ("CONTRIBUTORS.md", "THIRD_PARTY_NOTICES.md"):
+            self.assertTrue((ROOT / target).is_file(), target)
+        credits = (ROOT / "CONTRIBUTORS.md").read_text(encoding="utf-8")
+        for attribution in ("https://github.com/gylive/google-ultra",
+                            "https://github.com/gylive", "https://github.com/hoangsvit",
+                            "David Nguyen (@hoangsvit)", "https://eplus.dev",
+                            "https://github.com/XrayIran", "https://github.com/iman-ardehali",
+                            "https://github.com/hoangsvit/google-ai/pull/66",
+                            "https://github.com/hoangsvit/google-ai/pull/84",
+                            "(THIRD_PARTY_NOTICES.md)",
+                            "https://github.com/hoangsvit/google-ai/graphs/contributors"):
+            self.assertIn(attribution, credits)
+        for name in ("README.md", *(f"README.{locale}.md" for locale in LOCALES)):
+            with self.subTest(name=name):
+                content = (ROOT / name).read_text(encoding="utf-8")
+                self.assertIn("(CONTRIBUTORS.md)", content)
+                self.assertIn("(THIRD_PARTY_NOTICES.md)", content)
+        self.assertIn("(CONTRIBUTORS.md)", (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8"))
 
     def test_english_alias_links_to_root_source(self):
         self.assertIn("(README.md)", (ROOT / "README.en.md").read_text(encoding="utf-8"))

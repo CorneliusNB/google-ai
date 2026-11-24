@@ -1,4 +1,4 @@
-# Using the Textual dashboard and PowerShell CLI
+# Using the Textual dashboard (Windows, macOS and Linux) and PowerShell CLI
 
 [Documentation home](README.md) · [Repository README](../README.md) · [Safety](SAFETY.md)
 
@@ -73,6 +73,8 @@ The action panel fits its controls, and **Live Status** fills the remaining heig
 - **D** toggles technical details. Opening the log jumps to the latest line and follows new output. **R** uses the selected advanced run mode. A **Next** button is available only for a reviewable checkout outcome in a guided sequence.
 
 Neither Stop nor closing the terminal reverses an existing Google Play transaction. Always verify the real transaction and subscription status directly.
+
+Linux users can open the advanced controls with `sh run-linux.sh --step N` for Steps 0–5 or `sh run-linux.sh --sequence` to start with Step 2 selected in guided mode. These commands open the dashboard without running a stage. [Linux setup and command reference](LINUX.md).
 
 ## PowerShell CLI (advanced)
 

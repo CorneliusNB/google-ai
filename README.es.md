@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: 4e4e7fb0cee059f91a74b1aab5d7daa323e74968 -->
+<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -8,7 +8,7 @@
 
 > **Documento de referencia:** [README original en inglés](README.md). Esta versión está redactada en español para que resulte más fácil de seguir, sin cambiar las instrucciones técnicas ni las advertencias. Si encuentras alguna diferencia, consulta el código y la documentación original.
 
-**ePlus AI Toolkit** permite consultar las ofertas de Google AI Pro disponibles a través de Google One y Google Play en un dispositivo Android. Funciona en **Windows y macOS**: en Windows se inicia desde PowerShell y en Mac desde Terminal (zsh/bash). Tanto la interfaz Textual como los comandos de terminal utilizan el mismo motor basado en Python, ADB y Frida.
+**ePlus AI Toolkit** permite consultar las ofertas de Google AI Pro disponibles a través de Google One y Google Play en un dispositivo Android. Funciona en **Windows, macOS y Linux**: en Windows se inicia desde PowerShell y en Mac desde Terminal (zsh/bash). Tanto la interfaz Textual como los comandos de terminal utilizan el mismo motor basado en Python, ADB y Frida.
 
 ![Interfaz de ePlus AI Toolkit](images/terminal-ui-overview.png)
 
@@ -26,16 +26,16 @@ Este proyecto es **independiente y no está afiliado, patrocinado ni respaldado*
 
 **Sigue las instrucciones de tu sistema operativo.** En macOS no hace falta instalar PowerShell.
 
-| Componente | Windows | macOS |
-| --- | --- | --- |
-| Terminal | **PowerShell 5.1 o posterior** | **Terminal**, con zsh o bash |
-| Python | **3.10 o posterior** (comando `python`) | **3.10 o posterior** (`python3`); se crea un entorno `.venv` local |
-| Git | Git para Windows | Git mediante Xcode Command Line Tools o Homebrew |
-| Android | Dispositivo o emulador con root y ADB; el proyecto contempla **MuMuPlayer para Windows** | Dispositivo Android con root o emulador compatible; **MuMuPlayer Pro para Mac** es una opción para equipos Apple Silicon, no para Intel |
-| Aplicaciones | Google Play Store y Google One, con la cuenta que quieres comprobar | Las mismas aplicaciones en el Android elegido |
-| ADB | El programa puede localizar o descargar Android SDK Platform-Tools | Debes instalarlo por separado, por ejemplo, con `brew install android-platform-tools`; compruébalo con `adb devices` |
-| Frida | **16.5.9**; la preparación de Windows puede configurarla | **16.5.9** en `.venv`; es necesario comprobar que sea compatible con Android |
-| Inicio | `.\run-all.ps1` | `sh run-macos.sh` o `ePlus-AI-Toolkit.command` |
+| Componente | Windows | macOS | Linux |
+| --- | --- | --- | --- |
+| Terminal | **PowerShell 5.1 o posterior** | **Terminal**, con zsh o bash | **Terminal (sh/bash)**, sin PowerShell |
+| Python | **3.10 o posterior** (comando `python`) | **3.10 o posterior** (`python3`); se crea un entorno `.venv` local | **3.10+** (`python3`), crea `.venv` |
+| Git | Git para Windows | Git mediante Xcode Command Line Tools o Homebrew | Git desde el gestor de paquetes |
+| Android | Dispositivo o emulador con root y ADB; el proyecto contempla **MuMuPlayer para Windows** | Dispositivo Android con root o emulador compatible; **MuMuPlayer Pro para Mac** es una opción para equipos Apple Silicon, no para Intel | Teléfono Android rooteado por USB, un dispositivo ADB autorizado |
+| Aplicaciones | Google Play Store y Google One, con la cuenta que quieres comprobar | Las mismas aplicaciones en el Android elegido | Google Play Store y Google One en el teléfono |
+| ADB | El programa puede localizar o descargar Android SDK Platform-Tools | Debes instalarlo por separado, por ejemplo, con `brew install android-platform-tools`; compruébalo con `adb devices` | Platform-Tools por separado; `PATH` o `ADB_PATH` |
+| Frida | **16.5.9**; la preparación de Windows puede configurarla | **16.5.9** en `.venv`; es necesario comprobar que sea compatible con Android | **16.5.9**, Android 16+ bloqueado |
+| Inicio | `.\run-all.ps1` | `sh run-macos.sh` o `ePlus-AI-Toolkit.command` | `sh run-linux.sh` |
 
 En ambos sistemas necesitas acceso autorizado a un entorno Android correctamente configurado. Aunque la implementación de macOS incluye los pasos 0–5, **no se ha probado un proceso de pago real en Mac/MuMu**. Consulta las guías de [Windows](docs/INSTALLATION.md) y [macOS](docs/MACOS-PREVIEW.md).
 
@@ -105,6 +105,30 @@ sh run-macos.sh
 ```
 
 `sh run-macos.sh` abre el panel Textual con **pasos 0–5**. `--check` revisa el entorno (puede modificar ajustes), `--list` solo consulta ofertas y `--step 2` solo selecciona el paso, **sin pagar automáticamente**. Los pasos 2–5 pueden generar cargos reales y requieren aprobación individual. **Los pagos en un Mac/MuMu real aún no se han verificado.** Consulta la [guía Mac completa](docs/MACOS-PREVIEW.md).
+
+## Linux — Instalación y ejecución
+
+En Ubuntu x86_64, instala Git, Python 3.10 o posterior con `venv` y `pip`, y Android SDK Platform-Tools. Agrega `adb` a `PATH` o indica la ruta del ejecutable en `ADB_PATH`. Conecta por USB un teléfono Android con acceso root, Google Play Store y Google One. Activa la depuración USB, desbloquea el teléfono y autoriza la conexión. Comprueba que ADB muestre un solo dispositivo con estado `device`.
+
+```sh
+git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
+cd google-ai
+"${ADB_PATH:-adb}" devices
+sh run-linux.sh
+```
+
+**Usa la rama `main`:** Una vez fusionado el soporte de Linux, clona `main` directamente con el comando anterior. No necesitas cambiar a ramas de desarrollo ni a la rama de la PR.
+
+Usa una versión que incluya `run-linux.sh`. El script abre el panel e instala las versiones fijadas de Textual y Frida 16.5.9 en un entorno local `.venv`. Si Ubuntu no puede crearlo, instala `python3-venv` o el paquete venv de tu versión de Python.
+
+- `sh run-linux.sh --check` ejecuta el paso 0 y puede modificar ajustes de Android, Frida o la red.
+- `sh run-linux.sh --list` ejecuta el paso 1 y lista las ofertas sin iniciar el pago, aunque puede preparar el entorno de Android.
+- `sh run-linux.sh --step 3` abre los controles avanzados con el paso 3 seleccionado. `sh run-linux.sh --sequence` abre los controles guiados desde el paso 2. Ninguno inicia un paso automáticamente.
+
+**Android 16 y versiones posteriores.** El script de Linux se detiene antes de configurar el dispositivo porque Frida 16.5.9 es anterior a la compatibilidad con Android 16. Puedes comprobar la conexión USB con **Diagnose Android connection**.
+
+**Los pasos 2–5 pueden generar cargos reales en Google Play.** Cada uno requiere su propia aprobación, la verificación de la cuenta de Play activa y una consulta reciente que identifique exactamente la oferta con un primer período de precio cero. Antes de avanzar, verifica la suscripción y la fecha de renovación en Google Play. Los pagos en Linux se comprueban con simulaciones. Sigue pendiente la validación completa en un dispositivo real. [Instalación en Linux, solución de problemas de USB y verificación](docs/LINUX.md).
+
 
 ## 3. Usar el panel Textual
 
@@ -247,6 +271,6 @@ La documentación incluye [estructura del proyecto](docs/PROJECT.md), [uso del p
 
 ## Créditos
 
-**Autor original:** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **Mantenedor:** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). El aviso MIT del autor original permanece en `THIRD_PARTY_NOTICES.md`.
+Gracias al autor original, al mantenedor y a todas las personas que contribuyen. Consulta la [lista de créditos y colaboradores](CONTRIBUTORS.md). El aviso MIT original se conserva en [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); por sí solo no concede una licencia a contribuciones nuevas no relacionadas.
 
 [Centro de documentación](docs/README.md) · [Guía histórica en español](docs/i18n/README.es.md) · [Seguridad de pagos](docs/SAFETY.md)

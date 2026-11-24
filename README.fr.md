@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Français
 
-<!-- Source README.md git-blob: 4e4e7fb0cee059f91a74b1aab5d7daa323e74968 -->
+<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
@@ -8,7 +8,7 @@
 
 > **Document de référence :** [README original en anglais](README.md). Cette version est rédigée en français pour faciliter la lecture, tout en conservant les commandes, les limites et les avertissements du projet. En cas de doute, reportez-vous au code et à la documentation d'origine.
 
-**ePlus AI Toolkit** permet de consulter les offres Google AI Pro accessibles via Google One et Google Play sur un appareil Android. L'outil fonctionne sous **Windows et macOS** : vous le lancez depuis PowerShell sur Windows, ou Terminal (zsh/bash) sur Mac. L'interface Textual et les commandes utilisent le même moteur Python, ADB et Frida.
+**ePlus AI Toolkit** permet de consulter les offres Google AI Pro accessibles via Google One et Google Play sur un appareil Android. L'outil fonctionne sous **Windows, macOS et Linux** : vous le lancez depuis PowerShell sur Windows, ou Terminal (zsh/bash) sur Mac. L'interface Textual et les commandes utilisent le même moteur Python, ADB et Frida.
 
 ![Interface ePlus AI Toolkit](images/terminal-ui-overview.png)
 
@@ -26,16 +26,16 @@ Ce projet est **indépendant, sans affiliation, parrainage ni approbation offici
 
 **Suivez les instructions correspondant à votre système.** Sur Mac, vous n'avez pas besoin d'installer PowerShell.
 
-| Élément | Windows | macOS |
-| --- | --- | --- |
-| Terminal | **PowerShell 5.1 ou version ultérieure** | **Terminal**, avec zsh ou bash |
-| Python | **3.10 ou version ultérieure** (commande `python`) | **3.10 ou version ultérieure** (`python3`) ; création d'un environnement local `.venv` |
-| Git | Git pour Windows | Git via Xcode Command Line Tools ou Homebrew |
-| Android | Appareil ou émulateur rooté avec ADB ; la procédure Windows prend en charge **MuMuPlayer** | Android rooté ou émulateur compatible ; **MuMuPlayer Pro pour Mac** est une option Apple Silicon, pas Intel |
-| Applications | Google Play Store et Google One, connectés au compte à vérifier | Ces mêmes applications sur l'appareil Android choisi |
-| ADB | L'outil peut localiser ou télécharger Android SDK Platform-Tools | Installation séparée, par exemple `brew install android-platform-tools` ; vérification avec `adb devices` |
-| Frida | **16.5.9**, préparée si nécessaire sous Windows | **16.5.9** dans `.venv` ; compatibilité Android à vérifier |
-| Démarrage | `.\run-all.ps1` | `sh run-macos.sh` ou `ePlus-AI-Toolkit.command` |
+| Élément | Windows | macOS | Linux |
+| --- | --- | --- | --- |
+| Terminal | **PowerShell 5.1 ou version ultérieure** | **Terminal**, avec zsh ou bash | **Terminal (sh/bash)**, sans PowerShell |
+| Python | **3.10 ou version ultérieure** (commande `python`) | **3.10 ou version ultérieure** (`python3`) ; création d'un environnement local `.venv` | **3.10+** (`python3`), crée `.venv` |
+| Git | Git pour Windows | Git via Xcode Command Line Tools ou Homebrew | Git via le gestionnaire de paquets |
+| Android | Appareil ou émulateur rooté avec ADB ; la procédure Windows prend en charge **MuMuPlayer** | Android rooté ou émulateur compatible ; **MuMuPlayer Pro pour Mac** est une option Apple Silicon, pas Intel | Téléphone Android rooté par USB, un seul appareil ADB autorisé |
+| Applications | Google Play Store et Google One, connectés au compte à vérifier | Ces mêmes applications sur l'appareil Android choisi | Google Play Store et Google One sur le téléphone |
+| ADB | L'outil peut localiser ou télécharger Android SDK Platform-Tools | Installation séparée, par exemple `brew install android-platform-tools` ; vérification avec `adb devices` | Platform-Tools séparément ; `PATH` ou `ADB_PATH` |
+| Frida | **16.5.9**, préparée si nécessaire sous Windows | **16.5.9** dans `.venv` ; compatibilité Android à vérifier | **16.5.9**, Android 16+ bloqué |
+| Démarrage | `.\run-all.ps1` | `sh run-macos.sh` ou `ePlus-AI-Toolkit.command` | `sh run-linux.sh` |
 
 Les deux systèmes nécessitent un environnement Android correctement configuré et auquel vous avez le droit d'accéder. Le code macOS couvre les étapes 0–5, mais **aucun paiement réel sur Mac/MuMu n'a encore été validé**. Consultez les guides [Windows](docs/INSTALLATION.md) et [macOS](docs/MACOS-PREVIEW.md).
 
@@ -105,6 +105,30 @@ sh run-macos.sh
 ```
 
 `sh run-macos.sh` ouvre l'interface Textual avec les **étapes 0–5**. `--check` contrôle l'environnement (et peut modifier les réglages), `--list` consulte seulement les offres, et `--step 2` présélectionne l'étape **sans payer automatiquement**. Les étapes 2–5 peuvent entraîner de vrais frais et nécessitent une confirmation individuelle. **Les paiements sur un vrai Mac/MuMu restent non vérifiés.** Consultez le [guide Mac détaillé](docs/MACOS-PREVIEW.md).
+
+## Linux — Installation et démarrage
+
+Sous Ubuntu x86_64, installez Git, Python 3.10 ou une version ultérieure avec `venv` et `pip`, ainsi qu’Android SDK Platform-Tools. Ajoutez `adb` au `PATH` ou indiquez le chemin de l’exécutable dans `ADB_PATH`. Branchez en USB un téléphone Android rooté équipé du Google Play Store et de Google One. Activez le débogage USB, déverrouillez le téléphone et autorisez la connexion. ADB doit afficher un seul appareil à l’état `device`.
+
+```sh
+git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
+cd google-ai
+"${ADB_PATH:-adb}" devices
+sh run-linux.sh
+```
+
+**Utilisez la branche `main` :** Après l'intégration Linux, clonez directement `main` avec la commande ci-dessus. Il n'est pas nécessaire de passer à une branche de développement ou de PR.
+
+Utilisez une version qui contient `run-linux.sh`. Le script ouvre l’interface et installe les versions fixées de Textual et de Frida 16.5.9 dans un environnement local `.venv`. Si Ubuntu ne parvient pas à créer cet environnement, installez `python3-venv` ou le paquet venv correspondant à votre version de Python.
+
+- `sh run-linux.sh --check` exécute l’étape 0 et peut modifier les réglages d’Android, de Frida ou du réseau.
+- `sh run-linux.sh --list` exécute l’étape 1 pour afficher les offres sans lancer de paiement. Cette commande peut aussi préparer l’environnement Android.
+- `sh run-linux.sh --step 3` ouvre les commandes avancées avec l’étape 3 sélectionnée. `sh run-linux.sh --sequence` ouvre le mode guidé à partir de l’étape 2. Aucune des deux commandes ne lance d’étape automatiquement.
+
+**Android 16 et versions ultérieures.** Le script Linux s’arrête avant de configurer l’appareil, car Frida 16.5.9 est antérieur à la prise en charge d’Android 16. **Diagnose Android connection** permet toujours de vérifier la connexion USB.
+
+**Les étapes 2–5 peuvent entraîner de vrais prélèvements sur Google Play.** Pour chacune, il faut une confirmation distincte, vérifier le compte Play actif et obtenir un résultat récent qui correspond exactement à l’offre dont la première période coûte zéro. Avant de poursuivre, vérifiez l’abonnement et la date de renouvellement dans Google Play. Les paiements sous Linux sont testés par simulation. La validation complète sur un appareil réel reste à faire. [Installation sous Linux, dépannage USB et vérification](docs/LINUX.md).
+
 
 ## 3. Interface Textual
 
@@ -248,6 +272,6 @@ Voir aussi [structure et maintenance](docs/PROJECT.md), [utilisation et CLI](doc
 
 ## Crédits
 
-**Auteur d'origine :** [@gylive](https://github.com/gylive) — [google-ultra](https://github.com/gylive/google-ultra). **Maintenance :** [David Nguyen (@hoangsvit)](https://github.com/hoangsvit) / [ePlus.DEV](https://eplus.dev). Les mentions MIT de l'auteur initial sont conservées dans `THIRD_PARTY_NOTICES.md`.
+Merci à l'auteur d'origine, au mainteneur et à toutes les personnes qui contribuent. Consultez la [liste des crédits et des contributeurs](CONTRIBUTORS.md). La notice MIT d'origine est conservée dans [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) ; elle ne concède pas, à elle seule, de licence aux nouvelles contributions sans rapport.
 
 [Centre de documentation](docs/README.md) · [Guide historique en français](docs/i18n/README.fr.md) · [Sécurité des paiements](docs/SAFETY.md)
