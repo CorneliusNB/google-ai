@@ -108,55 +108,54 @@ class SKUMetadataTests(unittest.TestCase):
 @unittest.skipUnless(importlib.util.find_spec("textual") is not None,
                      "Textual is tested in Terminal UI previews with dependencies installed")
 class SKUExplorerUITests(unittest.IsolatedAsyncioTestCase):
-    async def test_check_sku_appears_as_step_1a_and_uses_normal_run_button(self):
+    async def test_step_one_sku_button_opens_without_adding_a_new_step(self):
         from tempfile import TemporaryDirectory
 
         from textual.widgets import Button, Select, Static
         from sku_explorer import SKUExplorer
-        from tui import GoogleAITUI, SKU_STEP
+        from tui import GoogleAITUI
 
         with TemporaryDirectory() as directory:
             app = GoogleAITUI(repo=Path(directory))
             async with app.run_test(size=(110, 35)) as pilot:
-                self.assertIn("1A. Check SKU", str(app.query_one("#stage_sku", Static).render()))
-                self.assertEqual(SKU_STEP, 6)
-                self.assertEqual(len(app.query("#sku_explorer")), 0)
-                await pilot.click("#advanced_toggle")
-                app.query_one("#step", Select).value = SKU_STEP
-                await pilot.pause()
-                self.assertEqual(app._selected(), SKU_STEP)
-                self.assertEqual(str(app.query_one("#run", Button).label), "Run Check SKU (read-only)")
-                self.assertFalse(app.query_one("#run", Button).disabled)
-                # SKU is not part of the paid sequential run modes.
-                app.query_one("#mode", Select).value = "from"
-                await pilot.pause()
-                self.assertEqual(app.query_one("#mode", Select).value, "single")
+                self.assertEqual(len(app.query("#workflow .workflow-step")), 6)
+                self.assertIn("1. Available offers", str(app.query_one("#stage_1", Static).render()))
+                button = app.query_one("#sku_explorer", Button)
+                self.assertTrue(button.visible)
+                self.assertGreater(button.region.width, 10)
+                self.assertTrue(app.query_one("#quickstart", Button).visible)
+                self.assertEqual(app.query_one("#step", Select).value, 1)
                 with patch.object(app, "_start") as paid:
-                    await pilot.click("#run")
+                    await pilot.click("#sku_explorer")
                     await pilot.pause()
                     paid.assert_not_called()
                 self.assertIsInstance(app.screen, SKUExplorer)
                 self.assertTrue(app.screen.query_one("#sku_check", Button).disabled)
-                self.assertFalse(app._offer_check_ready)
                 with patch.object(app, "selected_pressed") as start:
                     app.action_run_selected()
                     start.assert_not_called()
                 await pilot.click("#sku_close")
                 await pilot.pause()
                 self.assertFalse(app._offer_check_ready)
+                self.assertEqual(app.query_one("#step", Select).value, 1)
 
-    async def test_sku_stage_can_never_start_paid_stage(self):
+    async def test_sku_dialog_does_not_unlock_paid_steps(self):
         from tempfile import TemporaryDirectory
-        from tui import GoogleAITUI, SKU_STEP
+        from textual.widgets import Button
+        from tui import GoogleAITUI
 
         with TemporaryDirectory() as directory:
             app = GoogleAITUI(repo=Path(directory))
             async with app.run_test(size=(110, 35)) as pilot:
-                app._start(SKU_STEP, False)
+                app._start(6, False)  # No synthetic Step 1A should ever be executable.
                 await pilot.pause()
                 self.assertFalse(app.busy)
-                self.assertEqual(app.current_step, None)
+                self.assertIsNone(app.current_step)
                 self.assertFalse(app._offer_check_ready)
+                app.busy = True
+                await pilot.click("#sku_explorer")
+                await pilot.pause()
+                self.assertEqual(len(app.screen.query("#sku_check")), 0)
 
 
 if __name__ == "__main__":
