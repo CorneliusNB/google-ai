@@ -31,7 +31,7 @@ CASES = [
     ("08-linux-step-picker", "linux_step_picker", 110, 35, ("Choose a step", "Run this step")),
     ("09-sku-explorer", "sku_explorer", 110, 35, ("SKU EXPLORER", "SIMULATED DATA ONLY", "PREVIEW RESULT", "NO CHECKOUT", "Close SKU Explorer")),
     ("10-step1-check-sku", "sku_step", 110, 35,
-     ("1. Available offers", "Check Device & Offers", "Check SKU & prices")),
+     ("1. Available", "Check Device & Offers", "Check SKU & prices")),
 ]
 
 
