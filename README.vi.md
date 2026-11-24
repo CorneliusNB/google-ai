@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
+<!-- Source README.md git-blob: 00970df832b386d5507a536a7348ded599d43c54 -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -135,6 +135,8 @@ Dùng phiên bản có tệp `run-linux.sh`. Tập lệnh mở giao diện và c
 
 Nhấn **Check Device & Offers** để chạy **Step 1 — Available offers** và kiểm tra ưu đãi mà **không bắt đầu thanh toán**. Bạn có thể theo dõi tiến trình tại **Live Status**, chọn **Show technical details** để xem thông tin kỹ thuật và kiểm tra đúng tài khoản trong Google Play. Nếu 30 giây không có thông báo mới, công cụ sẽ cảnh báo; điều đó **chưa có nghĩa là chương trình đã bị treo**.
 
+Sau khi Step 1 trên giao diện xác minh thành công, cùng thao tác đó tự động chạy một lượt truy vấn siêu dữ liệu SKU giới hạn, chỉ đọc, dùng cơ chế xác định thiết bị hiện có. Lượt quét can thiệp vào tiến trình Android được phép truy cập, hiển thị các kỳ giá và trạng thái không trả về SKU hoặc không có ưu đãi; không mở thanh toán hay cấp quyền chạy thêm bước thanh toán. Cuộn danh sách để xem dữ liệu. Các điều khiển vẫn khóa đến khi quét xong; **Stop SKU scan** hoặc Exit yêu cầu hủy quét. Chuỗi hướng dẫn kết thúc ở Step 4; Step 5 tùy chọn chỉ xuất hiện nếu báo cáo Step 1 chính có đúng ưu đãi được hỗ trợ và vẫn cần xác nhận riêng. Xem [kiểm tra SKU](docs/SKU-EXPLORER.md).
+
 Step 1 không mua hàng, nhưng quá trình chuẩn bị vẫn có thể tải hoặc sửa ADB/Frida và thay đổi cấu hình máy ảo hoặc mạng. **Step 0 — Environment cũng có thể thay đổi môi trường trên máy**, nên không được xem là thao tác hoàn toàn chỉ đọc. Thanh bên hiển thị sáu bước; thông tin trong Android Device và Google Account được lấy từ kết quả thực tế, đồng thời che bớt dữ liệu nhận dạng tài khoản. Những terminal có hỗ trợ liên kết sẽ cho phép mở trang của tác giả gốc và người duy trì.
 
 Khi giao diện đang rảnh, công cụ kiểm tra các kết nối ADB hiện có khoảng 5 giây/lần. Nếu không tìm thấy ADB hoặc thiết bị Android, popup sẽ hướng dẫn cách xử lý. Công cụ tiếp tục kiểm tra và cập nhật trạng thái thiết bị; kết nối lại không tự mở khóa bước thanh toán. Việc theo dõi tạm dừng khi một bước đang chạy hoặc có hộp thoại khác. Công cụ không cài hay tự kết nối thiết bị ở chế độ nền, dù lệnh `adb devices` có thể khởi động máy chủ ADB trên máy tính.
@@ -150,7 +152,7 @@ Mặc định, công cụ chỉ chạy bước đã chọn. Trong **Choose anoth
 | Chế độ | Chức năng |
 | --- | --- |
 | **Stop after this step** | Chỉ chạy một bước được chọn từ 0 đến 5 |
-| **Offer the next step** | Bắt đầu chuỗi có hướng dẫn từ Step 2–5 |
+| **Offer the next step** | Bắt đầu chuỗi có hướng dẫn từ Step 2–4 |
 | **Start at Step 2** | Bắt đầu chuỗi từ Step 2; Step 5 là tùy chọn |
 
 | Bước | Vai trò | Rủi ro |

@@ -270,6 +270,9 @@ class LinuxAdapterTests(unittest.TestCase):
             lookup.assert_not_called()
             self.assertNotIn("verified@example.test", output.getvalue())
             data = json.loads(result.read_text())
+            import hashlib
+            self.assertEqual(data.pop("device_binding"),
+                             hashlib.sha256(b"private-serial").hexdigest())
             self.assertEqual(data, {"status": "listed", "offers": [
                 {"product": "mock-pro", "id": "mock-offer", "period": "P1M", "micros": 0},
             ]})
@@ -285,7 +288,10 @@ class LinuxAdapterTests(unittest.TestCase):
                     1, "device-mock", {adapter.LINUX_WORKDIR: tmp}, result_file=result), 0)
             lookup.assert_not_called()
             self.assertIn("Google Play account could not be verified.", output.getvalue())
-            self.assertEqual(json.loads(result.read_text()), {"status": "listed", "offers": []})
+            import hashlib
+            data = json.loads(result.read_text())
+            self.assertEqual(data.pop("device_binding"), hashlib.sha256(b"device-mock").hexdigest())
+            self.assertEqual(data, {"status": "listed", "offers": []})
 
     def test_verified_checkout_projection_is_allow_listed(self):
         with tempfile.TemporaryDirectory() as tmp:

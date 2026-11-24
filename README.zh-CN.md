@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: e63f8d102d72e57f7bceaaaa00b41357779c8ed3 -->
+<!-- Source README.md git-blob: 00970df832b386d5507a536a7348ded599d43c54 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -136,6 +136,8 @@ sh run-linux.sh
 
 点击 **Check Device & Offers** 执行 **Step 1 — Available offers**：查询优惠，**不会发起订阅结账**。可通过 **Live Status** 和 **Show technical details** 查看进度。如果 30 秒内没有新日志，程序会给出提醒，但这**不一定表示程序卡住了**。
 
+在控制台的 Step 1 验证成功后，同一操作会使用现有设备映射自动执行一次范围受限的只读 SKU 元数据查询。查询会对已获授权的 Android 进程进行动态检测，显示各计价阶段、未返回 SKU 或无优惠的状态，不会启动结账，也不会授权新的付款步骤。滚动优惠列表即可查看。查询结束前操作控件保持锁定；**Stop SKU scan** 或 Exit 可请求取消。引导流程在 Step 4 结束；可选 Step 5 仅在主 Step 1 报告包含完全匹配的受支持优惠时提供，且仍须单独确认。参阅 [SKU 查询](docs/SKU-EXPLORER.md)。
+
 界面空闲时，工具约每 5 秒检查一次现有 ADB 连接。找不到 ADB 或 Android 设备时，会弹窗说明处理方法；工具会继续检查并更新设备状态。重新连接本身不会解锁付款步骤。执行步骤或显示其他对话框时，监测会暂停。工具不会在后台安装或连接设备，但 `adb devices` 可能启动电脑上的本地 ADB 服务。
 
 在 Windows 上，运行 **Check Device & Offers** 时，工具会查找 ADB，必要时尝试下载官方 Android SDK Platform-Tools。下载或安装可能失败，请通过 **Show technical details** 查看详情。macOS 请按 Mac 指南安装 Platform-Tools。MuMu 需要自行安装和启动，并启用 root、ADB 调试，登录 Google Play 与 Google One。
@@ -149,7 +151,7 @@ sh run-linux.sh
 | 模式 | 行为 |
 | --- | --- |
 | **Stop after this step** | 只执行所选的 Step 0–5 |
-| **Offer the next step** | 从所选 Step 2–5 启动引导式流程 |
+| **Offer the next step** | 从所选 Step 2–4 启动引导式流程 |
 | **Start at Step 2** | 从 Step 2 启动引导式流程；Step 5 可选 |
 
 | 步骤 | 用途 | 风险 |

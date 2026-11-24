@@ -6,6 +6,12 @@ on:
     paths:
       - 'tui.py'
       - 'tui_core.py'
+      - 'sku_check_core.py'
+      - 'sku_check_runner.py'
+      - 'offer_discovery.py'
+      - 'tests/test_offer_discovery.py'
+      - 'assets/frida/sku_query_readonly.js'
+      - 'tests/test_sku_check.py'
       - 'device_diagnostics.py'
       - 'requirements-tui.txt'
       - 'tests/test_tui*.py'
@@ -40,7 +46,10 @@ jobs:
           python -m playwright install --with-deps chromium
           npm install --prefix "$RUNNER_TEMP/terminal-xterm" --no-save --ignore-scripts '@xterm/xterm@5.5.0'
       - name: Verify TUI behavior and compact layout
-        run: python -m unittest discover -s tests -p 'test_tui.py' -v
+        run: |
+          python -m unittest discover -s tests -p 'test_tui.py' -v
+          python -m unittest discover -s tests -p 'test_sku_check.py' -v
+          python -m unittest discover -s tests -p 'test_offer_discovery.py' -v
       - name: Capture running terminal (synthetic states only)
         env:
           XTERM_DIST: ${{ runner.temp }}/terminal-xterm/node_modules/@xterm/xterm
@@ -88,10 +97,45 @@ jobs:
               '01-startup.png', '02-disconnected.png', '03-offer-found.png',
               '04-step-picker-compact.png', '05-approval-compact.png', '06-play-review.png',
               '07-linux-startup.png', '08-linux-step-picker.png',
+              '09-step1-sku-offers.png', '10-step1-sku-missing.png',
+              '11-step1-discovered-offers.png',
+              '12-step0-ready.png',
+              '13-step0-adb-missing.png',
+              '14-account-picker.png',
+              '15-step1-error.png',
+              '16-step1-running.png',
+              '17-step3-approval.png',
+              '18-step4-approval.png',
+              '19-step5-approval.png',
+              '20-step3-review.png',
+              '21-step4-review.png',
+              '22-step5-review.png',
+              '23-step3-retry.png',
+              '24-step1-unverified.png',
+              '25-step2-approval-wide.png',
+              '26-step5-picker.png',
           ]
           labels = ['Start', 'Disconnected', 'Offers found', 'Choose a step (90×20)',
                     'Step 2 confirmation (90×20)', 'Review in Google Play',
-                    'Linux dashboard (110×35)', 'Linux step picker (110×35)']
+                    'Linux dashboard (110×35)', 'Linux step picker (110×35)',
+                    'Step 1 — supported offer list (synthetic)', 'Step 1 — no supported offers (synthetic)',
+                    'Step 1 — optional Step 5 (synthetic)',
+                    'Step 0 — environment ready',
+                    'Step 0 — ADB missing popup',
+                    'Choose account popup',
+                    'Step 1 — error popup',
+                    'Step 1 — checking progress',
+                    'Step 3 — confirmation popup',
+                    'Step 4 — confirmation popup',
+                    'Step 5 — optional confirmation popup',
+                    'Step 3 — review in Google Play',
+                    'Step 4 — review in Google Play',
+                    'Step 5 — review in Google Play',
+                    'Step 3 — retry safety popup',
+                    'Step 1 — unverified account popup',
+                    'Step 2 — confirmation popup (wide)',
+                    'Step 5 — optional step selection',
+                    ]
           paths = sorted(p.name for p in Path('images').iterdir())
           if paths != expected:
               raise SystemExit('Unexpected preview artifact contents')

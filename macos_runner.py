@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 from importlib import metadata
 import json
 import os
@@ -235,11 +236,13 @@ def engine_report_dir(env: dict[str, str]) -> Path:
     return Path(workdir) / "ultra0-report" if workdir else REPORT_DIR
 
 
-def publish_result(path: Path, report: dict) -> None:
+def publish_result(path: Path, report: dict, *, device_binding: str = "") -> None:
     """Send only dashboard fields from a verified invocation."""
     status = report["status"]
     result = {"status": status if status in MESSAGES else "unverified"}
     if status == "listed":
+        if device_binding:
+            result["device_binding"] = device_binding
         result["offers"] = [
             {field: offer.get(field) for field in ("product", "id", "period", "micros")}
             for offer in report["offers"] if isinstance(offer, dict)
@@ -284,7 +287,10 @@ def run_stage(step: int, serial: str, env: dict[str, str],
             print(f"Account {account}", flush=True)
         print(f"Offers {len(report['offers'])} (eligibility not guaranteed)", flush=True)
         if result_file is not None:
-            publish_result(result_file, report)
+            # The result file is invocation-local, not a log. Never write
+            # the raw transport to the report or terminal output.
+            binding = hashlib.sha256(serial.encode("utf-8")).hexdigest()
+            publish_result(result_file, report, device_binding=binding)
         elif linux:
             for line in offer_explorer_lines(report):
                 print(line, flush=True)

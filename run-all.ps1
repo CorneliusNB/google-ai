@@ -107,6 +107,12 @@ function Run-Command([string]$Program, [string[]]$Arguments) {
             Write-Host $line -ForegroundColor DarkGray
         } elseif ($line -match 'Action required:|Press Enter to continue') {
             Write-Host ("    {0}" -f $line.Trim()) -ForegroundColor Yellow
+        } elseif ($env:EPLUS_TUI -eq "1") {
+            if ($line -match 'Subscribe was tapped, but the purchase is unverified') {
+                Write-Host "EPLUS_CHECKOUT_REVIEW:submitted"
+            } elseif ($line -match 'Checkout not confirmed; Google Play remains open for inspection') {
+                Write-Host "EPLUS_CHECKOUT_REVIEW:unconfirmed"
+            }
         }
     }
     if ($LASTEXITCODE -ne 0) {
