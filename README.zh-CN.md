@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: 00970df832b386d5507a536a7348ded599d43c54 -->
+<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -248,6 +248,8 @@ CLI 确认选项为 **1 = Continue（继续）、2 = End run（结束）、0 = S
 ## 社区支持及相关项目
 
 安装或使用 ePlus AI Toolkit 时遇到问题，可通过 [ePlus Telegram 支持/讨论帖](https://t.me/eplus_news/29) 与社区联系、交流排错经验。可复现的软件问题也可以[提交 GitHub Issue](https://github.com/hoangsvit/google-ai/issues)。**请勿公开密码、OTP/2FA 验证码、优惠或购买 token、未经脱敏的日志以及银行卡信息。** 此渠道是社区交流，不属于 Google 官方支持。
+
+**通过 Telegram Boost 支持项目：** 如果 ePlus AI Toolkit 对您有帮助，且您拥有 Telegram Premium，欢迎使用已有的助力次数[为 @eplus_news 频道助力](https://t.me/eplus_news?boost)，帮助频道解锁更多社区功能。助力完全自愿，不影响工具的使用、功能或社区支持。
 
 **无法参与 Google AI Pro 优惠？** 可另行了解 ePlus.DEV 的 [Muse Invite Hub](https://github.com/ePlus-DEV/muse-invite-hub)，在[网站上查找或分享 Muse 邀请码](https://muse.eplus.dev/)。**Muse 是独立服务**，Muse 邀请码**不能激活或替代** Google AI Pro 订阅，也不保证邀请码可用；资格可能受地区或账户限制。
 
