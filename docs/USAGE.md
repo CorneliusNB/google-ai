@@ -28,6 +28,8 @@ The sidebar lists the six stages. Android Device / Google Account cards update f
 
 **Choose account** appears next to the Account card from startup. It reads the signed-in Android account candidates when clicked. During a stage it is disabled. Choose the matching profile in Google Play and run **Check Device & Offers** to verify the selection.
 
+During Step 1, the Account card keeps the masked account hint for the connected device with a checking status. The current run must verify the active Play account before the account can be used for checkout.
+
 ### Remove a Google account from MuMu on Windows
 
 1. Finish any running stage. With only the intended Android device connected over ADB, open **Choose account** and select **Remove account in Android**.

@@ -537,6 +537,7 @@ class GoogleAITUI(App[None]):
         self.show_advanced = show_advanced
         self.startup_probe = startup_probe
         self._detected_account_device: str | None = None
+        self._detected_account_hint: str | None = None
         self.debug_visible = initial_debug
         self.busy = False
         self._diagnosing = False
@@ -753,6 +754,24 @@ class GoogleAITUI(App[None]):
         identity = mask_email(accounts[0]) if len(accounts) == 1 else f"{len(accounts)} Android accounts"
         self.query_one("#account", Static).update(f"Account  •  {escape(identity)} · Play unverified")
         self._detected_account_device = serial or None
+        self._detected_account_hint = identity if serial else None
+
+    def _display_step_one_account(self, *, checking: bool) -> None:
+        # Account hints are display-only. Only a fresh Play Store lookup can
+        # fill _verified_account and participate in the checkout gate.
+        device = self._detected_account_device
+        connection = self._connection_state
+        if self._checked_device:
+            same_device = device == self._checked_device
+        else:
+            same_device = bool(connection and connection.state == "connected"
+                               and device in connection.devices)
+        identity = self._detected_account_hint if same_device else None
+        if self._selected_account:
+            identity = mask_email(self._selected_account)
+        status = "Checking…" if checking else "Play unverified"
+        label = f"{escape(identity)} · {status}" if identity else status
+        self.query_one("#account", Static).update("Account  •  " + label)
 
     def _account_candidates_loaded(self, accounts: list[str] | None, serial: str = "") -> None:
         self._accounts_loading = False
@@ -819,6 +838,7 @@ class GoogleAITUI(App[None]):
         self._diagnosing = True
         self._selected_account = None
         self._detected_account_device = None
+        self._detected_account_hint = None
         self._reset_account_verification()
         self._render_history(latest_history(self.repo), "Previous run · select an account and run Step 1 to verify")
         self.query_one("#account", Static).update("Account  •  Not checked")
@@ -1025,10 +1045,11 @@ class GoogleAITUI(App[None]):
             self.query_one("#quickstart", Button).display = True
             self.query_one("#quickstart", Button).label = "Check Device & Offers"
             self._update_run_mode()
+        if self._detected_account_device and self._detected_account_device not in result.devices:
+            self.query_one("#account", Static).update("Account  •  Not checked")
+            self._detected_account_device = None
+            self._detected_account_hint = None
         if self.startup_probe and changed and not (self._selected_account or self._verified_account):
-            if self._detected_account_device and self._detected_account_device not in result.devices:
-                self.query_one("#account", Static).update("Account  •  Not checked")
-                self._detected_account_device = None
             if result.state == "connected" and not self._accounts_loading:
                 if len(result.devices) == 1:
                     self.discover_account_candidates(result.devices[0], self._connection_generation)
@@ -1726,7 +1747,10 @@ class GoogleAITUI(App[None]):
         self.query_one("#offers_title", Static).display = False
         self.query_one("#device", Static).tooltip = None
         self.query_one("#device", Static).update("Device  •  Auto-detect")
-        self.query_one("#account", Static).update("Account  •  Not checked")
+        if step == 1:
+            self._display_step_one_account(checking=True)
+        else:
+            self.query_one("#account", Static).update("Account  •  Not checked")
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True
         self._started_at = time.monotonic()
@@ -1965,6 +1989,11 @@ class GoogleAITUI(App[None]):
         )
         if selected_device:
             self._checked_device = selected_device.group(1)
+            if self._detected_account_device and self._detected_account_device != self._checked_device:
+                self._detected_account_device = None
+                self._detected_account_hint = None
+                if self.busy and self.current_step == 1 and not self._verified_account:
+                    self._display_step_one_account(checking=True)
             card = self.query_one("#device", Static)
             card.update("Device  •  Android connected (ADB)")
             card.tooltip = "Android connected (ADB)"
@@ -1986,6 +2015,9 @@ class GoogleAITUI(App[None]):
         )
         if account:
             self._verified_account = account.group(1).lower()
+            if self._checked_device:
+                self._detected_account_device = self._checked_device
+                self._detected_account_hint = mask_email(self._verified_account)
             self.query_one("#account", Static).update(
                 "Account  •  " + escape(mask_email(self._verified_account))
             )
@@ -2115,6 +2147,8 @@ class GoogleAITUI(App[None]):
         self._set_message(instruction)
         if step == 1:
             self.query_one("#step_result", Static).update(report_summary(report))
+            if not self.linux_mode and not self._verified_account:
+                self._display_step_one_account(checking=False)
             if isinstance(report, dict):
                 self._render_offer_catalog()
             if self.macos_mode and isinstance(report, dict):

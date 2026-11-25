@@ -1038,9 +1038,38 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(app._last_output)
                     self.assertFalse(app._run_output)
                     self.assertEqual(len(app.query_one("#debug_log", RichLog).lines), 0)
-                    self.assertIn("Not checked", str(app.query_one("#account", Static).render()))
+                    self.assertIn("Checking…", str(app.query_one("#account", Static).render()))
+                    self.assertNotIn("al***", str(app.query_one("#account", Static).render()))
                     self.assertIn("Auto-detect", str(app.query_one("#device", Static).render()))
                     self.assertFalse(app.query_one("#manual", Button).display)
+
+    async def test_step_one_keeps_masked_account_hint_and_drops_it_on_device_change(self):
+        from device_diagnostics import ConnectionStatus
+        from textual.widgets import Static
+        from tui import GoogleAITUI
+        from tui_core import mask_email
+
+        for device_changed in (False, True):
+            with self.subTest(device_changed=device_changed), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=(110, 35)) as pilot:
+                    serial = "emulator-5554"
+                    account = "fixture@example.com"
+                    app._connection_state = ConnectionStatus("connected", (serial,))
+                    app._display_account_candidates([account], serial)
+                    with patch.object(app, "run_stage") as run:
+                        self.assertTrue(await pilot.click("#quickstart"))
+                    run.assert_called_once_with(1)
+                    card = app.query_one("#account", Static)
+                    self.assertIn(mask_email(account), str(card.render()))
+                    self.assertIn("Checking", str(card.render()))
+                    self.assertNotIn(account, str(card.render()))
+                    self.assertIsNone(app._verified_account)
+                    app._received("Device " + ("emulator-5556" if device_changed else serial))
+                    app._finished(1, Outcome("listed", "Offers listed", "Review offers."), {"offers": []})
+                    self.assertEqual(mask_email(account) in str(card.render()), not device_changed)
+                    self.assertIn("Play unverified", str(card.render()))
+                    self.assertFalse(app._offer_check_ready)
 
     async def test_debug_reopen_includes_hidden_lines_without_duplicates(self):
         from textual.widgets import RichLog
