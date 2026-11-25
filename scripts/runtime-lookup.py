@@ -11,6 +11,7 @@ import contextlib
 import io
 import json
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,22 @@ if str(ROOT) not in sys.path:
 
 class RuntimeUICaptureError(RuntimeError):
     """A recognized UI capture failure, mapped to the shared exit code 23."""
+
+
+def open_android_accounts(serial):
+    from device_diagnostics import locate_adb
+    from device_selector import adb_command, online_serials
+
+    adb = locate_adb()
+    if not adb:
+        return "missing_adb"
+    if serial not in online_serials(adb):
+        return "device_offline"
+    result = adb_command(adb, "-s", serial, "shell", "am", "start", "-W",
+                         "-a", "android.settings.SYNC_SETTINGS", "-p", "com.android.settings")
+    if result is None or result.returncode or not re.search(r"^Status: ok\s*$", result.stdout, re.MULTILINE):
+        return "settings_unavailable"
+    return "opened"
 
 
 def resolve_value(command, serial=None, vmindex=None):
@@ -34,6 +51,8 @@ def resolve_value(command, serial=None, vmindex=None):
         if command == "connect-device":
             import setup_env
             return setup_env.connect_emulator(setup_env.find_adb()) or ""
+        if command == "android-account-settings":
+            return open_android_accounts(serial)
         if command == "start-mumu":
             import os
             from mumu_remote import start_android
@@ -67,12 +86,17 @@ def resolve_value(command, serial=None, vmindex=None):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="ASCII-safe runtime metadata lookup")
-    parser.add_argument("command", choices=("adb", "device", "connect-device", "start-mumu", "play-account", "play-accounts", "play-accounts-existing"))
-    parser.add_argument("--serial", help="ADB device serial (required for play-account)")
+    parser.add_argument("command", choices=("adb", "device", "connect-device", "start-mumu",
+                                           "play-account", "play-accounts", "play-accounts-existing",
+                                           "android-account-settings"))
+    parser.add_argument("--serial", help="ADB device serial for account commands")
     parser.add_argument("--vmindex", type=int, help="Existing MuMu instance number")
     args = parser.parse_args(argv)
     if args.command in ("play-account", "play-accounts", "play-accounts-existing") and not args.serial:
         parser.error("--serial is required for Play account lookup")
+    if args.command == "android-account-settings" and not re.fullmatch(
+            r"[A-Za-z0-9._:/-]{1,90}", args.serial or ""):
+        parser.error("A valid --serial is required to open Android account settings")
     try:
         value = (resolve_value(args.command, args.serial, args.vmindex)
                  if args.command == "start-mumu" else resolve_value(args.command, args.serial))

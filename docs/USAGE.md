@@ -26,6 +26,13 @@ The sidebar lists the six stages. Android Device / Google Account cards update f
 
 **Choose account** appears next to the Account card from startup. It reads the signed-in Android account candidates when clicked. During a stage it is disabled. Choose the matching profile in Google Play and run **Check Device & Offers** to verify the selection.
 
+### Remove a Google account from MuMu on Windows
+
+1. Finish any running stage and close the dashboard. Leave the intended MuMu instance running.
+2. Find its exact serial with `adb devices`. Run `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` in PowerShell. If ADB is outside the usual locations, set `ADB_PATH` to your existing `adb.exe`.
+3. In Android settings, select the intended Google account and confirm **Remove account**. Android removes that account and its synced data from the instance. Manage subscriptions separately in Google Play.
+4. Reopen the dashboard and run Step 1 for the Google Play account you intend to use.
+
 **Recent history** shows the last six saved events for the selected or freshly verified account, newest first. It records stage starts, results and the user's **Verified in Google Play → Next** action. Private history stays under `logs/stage-history/`, with hashed account filenames. Opening the toolkit requires a fresh device and offer check before paid stages.
 Startup displays the most recently saved history even before account selection. The sidebar uses **↺** for previously attempted steps. Select an account to view its own history. A fresh current-session check is still required. Attempts made before account detection are saved as account unverified.
 

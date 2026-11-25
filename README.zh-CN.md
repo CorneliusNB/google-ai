@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
+<!-- Source README.md git-blob: 1da9187367f5816fbf716def6b8a885ce80e38b1 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -185,6 +185,8 @@ TUI 中**每个结账步骤均需单独批准**。当工具提示已尝试提交
 Device 卡片显示读取到的 Android 版本、SDK、ABI 和 ADB 连接信息，悬停可查看完整内容。Account 旁的 **Choose account** 会列出 Android 已登录的账号。请在 Play Store 和 Google One 中选择目标账号，然后重新运行 Step 1。若 Play Store 明确提供当前个人资料的邮箱，工具会据此识别正在使用的账号。
 
 操作面板按内容调整高度，**Live Status** 使用剩余空间，最新活动显示在顶部。**Show technical details** 的日志会自动跟随新行。主按钮和 **Run this step** 均显示正在运行的步骤及已用秒数。Windows 的优惠查询流程完成环境检查后，Step 0 会出现勾选标记。缺少新的已验证检查结果时，会显示绿色 **Check Device & Offers — Step 1** 按钮。
+
+要在 Windows 上从 MuMu 移除账号，请等当前步骤结束，再关闭仪表板。用 `adb devices` 查到设备序列号后，运行 `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>`。在 Android 设置中选择账号并确认**移除账号**。此操作会从该模拟器实例移除账号及其同步数据。订阅请在 Google Play 中单独管理。之后重新打开仪表板，为要使用的账号运行 Step 1。
 
 **Recent history** 将开始、结果和 **Verified in Google Play → Next** 操作保存到本地 `logs/stage-history/`。启动时恢复最近保存的记录，选择账号后显示该账号的历史。**↺** 表示曾尝试运行的步骤。历史本身不能证明订阅成功，也不会解锁付款。重新打开工具或更换账号后，需要重新运行 Step 1。加入历史记录功能之前的运行无法恢复。
 

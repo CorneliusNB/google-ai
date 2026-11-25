@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 日本語
 
-<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
+<!-- Source README.md git-blob: 1da9187367f5816fbf716def6b8a885ce80e38b1 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -185,6 +185,8 @@ TUI では**購入ステップごとに明示的な承認**が必要です。チ
 Device 欄には、取得できた Android のバージョン、SDK、ABI、ADB 接続情報が表示されます。マウスを重ねると詳細を確認できます。Account 欄の横にある **Choose account** は Android にログイン済みのアカウントを一覧表示します。Play Store と Google One の両方で目的のアカウントを選び、Step 1 を再実行してください。Play Store が使用中のプロフィールのメールアドレスを明示している場合、その情報で識別します。
 
 操作欄は内容に合わせた高さになり、残りを **Live Status** が使用します。最新の処理状況が先頭に表示されます。**Show technical details** のログは新しい行まで自動スクロールします。メインボタンと **Run this step** には実行中のステップと経過秒数が表示されます。Windows では、特典確認中の環境チェックが完了すると Step 0 にチェックが付きます。新しい確認結果が不足している場合は、緑色の **Check Device & Offers — Step 1** が表示されます。
+
+Windows 版 MuMu からアカウントを削除するには、実行中のステップが完了してからダッシュボードを閉じます。`adb devices` で確認した端末のシリアル番号を指定して `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` を実行します。Android の設定画面で対象のアカウントを選び、**アカウントを削除**を確定します。そのインスタンスからアカウントと同期済みのデータが削除されます。定期購入は Google Play で別途管理します。ダッシュボードを開き直し、使用するアカウントで Step 1 を実行してください。
 
 **Recent history** は開始、結果、**Verified in Google Play → Next** の操作を `logs/stage-history/` に保存します。起動時には最新の保存履歴が表示され、アカウントを選ぶとそのアカウントの履歴になります。**↺** は以前に実行を試みたステップです。履歴だけでは契約成立を確認できず、支払い操作も有効になりません。再起動後やアカウント変更後には Step 1 を再実行してください。履歴保存機能の追加前の実行は復元できません。
 

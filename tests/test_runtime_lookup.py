@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 from pathlib import Path
+import subprocess
 import sys
 import unittest
 from unittest.mock import patch
@@ -15,6 +16,45 @@ spec.loader.exec_module(module)
 
 
 class RuntimeLookupTests(unittest.TestCase):
+    def test_account_settings_opens_only_android_settings_on_explicit_device(self):
+        with patch("device_diagnostics.locate_adb", return_value="adb"), \
+             patch("device_selector.online_serials", return_value=["emulator-5554", "emulator-5556"]), \
+             patch("device_selector.adb_command", return_value=subprocess.CompletedProcess(
+                 [], 0, "Starting: Intent\nStatus: ok\n", "")) as adb:
+            self.assertEqual(module.resolve_value("android-account-settings", "emulator-5556"), "opened")
+        adb.assert_called_once_with(
+            "adb", "-s", "emulator-5556", "shell", "am", "start", "-W",
+            "-a", "android.settings.SYNC_SETTINGS", "-p", "com.android.settings",
+        )
+
+    def test_account_settings_does_not_switch_to_another_device(self):
+        with patch("device_diagnostics.locate_adb", return_value="adb"), \
+             patch("device_selector.online_serials", return_value=["emulator-5554"]), \
+             patch("device_selector.adb_command") as adb:
+            self.assertEqual(module.resolve_value("android-account-settings", "emulator-5556"), "device_offline")
+        adb.assert_not_called()
+
+    def test_account_settings_requires_existing_adb(self):
+        with patch("device_diagnostics.locate_adb", return_value=None), \
+             patch("device_selector.online_serials") as devices:
+            self.assertEqual(module.resolve_value("android-account-settings", "emulator-5554"), "missing_adb")
+        devices.assert_not_called()
+
+    def test_account_settings_reports_failed_launch_without_retry(self):
+        with patch("device_diagnostics.locate_adb", return_value="adb"), \
+             patch("device_selector.online_serials", return_value=["emulator-5554"]), \
+             patch("device_selector.adb_command", return_value=subprocess.CompletedProcess(
+                 [], 0, "Error: unable to resolve Intent\n", "")) as adb:
+            self.assertEqual(module.resolve_value("android-account-settings", "emulator-5554"), "settings_unavailable")
+        adb.assert_called_once()
+
+    def test_account_settings_requires_exact_serial(self):
+        for args in ([], ["--serial", "not a serial"]):
+            with self.subTest(args=args), patch.object(module, "resolve_value") as lookup:
+                with self.assertRaises(SystemExit):
+                    module.main(["android-account-settings", *args])
+                lookup.assert_not_called()
+
     def test_connection_lookup_reuses_existing_emulator_connector(self):
         import setup_env
         with patch.object(setup_env, "find_adb", return_value="adb"), \

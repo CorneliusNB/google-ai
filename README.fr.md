@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Français
 
-<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
+<!-- Source README.md git-blob: 1da9187367f5816fbf716def6b8a885ce80e38b1 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
@@ -186,6 +186,8 @@ Dans le TUI, **chaque étape de paiement exige une approbation distincte**. Mêm
 La carte Device affiche la version d’Android, le SDK, l’ABI et la connexion ADB lorsqu’ils sont disponibles; survolez-la pour voir tous les détails. **Choose account**, à côté de Account, liste les comptes connectés à Android. Sélectionnez le profil voulu dans Play Store et Google One, puis relancez Step 1. L’outil utilise l’adresse du profil actif lorsque Play Store l’identifie explicitement.
 
 Le panneau d’actions s’adapte à son contenu et **Live Status** occupe la hauteur restante, avec l’activité la plus récente en tête. **Show technical details** ouvre un journal qui suit les nouvelles lignes. Le bouton principal et **Run this step** affichent l’étape en cours et les secondes écoulées. Sous Windows, Step 0 reçoit une coche lorsque la vérification de l’environnement intégrée à la recherche d’offres se termine. Sans vérification récente validée, le bouton vert **Check Device & Offers — Step 1** apparaît.
+
+Pour retirer un compte de MuMu sous Windows, attendez la fin de l’étape en cours, puis fermez le tableau de bord. Relevez le numéro de série avec `adb devices`, puis exécutez `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>`. Dans les paramètres Android, sélectionnez le compte et confirmez **Supprimer le compte**. Le compte et ses données synchronisées seront retirés de cette instance. Les abonnements se gèrent séparément dans Google Play. Rouvrez le tableau de bord, puis lancez Step 1 pour le compte que vous souhaitez utiliser.
 
 **Recent history** enregistre les démarrages, les résultats et l’action **Verified in Google Play → Next** dans `logs/stage-history/`. Au démarrage, le dernier historique est restauré; le choix d’un compte affiche son historique propre. **↺** indique une étape déjà tentée. L’historique ne confirme pas un abonnement et ne débloque pas les paiements. Après un redémarrage de l’outil ou un changement de compte, relancez Step 1. Les exécutions antérieures à cette fonction ne peuvent pas être restaurées.
 

@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
+<!-- Source README.md git-blob: 1da9187367f5816fbf716def6b8a885ce80e38b1 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -186,6 +186,8 @@ El TUI exige **aprobación explícita por cada paso de pago**. Aunque aparezca u
 La tarjeta Device muestra la versión de Android, SDK, ABI y conexión ADB cuando están disponibles; sitúa el puntero encima para ver los datos completos. **Choose account**, junto a Account, enumera las cuentas iniciadas en Android. Selecciona el perfil correcto en Play Store y Google One y repite Step 1. El programa utiliza el correo del perfil activo cuando Play Store lo identifica explícitamente.
 
 El panel de acciones se ajusta a sus controles y **Live Status** ocupa la altura restante, con la actividad más reciente arriba. **Show technical details** abre un registro que sigue las líneas nuevas. El botón principal y **Run this step** muestran el paso en ejecución y los segundos transcurridos. En Windows, Step 0 recibe una marca al terminar la comprobación del entorno dentro de la consulta de ofertas. Si falta una comprobación reciente verificada, aparece **Check Device & Offers — Step 1** en verde.
+
+Para quitar una cuenta de MuMu en Windows, espera a que termine el paso en curso y cierra el panel. Usa el número de serie que muestra `adb devices` para ejecutar `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>`. En los ajustes de Android, selecciona la cuenta y confirma **Quitar cuenta**. Se quitarán la cuenta y sus datos sincronizados de esa instancia. Las suscripciones se gestionan por separado en Google Play. Vuelve a abrir el panel y ejecuta Step 1 con la cuenta que quieras usar.
 
 **Recent history** guarda inicios, resultados y la acción **Verified in Google Play → Next** en `logs/stage-history/`. Al abrir la aplicación se recupera el historial más reciente; al elegir una cuenta se muestra el suyo. **↺** indica un paso intentado anteriormente. El historial no confirma una suscripción ni desbloquea pagos. Tras reiniciar la aplicación o cambiar de cuenta hay que repetir Step 1. Las ejecuciones anteriores a esta función no se pueden recuperar.
 
