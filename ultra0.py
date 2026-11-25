@@ -23,6 +23,7 @@ import shlex
 from pathlib import Path
 import tempfile
 from uuid import uuid4
+from xml.etree import ElementTree
 
 # Standalone launches may use a Windows legacy console code page that cannot
 # encode status symbols. Preserve the console's encoding, but escape unsupported
@@ -468,40 +469,60 @@ class UICaptureError(RuntimeError):
     """Android UI capture failed; do not infer account or checkout state."""
 
 
-def ui_xml() -> str:
-    # A failed dump can leave old data. Use a unique path for every attempt,
-    # and read it only after the dump exits successfully.
-    recovering = False
-    for attempt in range(2):
-        path = f"/sdcard/eplus-ui-{uuid4().hex}.xml"
-        command = (
-            f"trap 'rm -f {path}' EXIT; "
-            f"uiautomator dump {path} >/dev/null && cat {path}"
-        )
-        try:
-            xml = sh("shell", command, timeout=20, check=True)
-        except (RuntimeError, subprocess.TimeoutExpired) as exc:
-            diagnostic = " ".join(str(exc).split())
-            transient = (isinstance(exc, subprocess.TimeoutExpired) or
-                         bool(re.search(r"segmentation fault|sigsegv", diagnostic, re.I)))
-            if transient or recovering:
-                if attempt == 0:
-                    recovering = True
-                    time.sleep(1)
-                    continue
-                raise UICaptureError("Android UI capture failed") from None
-            # Preserve existing handling for other dump failures.
-            # Keep machine-readable stdout clean; never log UI XML.
-            if "<" in diagnostic:
-                diagnostic = "XML diagnostic omitted"
-            print("Android UI capture failed: " + (diagnostic or "no stderr diagnostic"),
+def _capture_ui_once() -> str:
+    """Read only a fresh, complete hierarchy from a successful or SIGSEGV dump."""
+    path = f"/sdcard/eplus-ui-{uuid4().hex}.xml"
+    base = [ADB] + (["-s", SERIAL] if SERIAL else [])
+    def run(*args, timeout):
+        return subprocess.run(base + ["shell", *args], capture_output=True, timeout=timeout)
+
+    try:
+        dumped = run("uiautomator", "dump", path, timeout=20)
+        code = dumped.returncode
+        # Android shell exit 139 is SIGSEGV. An arbitrary ADB error or a
+        # crashed host ADB process is not evidence of a completed dump.
+        if code not in (0, 139):
+            if re.search(rb"segmentation fault|sigsegv", dumped.stderr, re.I):
+                raise UICaptureError("Android UI capture failed")
+            print(f"Android UI capture failed: dump exit {code}; diagnostic omitted",
                   file=sys.stderr, flush=True)
             return ""
-        if xml.endswith("</hierarchy>"):
-            return xml
-        if recovering:
-            raise UICaptureError("Android UI capture failed") from None
+        read = run("cat", path, timeout=5)
+        if read.returncode == 0:
+            try:
+                xml = read.stdout.decode("utf-8", "strict").strip()
+                root = ElementTree.fromstring(xml)
+                if root.tag == "hierarchy" and xml.endswith("</hierarchy>"):
+                    return xml
+            except (UnicodeError, ElementTree.ParseError):
+                pass
+        if code == 139:
+            # The contributor observed complete XML before a crash. If the
+            # file is missing, unreadable or malformed, preserve fail-closed recovery.
+            raise UICaptureError("Android UI capture failed")
+        print(f"Android UI capture failed: invalid hierarchy (dump exit {code}, read exit {read.returncode})",
+              file=sys.stderr, flush=True)
         return ""
+    finally:
+        try:
+            removed = run("rm", "-f", path, timeout=3)
+            if removed.returncode:
+                print("Android UI capture cleanup failed", file=sys.stderr, flush=True)
+        except (OSError, subprocess.SubprocessError):
+            # Never replace the original result or log raw device output.
+            print("Android UI capture cleanup failed", file=sys.stderr, flush=True)
+
+
+def ui_xml() -> str:
+    for attempt in range(2):
+        try:
+            xml = _capture_ui_once()
+        except (UICaptureError, OSError, subprocess.TimeoutExpired):
+            xml = ""
+        if xml:
+            return xml
+        if attempt == 0:
+            time.sleep(1)
     raise UICaptureError("Android UI capture failed")
 
 
@@ -708,6 +729,18 @@ def add_card(card: dict) -> bool:
     return True
 
 
+ACCOUNT_SETTINGS_LABELS = (
+    "Account and settings",
+    "\u8d26\u53f7\u548c\u8bbe\u7f6e",
+    "\u0410\u043a\u043a\u0430\u0443\u043d\u0442 \u0438 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438",
+    "T\u00e0i kho\u1ea3n v\u00e0 ch\u1ebf \u0111\u1ed9 c\u00e0i \u0111\u1eb7t",
+)
+
+
+def is_account_settings(description: str) -> bool:
+    return any(label.casefold() in description.casefold() for label in ACCOUNT_SETTINGS_LABELS)
+
+
 def current_play_account() -> str:
     """Read the visible account from Play Store; unknown is not an account mismatch."""
     xml = ui_xml()
@@ -721,17 +754,21 @@ def current_play_account() -> str:
         return ""
 
     opened_profile = False
-    for n in nodes(xml):
-        # Play Store exposes the active profile on its account button in
-        # some versions. Other signed-in accounts in the expanded menu
-        # must not override that explicit identity.
-        if re.match(r"^(?:Google Account|T\u00e0i kho\u1ea3n Google|Google \u5e10\u53f7|Google \u8d26\u53f7)\s*[:\uff1a]", n["desc"], re.I):
-            active = {value.lower() for value in re.findall(
-                r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", n["desc"])}
-            if len(active) == 1:
-                return next(iter(active))
-        if ("\u8d26\u53f7\u548c\u8bbe\u7f6e" in n["desc"] or "Account and settings" in n["desc"]
-                or "T\u00e0i kho\u1ea3n v\u00e0 ch\u1ebf \u0111\u1ed9 c\u00e0i \u0111\u1eb7t" in n["desc"]):
+    profile_nodes = list(nodes(xml))
+    active = set()
+    for n in profile_nodes:
+        # Preserve the localized account button labels and accept the new
+        # explicit English prefix, never an arbitrary email elsewhere.
+        if re.match(r"^(?:(?:Google Account|T\u00e0i kho\u1ea3n Google|Google \u5e10\u53f7|Google \u8d26\u53f7)\s*[:\uff1a]|Signed in as\s+)", n["desc"], re.I):
+            active.update(value.lower() for value in re.findall(
+                r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", n["desc"]))
+    if len(active) == 1:
+        return next(iter(active))
+    if len(active) > 1:
+        warn("Conflicting active Play Store profiles. Select the intended profile manually and repeat Step 1.")
+        return ""
+    for n in profile_nodes:
+        if is_account_settings(n["desc"]):
             tap(n["x"], n["y"])
             time.sleep(3)
             opened_profile = True
@@ -773,7 +810,7 @@ def switch_play(email) -> bool:
     if current_play_account() == want:
         ok("Google Play account verified"); return True
     for n in nodes(ui_xml()):
-        if "\u8d26\u53f7\u548c\u8bbe\u7f6e" in n["desc"] or "Account and settings" in n["desc"]:
+        if is_account_settings(n["desc"]):
             tap(n["x"], n["y"]); time.sleep(3); break
     for n in nodes(ui_xml()):
         if "\u5c55\u5f00\u8d26\u53f7\u5217\u8868" in n["desc"]:

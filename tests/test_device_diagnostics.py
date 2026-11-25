@@ -36,6 +36,34 @@ class DeviceDiagnosticsTests(unittest.TestCase):
             self.assertEqual(mod.current_play_account(), "selected@example.com")
         tap.assert_not_called()
 
+    def test_new_and_localized_active_profile_labels(self):
+        for label in ("Signed in as ", "Google Account: ", "T\u00e0i kho\u1ea3n Google: ",
+                      "Google \u5e10\u53f7\uff1a", "Google \u8d26\u53f7: "):
+            with self.subTest(label=label), \
+                 patch.object(mod, "ui_xml", return_value='<node package="com.android.vending"/>'), \
+                 patch.object(mod, "nodes", return_value=[
+                     {"desc": label + "selected@example.com", "text": ""},
+                     {"desc": "", "text": "other@example.com"}]):
+                self.assertEqual(mod.current_play_account(), "selected@example.com")
+
+    def test_conflicting_active_profile_labels_fail_closed(self):
+        with patch.object(mod, "ui_xml", return_value='<node package="com.android.vending"/>'), \
+             patch.object(mod, "nodes", return_value=[
+                 {"desc": "Signed in as one@example.com", "text": ""},
+                 {"desc": "Google Account: two@example.com", "text": ""}]), \
+             patch.object(mod, "tap") as tap:
+            self.assertEqual(mod.current_play_account(), "")
+        tap.assert_not_called()
+
+    def test_russian_account_settings_label_is_recognized(self):
+        with patch.object(mod, "ui_xml", return_value='<node package="com.android.vending"/>'), \
+             patch.object(mod, "nodes", side_effect=[
+                 [{"desc": "\u0410\u043a\u043a\u0430\u0443\u043d\u0442 \u0438 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438", "text": "", "x": 1, "y": 2}],
+                 [{"desc": "selected@example.com", "text": ""}]]), \
+             patch.object(mod, "tap") as tap, patch.object(mod, "sh"), patch.object(mod.time, "sleep"):
+            self.assertEqual(mod.current_play_account(), "selected@example.com")
+        tap.assert_called_once_with(1, 2)
+
     def test_offer_check_reports_play_store_startup_failure_without_querying(self):
         with ExitStack() as mocks:
             for name in ("find_adb", "pick_device", "ensure_root", "ensure_network",

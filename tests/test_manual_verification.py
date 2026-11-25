@@ -18,58 +18,97 @@ class BlockingInput:
 
 
 class ManualVerificationTests(unittest.TestCase):
+    FRESH = b'<hierarchy><node text="fresh"/></hierarchy>'
+
+    def _capture(self, results):
+        with patch.object(ultra0.subprocess, "run", side_effect=results) as run, \
+             patch.object(ultra0.time, "sleep"), \
+             patch.object(ultra0.sys, "stderr", io.StringIO()) as stderr:
+            result = ultra0.ui_xml()
+        return result, run, stderr.getvalue()
+
+    @staticmethod
+    def _result(code=0, stdout=b"", stderr=b""):
+        return CompletedProcess([], code, stdout, stderr)
+
+    def test_success_and_exit_139_with_complete_fresh_xml(self):
+        for code in (0, 139):
+            with self.subTest(code=code):
+                result, run, log = self._capture([
+                    self._result(code), self._result(stdout=self.FRESH), self._result()])
+                self.assertEqual(result, self.FRESH.decode())
+                self.assertEqual(run.call_count, 3)
+                dump, read, cleanup = [call.args[0] for call in run.call_args_list]
+                path = dump[-1]
+                self.assertRegex(path, r"^/sdcard/eplus-ui-[0-9a-f]{32}\.xml$")
+                self.assertEqual(dump[-4:], ["shell", "uiautomator", "dump", path])
+                self.assertEqual(read[-3:], ["shell", "cat", path])
+                self.assertEqual(cleanup[-4:], ["shell", "rm", "-f", path])
+                self.assertEqual(log, "")
+
     def test_ui_dump_failure_cannot_return_an_old_hierarchy(self):
         stale = b'<hierarchy><node text="stale"/></hierarchy>'
-        fresh = b'<hierarchy><node text="fresh"/></hierarchy>'
-        results = [
-            CompletedProcess([], 1, stdout=stale, stderr=b"dump failed"),
-            CompletedProcess([], 0, stdout=fresh, stderr=b""),
-        ]
-        stderr = io.StringIO()
-        stdout = io.StringIO()
-        with patch.object(ultra0.subprocess, "run", side_effect=results) as run, \
-             patch.object(ultra0.sys, "stderr", stderr), \
-             patch.object(ultra0.sys, "stdout", stdout):
-            self.assertEqual(ultra0.ui_xml(), "")
-            self.assertEqual(ultra0.ui_xml(), fresh.decode())
-        self.assertEqual(stderr.getvalue(), "Android UI capture failed: dump failed\n")
-        self.assertEqual(stdout.getvalue(), "")
+        result, run, log = self._capture([
+            self._result(1, stdout=stale, stderr=b"dump failed"),
+            self._result(), self._result(0), self._result(stdout=self.FRESH), self._result()])
+        self.assertEqual(result, self.FRESH.decode())
+        self.assertEqual(run.call_count, 5)
+        self.assertNotEqual(run.call_args_list[0].args[0][-1], run.call_args_list[2].args[0][-1])
+        self.assertIn("dump exit 1", log)
+        self.assertNotIn("stale", log)
 
-        first, second = (call.args[0][-1] for call in run.call_args_list)
-        for command in (first, second):
-            self.assertRegex(
-                command,
-                r"^trap 'rm -f (/sdcard/eplus-ui-[0-9a-f]{32}\.xml)' EXIT; "
-                r"uiautomator dump \1 >/dev/null && cat \1$",
-            )
-        self.assertNotEqual(first, second)
-
-    def test_ui_capture_recovers_once_with_fresh_path(self):
-        fresh = '<hierarchy><node text="fresh"/></hierarchy>'
-        with patch.object(ultra0, "sh", side_effect=[RuntimeError("Segmentation fault"), fresh]) as sh, \
-             patch.object(ultra0.time, "sleep") as sleep:
-            self.assertEqual(ultra0.ui_xml(), fresh)
-        self.assertEqual(sh.call_count, 2)
-        self.assertNotEqual(sh.call_args_list[0].args, sh.call_args_list[1].args)
-        self.assertTrue(all(call.kwargs["check"] and call.kwargs["timeout"] == 20
-                            for call in sh.call_args_list))
-        sleep.assert_called_once_with(1)
-
-    def test_repeated_crash_timeout_or_invalid_recovery_stops(self):
-        for second in (RuntimeError("SIGSEGV"), TimeoutExpired("adb", 20), "<hierarchy>"):
-            with self.subTest(second=second), \
-                 patch.object(ultra0, "sh", side_effect=[RuntimeError("Segmentation fault"), second]) as sh, \
+    def test_invalid_crash_recovery_is_bounded_and_does_not_guess(self):
+        for bad in (self._result(1, stdout=self.FRESH),
+                    self._result(stdout=b"<hierarchy>"),
+                    self._result(stdout=b"<wrong></wrong>"),
+                    self._result(stdout=b"<hierarchy><x></hierarchy>")):
+            with self.subTest(bad=bad), \
+                 patch.object(ultra0.subprocess, "run", side_effect=[
+                    self._result(139), bad, self._result(),
+                    self._result(139), bad, self._result()]) as run, \
                  patch.object(ultra0.time, "sleep"):
                 with self.assertRaisesRegex(ultra0.UICaptureError, "^Android UI capture failed$"):
                     ultra0.ui_xml()
-                self.assertEqual(sh.call_count, 2)
+                self.assertEqual(run.call_count, 6)
 
-    def test_ui_capture_timeout_retries_once_then_stops(self):
-        with patch.object(ultra0, "sh", side_effect=TimeoutExpired("adb", 20)) as sh, \
+    def test_timeout_retries_once_then_stops(self):
+        with patch.object(ultra0.subprocess, "run", side_effect=[
+                TimeoutExpired("adb", 20), self._result(),
+                TimeoutExpired("adb", 20), self._result()]) as run, \
              patch.object(ultra0.time, "sleep"):
             with self.assertRaises(ultra0.UICaptureError):
                 ultra0.ui_xml()
-            self.assertEqual(sh.call_count, 2)
+            self.assertEqual(run.call_count, 4)
+
+    def test_cleanup_failure_preserves_valid_capture(self):
+        for cleanup in (TimeoutExpired("adb", 3), OSError("private@example.com"),
+                        self._result(1, stderr=b"private@example.com")):
+            with self.subTest(cleanup=cleanup):
+                result, run, log = self._capture([
+                    self._result(139), self._result(stdout=self.FRESH), cleanup])
+                self.assertEqual(result, self.FRESH.decode())
+                self.assertEqual(run.call_count, 3)
+                self.assertIn("cleanup failed", log)
+                self.assertNotIn("private@example.com", log)
+
+    def test_cleanup_failure_cannot_mask_capture_failure(self):
+        with patch.object(ultra0.subprocess, "run", side_effect=[
+                self._result(139), self._result(1), OSError("private"),
+                self._result(139), self._result(1), TimeoutExpired("adb", 3)]), \
+             patch.object(ultra0.time, "sleep"), \
+             patch.object(ultra0.sys, "stderr", io.StringIO()) as stderr:
+            with self.assertRaisesRegex(ultra0.UICaptureError, "^Android UI capture failed$"):
+                ultra0.ui_xml()
+        self.assertNotIn("private", stderr.getvalue())
+
+    def test_adb_diagnostics_do_not_leak_xml_or_emails(self):
+        result, run, log = self._capture([
+            self._result(1, stderr=b'<hierarchy>private@example.com</hierarchy>'),
+            self._result(), self._result(), self._result(stdout=self.FRESH), self._result()])
+        self.assertEqual(result, self.FRESH.decode())
+        self.assertIn("dump exit 1", log)
+        self.assertNotIn("private@example.com", log)
+        self.assertNotIn("<hierarchy>", log)
 
     def test_crash_during_account_inspection_never_guesses_identity(self):
         with patch.object(ultra0, "ui_xml", side_effect=ultra0.UICaptureError("Android UI capture failed")), \
@@ -77,24 +116,6 @@ class ManualVerificationTests(unittest.TestCase):
             with self.assertRaises(ultra0.UICaptureError):
                 ultra0.current_play_account()
             sh.assert_not_called()
-
-    def test_ui_dump_failure_without_stderr_is_reported(self):
-        with patch.object(ultra0, "sh", side_effect=RuntimeError("")), \
-             patch.object(ultra0.sys, "stderr", io.StringIO()) as stderr:
-            self.assertEqual(ultra0.ui_xml(), "")
-        self.assertIn("no stderr diagnostic", stderr.getvalue())
-
-    def test_ui_dump_failure_does_not_log_xml(self):
-        with patch.object(ultra0, "sh", side_effect=RuntimeError(
-                '<hierarchy><node text="private"/></hierarchy>')), \
-             patch.object(ultra0.sys, "stderr", io.StringIO()) as stderr:
-            self.assertEqual(ultra0.ui_xml(), "")
-        self.assertIn("XML diagnostic omitted", stderr.getvalue())
-        self.assertNotIn("private", stderr.getvalue())
-
-    def test_incomplete_ui_dump_is_ignored(self):
-        with patch.object(ultra0, "sh", return_value="<hierarchy><node/>"):
-            self.assertEqual(ultra0.ui_xml(), "")
 
     def test_enter_acknowledgement_allows_continue(self):
         with patch.object(ultra0.sys, "stdin", io.StringIO("\n")):
