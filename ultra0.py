@@ -435,25 +435,44 @@ def ensure_network():
 
 # ---------- UI ----------
 def ui_xml() -> str:
-    # A failed dump can leave an old hierarchy at a fixed path.
     path = f"/sdcard/eplus-ui-{uuid4().hex}.xml"
-    command = (
-        f"trap 'rm -f {path}' EXIT; "
-        f"uiautomator dump {path} >/dev/null && cat {path}"
-    )
+    base = [ADB] + (["-s", SERIAL] if SERIAL else [])
+
     try:
-        xml = sh("shell", command, check=True)
-    except RuntimeError as exc:
-        # Keep the machine-readable stdout protocol clean; never log UI XML.
-        diagnostic = " ".join(str(exc).split())
-        if "<" in diagnostic:
-            diagnostic = "XML diagnostic omitted"
-        print("Android UI capture failed: " + (diagnostic or "no stderr diagnostic"),
+        subprocess.run(
+            base + ["shell", "uiautomator", "dump", path],
+            capture_output=True,
+            timeout=30
+        )
+
+        p = subprocess.run(
+            base + ["shell", "cat", path],
+            capture_output=True,
+            timeout=30
+        )
+
+        xml = p.stdout.decode("utf-8", "ignore").strip()
+
+        if xml.endswith("</hierarchy>"):
+            return xml
+
+        print(f"UI XML read failed: code={p.returncode}, "
+              f"stderr={p.stderr.decode('utf-8', 'ignore')[:300]}",
               file=sys.stderr, flush=True)
         return ""
-    return xml if xml.endswith("</hierarchy>") else ""
 
+    except Exception as exc:
+        print(f"UI capture failed: {type(exc).__name__}: {exc}",
+              file=sys.stderr, flush=True)
+        return ""
 
+    finally:
+        subprocess.run(
+            base + ["shell", "rm", "-f", path],
+            capture_output=True,
+            timeout=10
+        )
+        
 def nodes(xml: str):
     for m in re.finditer(r"<node[^>]*>", xml):
         s = m.group(0)
@@ -674,12 +693,13 @@ def current_play_account() -> str:
         # Play Store exposes the active profile on its account button in
         # some versions. Other signed-in accounts in the expanded menu
         # must not override that explicit identity.
-        if re.match(r"^(?:Google Account|T\u00e0i kho\u1ea3n Google|Google \u5e10\u53f7|Google \u8d26\u53f7)\s*[:\uff1a]", n["desc"], re.I):
+        if "Signed in as " in n["desc"]:
             active = {value.lower() for value in re.findall(
                 r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", n["desc"])}
             if len(active) == 1:
                 return next(iter(active))
         if ("\u8d26\u53f7\u548c\u8bbe\u7f6e" in n["desc"] or "Account and settings" in n["desc"]
+                or "Аккаунт и настройки" in n["desc"]
                 or "T\u00e0i kho\u1ea3n v\u00e0 ch\u1ebf \u0111\u1ed9 c\u00e0i \u0111\u1eb7t" in n["desc"]):
             tap(n["x"], n["y"])
             time.sleep(3)
