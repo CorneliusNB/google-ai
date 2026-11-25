@@ -428,6 +428,25 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(app._offer_check_ready)
                 self.assertIsNone(app._offer_ready_account)
 
+    async def test_account_picker_close_preserves_completed_lookup_status(self):
+        from textual.widgets import Static
+        from tui import AccountPicker, GoogleAITUI
+
+        cases = ((None, "Account list unavailable"), ([], "No Android accounts detected"),
+                 (["first@example.com"], "Account lookup complete"))
+        for accounts, expected in cases:
+            with self.subTest(expected=expected), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=(110, 35)) as pilot:
+                    app._set_status("Reading Android accounts...")
+                    app._account_candidates_loaded(accounts, "emulator-5554")
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, AccountPicker)
+                    self.assertTrue(await pilot.click("#account_cancel"))
+                    await pilot.pause()
+                    self.assertIn(expected, str(app.query_one("#state", Static).render()))
+                    self.assertFalse(app._accounts_loading)
+
     async def test_manage_accounts_opens_settings_and_requires_fresh_offer_check(self):
         from device_diagnostics import ConnectionStatus
         from textual.widgets import Button

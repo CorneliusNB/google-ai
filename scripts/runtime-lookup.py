@@ -30,7 +30,9 @@ def open_android_accounts(serial, *, single_device=False):
     adb = locate_adb()
     if not adb:
         return "missing_adb"
-    online = online_serials(adb)
+    online = online_serials(adb, distinguish_failure=True)
+    if online is None:
+        return "adb_error"
     if single_device and online:
         if serial and serial not in online:
             return "device_offline"
@@ -40,7 +42,7 @@ def open_android_accounts(serial, *, single_device=False):
     if serial not in online:
         return "device_offline"
     result = adb_command(adb, "-s", serial, "shell", "am", "start", "-W",
-                         "-a", "android.settings.SYNC_SETTINGS", "-p", "com.android.settings")
+                         "-a", "android.settings.SYNC_SETTINGS", "-p", "com.android.settings", timeout=20)
     if result is None or result.returncode or not re.search(r"^Status: ok\s*$", result.stdout, re.MULTILINE):
         return "settings_unavailable"
     return "opened"

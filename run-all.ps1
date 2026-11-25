@@ -234,6 +234,7 @@ if ($ManageAndroidAccounts) {
             }
             "missing_adb" { Stop-Workflow "ADB was not found. Set ADB_PATH to an existing adb.exe and retry." }
             "device_offline" { Stop-Workflow "The selected Android device is offline. Check the local adb devices list." }
+            "adb_error" { Stop-Workflow "ADB device listing failed. Check adb devices or run python setup_env.py and retry." }
             default { Stop-Workflow "Open Android Settings in MuMu and select Accounts to remove the account manually." }
         }
     } finally {

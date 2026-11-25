@@ -781,12 +781,23 @@ class GoogleAITUI(App[None]):
         self.query_one("#choose_account", Button).disabled = self.busy or self._diagnosing or self._sku_pending
         if self.busy or self._diagnosing or self._sku_pending:
             return
+        lookup_failed = accounts is None
         accounts = accounts if accounts is not None else []
         options = account_picker_options(accounts)
         can_remove = sys.platform == "win32"
-        if not options and not can_remove:
+        if lookup_failed:
             self._set_status("Account list unavailable")
+            self._set_message("Could not read Android accounts. Check the connection and retry Choose account.")
+        elif not accounts:
+            self._set_status("No Android accounts detected")
             self._set_message("Open Google Play, select the intended profile, then run Check Device & Offers.")
+        elif not options:
+            self._set_status("No distinguishable account hints")
+            self._set_message("Open Google Play, select the intended profile, then run Check Device & Offers.")
+        else:
+            self._set_status("Account lookup complete")
+            self._set_message("Choose an account or close the picker without changing the selection.")
+        if not options and not can_remove:
             return
         if accounts and not (self._selected_account or self._verified_account):
             self._display_account_candidates(accounts, serial)
@@ -874,6 +885,7 @@ class GoogleAITUI(App[None]):
         guidance = {
             "missing_adb": "Set ADB_PATH to an existing adb executable and reopen the toolkit.",
             "device_offline": "Reconnect the intended Android device and retry.",
+            "adb_error": "Could not query ADB devices. Run Diagnose Android connection and retry.",
             "multiple_devices": "Leave only the intended MuMu device connected over ADB and try again.",
         }.get(result, "Open Settings in the MuMu window and select Accounts to remove an account.")
         self._set_status(title)

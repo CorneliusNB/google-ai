@@ -39,7 +39,7 @@ class RuntimeLookupTests(unittest.TestCase):
             self.assertEqual(module.resolve_value("android-account-settings", "emulator-5556"), "opened")
         adb.assert_called_once_with(
             "adb", "-s", "emulator-5556", "shell", "am", "start", "-W",
-            "-a", "android.settings.SYNC_SETTINGS", "-p", "com.android.settings",
+            "-a", "android.settings.SYNC_SETTINGS", "-p", "com.android.settings", timeout=20,
         )
 
     def test_account_settings_does_not_switch_to_another_device(self):
@@ -48,6 +48,20 @@ class RuntimeLookupTests(unittest.TestCase):
              patch("device_selector.adb_command") as adb:
             self.assertEqual(module.resolve_value("android-account-settings", "emulator-5556"), "device_offline")
         adb.assert_not_called()
+
+    def test_account_settings_distinguishes_failed_adb_listing_from_offline(self):
+        cases = (
+            (None, "adb_error"),
+            (subprocess.CompletedProcess([], 1, "", "ADB error"), "adb_error"),
+            (subprocess.CompletedProcess([], 0, "List of devices attached\n", ""), "device_offline"),
+        )
+        for result, expected in cases:
+            for command in ("android-account-settings", "android-account-settings-connected"):
+                with self.subTest(expected=expected, command=command), \
+                     patch("device_diagnostics.locate_adb", return_value="adb"), \
+                     patch("device_selector.adb_command", return_value=result) as adb:
+                    self.assertEqual(module.resolve_value(command, "emulator-5554"), expected)
+                    adb.assert_called_once_with("adb", "devices")
 
     def test_account_settings_requires_existing_adb(self):
         with patch("device_diagnostics.locate_adb", return_value=None), \
