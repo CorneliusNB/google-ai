@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: c7018f985552a23753771a1e7f338b1d3da10012 -->
+<!-- Source README.md git-blob: afc22139893546e8a4b9449722ededacfedd7f2c -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
