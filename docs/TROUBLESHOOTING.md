@@ -26,6 +26,8 @@
 | **Payment/security error (e.g. OR-REH-04)** | Follow Google Account/Payments security instructions. Do not repeatedly retry. |
 | **Unicode output error** | Update the repository; the maintained Windows launcher configures Python UTF-8 output for piped status symbols. |
 
+On Windows, the disconnected-device popup also offers **Start MuMu**. It launches an existing unique instance, waits for the reported ADB port, and never creates a VM or signs into Google. If multiple instances exist, open the intended one manually, or use `-MumuInstance` in the CLI. Set `MUMU_DIR` for a custom installation. Retry never starts a VM. Startup failures restore the popup controls; use Retry or open the intended instance manually.
+
 The disconnected-device popup includes **Retry connection**. While it checks, the button displays **Retrying…** and elapsed seconds. A successful connection closes the popup. If it fails, the popup offers MuMu restart guidance and another retry.
 
 Verify subscription, payment amount, currency and renewal terms under **[Google Play Subscriptions](https://play.google.com/store/account/subscriptions)**. For developer-facing status codes and advanced platform/Frida problems, see [Detailed setup and troubleshooting](DETAILED-GUIDE.md).
