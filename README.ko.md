@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 한국어
 
-<!-- Source README.md git-blob: adf3f839e0f63ec335586eea841adbc4e07034ed -->
+<!-- Source README.md git-blob: c7018f985552a23753771a1e7f338b1d3da10012 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -189,6 +189,8 @@ Device 카드에는 확인된 Android 버전, SDK, ABI 및 ADB 연결 정보가 
 Windows에서 사용할 MuMu 인스턴스만 ADB로 연결한 뒤 **Choose account**를 열고 **Remove account in Android**를 누르세요. Android 설정에서 계정을 선택하고 **계정 삭제**를 확인하면 해당 인스턴스에서 계정과 동기화된 데이터가 삭제됩니다. 구독은 Google Play에서 별도로 관리합니다. 대시보드로 돌아와 **Done managing**을 누른 뒤 사용할 계정으로 Step 1을 실행하세요. PowerShell을 사용하려면 실행 중인 단계가 끝난 뒤 대시보드를 닫고 `adb devices`에서 확인한 일련번호를 지정해 `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>`를 실행하세요.
 
 **Recent history**는 시작, 결과 및 **Verified in Google Play → Next** 동작을 `logs/stage-history/`에 저장합니다. 시작 시 가장 최근 기록을 복원하며, 계정을 선택하면 해당 계정의 기록이 표시됩니다. **↺**는 이전에 실행을 시도한 단계입니다. 기록만으로 구독 성공을 확인하거나 결제를 활성화할 수는 없습니다. 도구를 다시 열거나 계정을 바꾸면 Step 1을 새로 실행해야 합니다. 기록 저장 기능이 추가되기 전의 실행은 복원할 수 없습니다.
+
+툴킷을 열 때 Android 연결이 없거나 대기 중에 연결이 끊기면 알림이 표시됩니다. 알림을 닫으면 연결 상태가 바뀔 때까지 다시 표시되지 않습니다.
 
 연결 끊김 창의 **Retry connection**은 처리 중 **Retrying…**와 경과 초를 표시합니다. **Got it**으로 창을 닫습니다. Windows에서는 로컬 에뮬레이터 재연결을 시도하며, 단계 시작 시 연결된 ADB 기기가 없을 때도 동일하게 처리합니다. 조회 중 앱이 시작되지 않으면 한 번 다시 시작합니다. 실패하면 MuMu를 닫았다가 다시 열고 Android 부팅이 끝난 뒤 Step 1을 실행하세요. 혜택 조회 전에 Google One을 다시 시작하며, Play Store가 이미 실행 중이면 계속 사용합니다. **Reload toolkit**은 대기 중인 화면을 로컬 코드로 다시 시작하고 새 세션을 엽니다.
 

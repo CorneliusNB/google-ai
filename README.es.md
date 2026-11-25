@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: adf3f839e0f63ec335586eea841adbc4e07034ed -->
+<!-- Source README.md git-blob: c7018f985552a23753771a1e7f338b1d3da10012 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -190,6 +190,8 @@ El panel de acciones se ajusta a sus controles y **Live Status** ocupa la altura
 En Windows, conecta por ADB solo la instancia de MuMu que quieras usar y abre **Choose account** y selecciona **Remove account in Android**. En los ajustes de Android, selecciona la cuenta y confirma **Quitar cuenta**. Se quitarán la cuenta y sus datos sincronizados de esa instancia. Las suscripciones se gestionan por separado en Google Play. Vuelve al panel, selecciona **Done managing** y ejecuta Step 1 con la cuenta que quieras usar. Si prefieres PowerShell, espera a que termine el paso en curso, cierra el panel y ejecuta `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` con el número de serie que muestra `adb devices`.
 
 **Recent history** guarda inicios, resultados y la acción **Verified in Google Play → Next** en `logs/stage-history/`. Al abrir la aplicación se recupera el historial más reciente; al elegir una cuenta se muestra el suyo. **↺** indica un paso intentado anteriormente. El historial no confirma una suscripción ni desbloquea pagos. Tras reiniciar la aplicación o cambiar de cuenta hay que repetir Step 1. Las ejecuciones anteriores a esta función no se pueden recuperar.
+
+El aviso aparece si Android no está conectado al abrir la herramienta o si se pierde la conexión mientras el panel está inactivo. Una vez cerrado, vuelve a aparecer cuando cambia el estado de la conexión.
 
 El aviso de desconexión incluye **Retry connection**, que muestra **Retrying…** y los segundos; **Got it** cierra el aviso. En Windows se intenta reconectar el emulador local, también al iniciar un paso sin dispositivos ADB conectados. Durante las consultas se intenta reiniciar una vez una aplicación que no arranca. Si falla, cierra MuMu, vuelve a abrirlo, espera a que Android termine de arrancar y repite Step 1. Google One se reinicia antes de consultar; Play Store continúa abierto si ya está disponible. **Reload toolkit** reinicia la interfaz inactiva con el código local y crea una sesión nueva.
 

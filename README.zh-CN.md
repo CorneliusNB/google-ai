@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: adf3f839e0f63ec335586eea841adbc4e07034ed -->
+<!-- Source README.md git-blob: c7018f985552a23753771a1e7f338b1d3da10012 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -189,6 +189,8 @@ Device 卡片显示读取到的 Android 版本、SDK、ABI 和 ADB 连接信息�
 在 Windows 上，仅通过 ADB 连接要操作的 MuMu 实例，然后打开 **Choose account** 后，点击 **Remove account in Android**。在 Android 设置中选择账号并确认**移除账号**。此操作会从该实例移除账号及其同步数据。订阅请在 Google Play 中单独管理。返回仪表板，点击 **Done managing**，再为要使用的账号运行 Step 1。若使用 PowerShell，请等当前步骤结束，关闭仪表板，再用 `adb devices` 查到的设备序列号运行 `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>`。
 
 **Recent history** 将开始、结果和 **Verified in Google Play → Next** 操作保存到本地 `logs/stage-history/`。启动时恢复最近保存的记录，选择账号后显示该账号的历史。**↺** 表示曾尝试运行的步骤。历史本身不能证明订阅成功，也不会解锁付款。重新打开工具或更换账号后，需要重新运行 Step 1。加入历史记录功能之前的运行无法恢复。
+
+启动工具时若没有连接 Android 设备，或空闲期间连接断开，工具会显示提示。关闭提示后，连接状态发生变化时才会再次提示。
 
 断开连接的弹窗提供 **Retry connection**，处理时显示 **Retrying…** 和已用秒数；**Got it** 关闭弹窗。Windows 会尝试重新连接本地模拟器，启动步骤时找不到在线 ADB 设备也会尝试连接。只读查询期间，应用启动失败会重启一次。若仍失败，请关闭并重新打开 MuMu，等待 Android 启动完成后重跑 Step 1。查询优惠前会重启 Google One；已正常运行的 Play Store 会保持运行。空闲时点击 **Reload toolkit** 可使用本地代码重新打开界面并开始新会话。
 

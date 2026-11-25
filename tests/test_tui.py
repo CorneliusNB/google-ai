@@ -748,6 +748,34 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(app._offer_check_ready)
                 self.assertIn("connected", str(app.query_one("#device", Static).render()).lower())
 
+    async def test_startup_without_android_shows_notice_once_until_connection_changes(self):
+        from device_diagnostics import ConnectionStatus
+        from textual.widgets import Button
+        from tui import ConnectionNotice, GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory), startup_probe=True)
+            async with app.run_test(size=(90, 20)) as pilot:
+                disconnected = ConnectionStatus("disconnected")
+                app._connection_polled(disconnected, app._connection_generation, startup=True)
+                await pilot.pause()
+                self.assertIsInstance(app.screen, ConnectionNotice)
+                self.assertEqual(app.screen.notice_title, "Android is not connected")
+                self.assertFalse(app.screen.query_one("#connection_start_mumu", Button).disabled)
+                self.assertTrue(await pilot.click("#notice_close"))
+                await pilot.pause()
+
+                app._connection_polled(disconnected, app._connection_generation)
+                await pilot.pause()
+                self.assertNotIsInstance(app.screen, ConnectionNotice)
+
+                with patch.object(app, "discover_account_candidates"):
+                    app._connection_polled(ConnectionStatus("connected", ("emulator-5554",)))
+                app._connection_polled(disconnected, app._connection_generation)
+                await pilot.pause()
+                self.assertIsInstance(app.screen, ConnectionNotice)
+                self.assertFalse(app._offer_check_ready)
+
     async def test_connection_results_are_ignored_during_checkout(self):
         from tui import GoogleAITUI
         from device_diagnostics import ConnectionStatus

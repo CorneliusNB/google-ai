@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Français
 
-<!-- Source README.md git-blob: adf3f839e0f63ec335586eea841adbc4e07034ed -->
+<!-- Source README.md git-blob: c7018f985552a23753771a1e7f338b1d3da10012 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
@@ -190,6 +190,8 @@ Le panneau d’actions s’adapte à son contenu et **Live Status** occupe la ha
 Sous Windows, connectez uniquement l’instance MuMu voulue via ADB, puis ouvrez **Choose account**, puis sélectionnez **Remove account in Android**. Dans les paramètres Android, sélectionnez le compte et confirmez **Supprimer le compte**. Le compte et ses données synchronisées seront retirés de cette instance. Les abonnements se gèrent séparément dans Google Play. Revenez au tableau de bord, sélectionnez **Done managing**, puis lancez Step 1 pour le compte que vous souhaitez utiliser. Avec PowerShell, attendez la fin de l’étape en cours, fermez le tableau de bord, puis exécutez `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` avec le numéro de série affiché par `adb devices`.
 
 **Recent history** enregistre les démarrages, les résultats et l’action **Verified in Google Play → Next** dans `logs/stage-history/`. Au démarrage, le dernier historique est restauré; le choix d’un compte affiche son historique propre. **↺** indique une étape déjà tentée. L’historique ne confirme pas un abonnement et ne débloque pas les paiements. Après un redémarrage de l’outil ou un changement de compte, relancez Step 1. Les exécutions antérieures à cette fonction ne peuvent pas être restaurées.
+
+L’avis s’affiche si aucun appareil Android n’est connecté à l’ouverture de l’outil ou si la connexion est perdue pendant que le tableau de bord est au repos. Une fois fermé, il ne réapparaît que si l’état de la connexion change.
 
 La fenêtre de déconnexion propose **Retry connection**, qui affiche **Retrying…** et les secondes; **Got it** ferme la fenêtre. Sous Windows, l’outil tente de reconnecter l’émulateur local, également au lancement d’une étape sans appareil ADB connecté. Lors des consultations, une application qui ne démarre pas fait l’objet d’une seule tentative de redémarrage. Si elle échoue, fermez puis rouvrez MuMu, attendez le démarrage complet d’Android et relancez Step 1. Google One redémarre avant la consultation; Play Store reste ouvert s’il est déjà disponible. **Reload toolkit** relance l’interface au repos avec le code local et crée une nouvelle session.
 

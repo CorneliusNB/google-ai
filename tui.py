@@ -1009,24 +1009,23 @@ class GoogleAITUI(App[None]):
                 else:
                     self.query_one("#account", Static).update(
                         "Account  •  Android device not resolved; choose account manually")
-        if startup and changed and result.state in ("missing_adb", "disconnected", "adb_error"):
-            guidance = {"missing_adb": "ADB not found. Run Check Device & Offers or install Android platform-tools.",
-                        "disconnected": "Android not connected. Start Android, enable ADB and authorize the connection.",
-                        "adb_error": "ADB not responding. Check the installation or use Diagnose Android connection."}
-            self._set_message(guidance[result.state])
-        if not startup and result.state in ("missing_adb", "disconnected", "adb_error") and changed:
+        if result.state in ("missing_adb", "disconnected", "adb_error") and changed:
             if isinstance(self.screen, ConnectionNotice):
                 return
             if result.state == "missing_adb":
-                guidance = ("Run Check Device & Offers to prepare ADB on Windows. On macOS, "
-                            "install Android SDK Platform-Tools and reconnect Android.")
                 title = "ADB not found"
+                guidance = ("Install Android SDK Platform-Tools and reconnect Android." if self.native_mode
+                            else "Run Check Device & Offers to prepare ADB or install Android SDK Platform-Tools.")
             elif result.state == "adb_error":
                 title = "ADB is not responding"
                 guidance = "Check the ADB installation, then run Check Device & Offers."
             else:
                 title = "Android is not connected"
-                guidance = "Start MuMu, enable ADB debugging and approve any Android authorization prompt. The connection will be checked again automatically."
+                target = "Connect your Android device" if self.native_mode else "Start MuMu"
+                guidance = (f"{target}, enable ADB debugging and approve any Android authorization prompt. "
+                            "The connection will be checked again automatically.")
+            if startup:
+                self._set_message(guidance)
             self.push_screen(ConnectionNotice(title, guidance))
 
     @on(Button.Pressed, "#advanced_toggle")

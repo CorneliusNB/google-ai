@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: adf3f839e0f63ec335586eea841adbc4e07034ed -->
+<!-- Source README.md git-blob: c7018f985552a23753771a1e7f338b1d3da10012 -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -192,6 +192,8 @@ Khung thao tác vừa nội dung; **Live Status** dùng phần chiều cao còn 
 Trên Windows, chỉ kết nối phiên MuMu cần dùng qua ADB rồi mở **Choose account** rồi bấm **Remove account in Android**. Trong phần cài đặt Android, chọn tài khoản rồi xác nhận **Xóa tài khoản**. Android sẽ gỡ tài khoản và dữ liệu đã đồng bộ khỏi phiên đó. Các gói đăng ký được quản lý riêng trong Google Play. Quay lại giao diện toolkit, bấm **Done managing** rồi chạy Step 1 cho tài khoản bạn muốn dùng. Nếu dùng PowerShell, hãy đợi bước đang chạy kết thúc, đóng giao diện rồi chạy `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` với mã thiết bị từ `adb devices`.
 
 **Recent history** lưu lần bắt đầu, kết quả và thao tác **Verified in Google Play → Next** tại `logs/stage-history/`. Khi mở lại, giao diện khôi phục lịch sử gần nhất; chọn tài khoản sẽ xem lịch sử riêng. **↺** đánh dấu bước từng chạy. Lịch sử chưa chứng minh gói đã kích hoạt và không tự mở khóa thanh toán. Mở lại toolkit hoặc đổi tài khoản cần chạy Step 1 mới. Các lượt trước khi bổ sung lưu lịch sử không có dữ liệu khôi phục.
+
+Khi mở toolkit mà chưa có thiết bị Android, hoặc khi kết nối bị mất lúc đang chờ, thông báo sẽ tự hiện. Sau khi bạn đóng, thông báo chỉ hiện lại khi trạng thái kết nối thay đổi.
 
 Popup mất kết nối có **Retry connection**, hiển thị **Retrying…** cùng số giây; **Got it** đóng popup. Trên Windows, nút thử nối lại máy ảo cục bộ; khi bắt đầu bước mà ADB chưa có thiết bị, công cụ cũng thử nối lại. Trong lượt tra cứu, nếu ứng dụng chưa khởi động, công cụ thử mở lại một lần. Nếu vẫn lỗi, đóng MuMu, mở lại, đợi Android khởi động xong rồi chạy Step 1. Google One được khởi động lại trước khi truy vấn; Play Store tiếp tục chạy nếu đã sẵn sàng. **Reload toolkit** nạp lại giao diện bằng code cục bộ khi rảnh và tạo phiên mới.
 
