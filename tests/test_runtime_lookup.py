@@ -16,6 +16,21 @@ spec.loader.exec_module(module)
 
 
 class RuntimeLookupTests(unittest.TestCase):
+    def test_account_settings_combines_proven_aliases_and_rejects_distinct_devices(self):
+        aliases = ["127.0.0.1:16384", "emulator-5554"]
+        with patch("device_diagnostics.locate_adb", return_value="adb"), \
+             patch("device_selector.online_serials", return_value=aliases), \
+             patch("device_selector.boot_uuid", return_value="mock-boot") as boot, \
+             patch("device_selector.adb_command", return_value=subprocess.CompletedProcess(
+                 [], 0, "Status: ok\n", "")) as adb:
+            self.assertEqual(module.resolve_value("android-account-settings-connected"), "opened")
+            self.assertEqual(adb.call_args.args[1:3], ("-s", "emulator-5554"))
+            adb.reset_mock()
+            boot.side_effect = ("boot-one", "boot-two")
+            self.assertEqual(module.resolve_value("android-account-settings-connected"), "multiple_devices")
+            self.assertEqual(module.resolve_value("android-account-settings-connected", "offline"), "device_offline")
+            adb.assert_not_called()
+
     def test_account_settings_opens_only_android_settings_on_explicit_device(self):
         with patch("device_diagnostics.locate_adb", return_value="adb"), \
              patch("device_selector.online_serials", return_value=["emulator-5554", "emulator-5556"]), \

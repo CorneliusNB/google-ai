@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 日本語
 
-<!-- Source README.md git-blob: 2230f32ce755936e743c9b9e069eaebff8963ca1 -->
+<!-- Source README.md git-blob: 5ff65b0c065bef80c0949305f08b71b019bcd7ec -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -186,7 +186,7 @@ Device 欄には、取得できた Android のバージョン、SDK、ABI、ADB 
 
 操作欄は内容に合わせた高さになり、残りを **Live Status** が使用します。最新の処理状況が先頭に表示されます。**Show technical details** のログは新しい行まで自動スクロールします。メインボタンと **Run this step** には実行中のステップと経過秒数が表示されます。Windows では、特典確認中の環境チェックが完了すると Step 0 にチェックが付きます。新しい確認結果が不足している場合は、緑色の **Check Device & Offers — Step 1** が表示されます。
 
-Windows では、操作する MuMu インスタンスだけを ADB で接続し、**Choose account** の横にある **Manage accounts** を選びます。Android の設定画面で対象のアカウントを選び、**アカウントを削除**を確定します。そのインスタンスからアカウントと同期済みのデータが削除されます。定期購入は Google Play で別途管理します。ダッシュボードに戻り、**Done managing** を選んでから、使用するアカウントで Step 1 を実行してください。PowerShell を使う場合は、実行中のステップが完了してからダッシュボードを閉じ、`adb devices` で確認したシリアル番号を指定して `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` を実行します。
+Windows では、操作する MuMu インスタンスだけを ADB で接続し、**Choose account** を開き、**Remove account in Android** を選びます。Android の設定画面で対象のアカウントを選び、**アカウントを削除**を確定します。そのインスタンスからアカウントと同期済みのデータが削除されます。定期購入は Google Play で別途管理します。ダッシュボードに戻り、**Done managing** を選んでから、使用するアカウントで Step 1 を実行してください。PowerShell を使う場合は、実行中のステップが完了してからダッシュボードを閉じ、`adb devices` で確認したシリアル番号を指定して `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` を実行します。
 
 **Recent history** は開始、結果、**Verified in Google Play → Next** の操作を `logs/stage-history/` に保存します。起動時には最新の保存履歴が表示され、アカウントを選ぶとそのアカウントの履歴になります。**↺** は以前に実行を試みたステップです。履歴だけでは契約成立を確認できず、支払い操作も有効になりません。再起動後やアカウント変更後には Step 1 を再実行してください。履歴保存機能の追加前の実行は復元できません。
 

@@ -406,7 +406,7 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
     async def test_manage_accounts_opens_settings_and_requires_fresh_offer_check(self):
         from device_diagnostics import ConnectionStatus
         from textual.widgets import Button
-        from tui import GoogleAITUI
+        from tui import AccountPicker, GoogleAITUI, SetupNotice
 
         for size in ((58, 20), (90, 20), (110, 35)):
             with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
@@ -418,24 +418,23 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     app._offer_ready_device = serial
                     app._selected_account = app._verified_account = app._offer_ready_account = "old@example.com"
                     app.sequence = True
-                    dashboard = app.screen
-                    for accounts in (None, []):
-                        app._account_candidates_loaded(accounts, serial)
-                        await pilot.pause()
-                        self.assertIs(app.screen, dashboard)
-                        self.assertIn("Manage accounts", str(app.query_one("#message").render()))
+                    self.assertFalse(app.query("#account_remove"))
                     with patch.object(app, "_account_runtime_value", return_value="opened") as lookup:
-                        self.assertTrue(await pilot.click("#account_manage"))
+                        app._account_candidates_loaded(None, serial)
+                        await pilot.pause()
+                        self.assertIsInstance(app.screen, AccountPicker)
+                        self.assertFalse(app.screen.query("#account_accept"))
+                        self.assertTrue(await pilot.click("#account_remove"))
                         await app.workers.wait_for_complete()
                     await pilot.pause()
-                    lookup.assert_called_once_with("android-account-settings", serial, timeout=20)
-                    self.assertIs(app.screen, dashboard)
-                    self.assertEqual(str(app.query_one("#account_manage", Button).label), "Done managing")
+                    lookup.assert_called_once_with("android-account-settings-connected", serial, timeout=35)
+                    self.assertIsInstance(app.screen, SetupNotice)
+                    self.assertEqual(str(app.screen.query_one("#notice_close", Button).label), "Done managing")
                     self.assertTrue(app.query_one("#quickstart", Button).disabled)
                     with patch.object(app, "run_stage") as run:
                         app._start(1, False)
                         run.assert_not_called()
-                    self.assertTrue(await pilot.click("#account_manage"))
+                    self.assertTrue(await pilot.click("#notice_close"))
                     await pilot.pause()
                     self.assertFalse(app.query_one("#quickstart", Button).disabled)
                     self.assertFalse(app._offer_check_ready)
@@ -445,26 +444,26 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIsNone(app._verified_account)
                     self.assertFalse(app.sequence)
 
-    async def test_manage_accounts_rejects_running_stage_and_multiple_devices(self):
-        from device_diagnostics import ConnectionStatus
-        from tui import GoogleAITUI
+    async def test_manage_accounts_explains_multiple_devices_and_rejects_running_stage(self):
+        from tui import GoogleAITUI, SetupNotice
 
         with tempfile.TemporaryDirectory() as directory:
             app = GoogleAITUI(repo=Path(directory))
             async with app.run_test(size=(90, 20)) as pilot:
-                serial = "emulator-5554"
-                app._connection_state = ConnectionStatus("connected", (serial, "emulator-5556"))
-                app._account_candidates_loaded(["one@example.com"], serial)
-                await pilot.pause()
-                self.assertFalse(app.screen.query("#account_manage"))
-                await pilot.click("#account_cancel")
-                await pilot.pause()
-                with patch.object(app, "open_android_account_settings") as open_settings:
-                    app.manage_accounts_pressed()
-                    app._connection_state = ConnectionStatus("connected", (serial,))
+                with patch.object(app, "_account_runtime_value", return_value="multiple_devices") as lookup:
                     with patch.object(app, "busy", True):
-                        app.manage_accounts_pressed()
-                    open_settings.assert_not_called()
+                        app._manage_android_accounts("")
+                        lookup.assert_not_called()
+                    app._account_candidates_loaded([])
+                    await pilot.pause()
+                    self.assertTrue(await pilot.click("#account_remove"))
+                    await app.workers.wait_for_complete()
+                await pilot.pause()
+                self.assertIsInstance(app.screen, SetupNotice)
+                self.assertIn("only the intended MuMu device", app.screen.instruction)
+                self.assertTrue(await pilot.click("#notice_close"))
+                await pilot.pause()
+                self.assertFalse(app._diagnosing)
 
     async def test_selected_account_must_match_read_only_check(self):
         from tui import GoogleAITUI

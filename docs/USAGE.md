@@ -28,7 +28,7 @@ The sidebar lists the six stages. Android Device / Google Account cards update f
 
 ### Remove a Google account from MuMu on Windows
 
-1. Finish any running stage. With only the intended Android device connected over ADB, select **Manage accounts** beside **Choose account**.
+1. Finish any running stage. With only the intended Android device connected over ADB, open **Choose account** and select **Remove account in Android**.
 2. In Android settings, select the intended Google account and confirm **Remove account**. Android removes that account and its synced data from the instance. Manage subscriptions separately in Google Play.
 3. Return to the dashboard, select **Done managing** and run Step 1 for the Google Play account you intend to use.
 

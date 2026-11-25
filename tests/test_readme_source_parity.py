@@ -16,7 +16,7 @@ TECHNICAL = (
     "legacy/windows/", "brew install android-platform-tools",
     "adb devices", "sh run-macos.sh", ".\\run-all.ps1",
     ".\\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>",
-    "Manage accounts", "Done managing",
+    "Remove account in Android", "Done managing",
     "docs/LINUX.md", "Ubuntu x86_64", "ADB_PATH", "python3-venv", "Android 16",
     "sh run-linux.sh --check", "sh run-linux.sh --list",
     "sh run-linux.sh --step 3", "sh run-linux.sh --sequence",
