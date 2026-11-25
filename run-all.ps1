@@ -27,7 +27,7 @@
 .EXAMPLE
   .\run-all.ps1 -AllStages                       # Original steps 2-5, with confirmation
 .EXAMPLE
-  .\run-all.ps1 -AllStages -Force                # Author's account-check bypass (unsafe)
+  .\run-all.ps1 -AllStages -Force                # Legacy flag; rejected for paid stages
 .EXAMPLE
   .\run-all.ps1 -AllStages -StartStep 3         # Resume without replaying Step 2
 #>
@@ -94,7 +94,18 @@ function Stage([string]$Message) {
 function Note([string]$Message) {
     if ($ShowDebug) { Write-Host ("    {0}" -f $Message) -ForegroundColor DarkGray }
 }
+function Protect-Diagnostic([string]$Message) {
+    $safe = $Message -replace '[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}', '[account hidden]'
+    if ($Serial) { $safe = $safe.Replace($Serial, '[device hidden]') }
+    return $safe
+}
 function Show-Status([string]$Label, [string]$Value, [string]$Color = "Green") {
+    # The private dashboard pipe needs exact identities for verification.
+    # Direct terminal output never displays them.
+    if ($env:EPLUS_TUI -ne "1") {
+        if ($Label -eq "Account") { $Value = "[account hidden]" }
+        if ($Label -eq "Device") { $Value = "Android connected (ADB)" }
+    }
     Write-Host ("  {0,-11} " -f $Label) -NoNewline -ForegroundColor Gray
     Write-Host $Value -ForegroundColor $Color
 }
@@ -107,13 +118,13 @@ function Run-Command([string]$Program, [string[]]$Arguments) {
     $billingSetupFailed = $false
     & $Program @Arguments | ForEach-Object {
         $line = [string]$_
-        if ($script:RunLog) { Add-Content -LiteralPath $script:RunLog -Value $line -Encoding UTF8 }
+        if ($script:RunLog) { Add-Content -LiteralPath $script:RunLog -Value (Protect-Diagnostic $line) -Encoding UTF8 }
         if ($line.Trim() -ceq "EPLUS_ISSUE:billing_module_setup_failed") {
             $billingSetupFailed = $true
         } elseif ($ShowDebug) {
-            Write-Host $line -ForegroundColor DarkGray
+            Write-Host (Protect-Diagnostic $line) -ForegroundColor DarkGray
         } elseif ($line -match 'Action required:|Press Enter to continue') {
-            Write-Host ("    {0}" -f $line.Trim()) -ForegroundColor Yellow
+            Write-Host ("    {0}" -f (Protect-Diagnostic $line.Trim())) -ForegroundColor Yellow
         } elseif ($env:EPLUS_TUI -eq "1") {
             if ($line -match 'Subscribe was tapped, but the purchase is unverified') {
                 Write-Host "EPLUS_CHECKOUT_REVIEW:submitted"
@@ -271,29 +282,29 @@ try {
         )
     }
     if ($online.Count -eq 0) {
-        Note ($deviceLines -join [Environment]::NewLine)
+        Note "No online Android transports."
         Stop-Workflow "No online ADB devices. Start MuMu, enable ADB debugging and wait for status 'device'."
     }
     if ($Serial) {
         if ($online -cnotcontains $Serial) {
-            Stop-Workflow ("Selected serial '{0}' not online. Online: {1}" -f $Serial, ($online -join ", "))
+            Stop-Workflow "Selected serial not online. Reconnect the intended device."
         }
     } elseif ($online.Count -eq 1) {
         $Serial = $online[0]
     } else {
-        Note ("Multiple ADB connections: {0}" -f ($online -join ", "))
+        Note ("Multiple ADB connections: {0}" -f $online.Count)
         Note "Identifying duplicate transports and checking Google One..."
         $candidate = Get-RuntimeValue -LookupArgs @("device")
         if ($candidate -and $online -ccontains $candidate) {
             $Serial = $candidate
-            Note ("Auto-selected Android device: {0}" -f $Serial)
+            Note "Auto-selected Android device."
         } else {
             Note "Multiple different devices are still eligible; explicit selection is required."
             if (-not $AllStages) {
                 Stop-Workflow "Cannot select a single Android device automatically. Rerun with -Serial <exact-adb-serial>; no checkout started."
             }
             for ($i = 0; $i -lt $online.Count; $i++) {
-                Note ("[{0}] {1}" -f ($i + 1), $online[$i])
+                Write-Host ("[{0}] Android device (match order in your local adb devices list)" -f ($i + 1))
             }
             $deviceAnswer = Read-Host "  Device number (0 to stop)"
             $deviceNumber = 0
@@ -357,9 +368,7 @@ try {
         Stop-Workflow "Invalid Play Store account returned by Step 1. Verify the Play Store profile."
     }
     if ($playAccount -and $listedAccount -and $playAccount -cne $listedAccount) {
-        $accountMismatch = ("Play Store account changed: preflight '{0}', Step 1 '{1}'. " +
-                            "Verify the Play Store profile before any checkout.")
-        Stop-Workflow ($accountMismatch -f $playAccount, $listedAccount)
+        Stop-Workflow "Play Store account changed between preflight and Step 1. Verify the Play Store profile before any checkout."
     }
     if (-not $playAccount -and $listedAccount) {
         $playAccount = $listedAccount
@@ -396,18 +405,13 @@ try {
     if ($AllStages) {
         Note "Choose: 1 = Continue | 2 = Skip | 0 = Stop."
     } else {
-        Note "Single-step mode: no console confirmations; the selected step may open and confirm a Google Play checkout."
+        Note "Single-step mode: the selected step may open Google Play checkout. Step 5 requires separate approval."
     }
 
     # Reuse the selected Play account. No repeated email input is required.
     if (-not $Email -and $playAccount) {
         $Email = $playAccount
-        Note ("Using detected Google Play account: {0}" -f $Email)
-    }
-    if (-not $Email -and $Force) {
-        # Mirrors the author's --account current@device --force when profile
-        # enumeration is unavailable. No additional account is added.
-        $Email = "current@device"
+        Note "Using detected Google Play account."
     }
     if (-not $Email) {
         if (-not $AllStages) {
@@ -420,24 +424,14 @@ try {
         Note "No valid email supplied; stopping before live billing."
         return
     }
+    if (-not $playAccount) {
+        Stop-Workflow "Cannot identify the active Google Play account. Select the intended account, then repeat Step 1."
+    }
+    if ($playAccount -cne $Email) {
+        Stop-Workflow "Play account mismatch. Select the correct Play Store account and repeat Step 1."
+    }
     if ($Force) {
-        Write-Warning "--force bypasses only the Play Store account check, NOT Google's eligibility or payment conditions."
-        Write-Warning ("Detected Play account: {0}; requested: {1}" -f $playAccount, $Email)
-        if ($AllStages) {
-            if (-not (Confirm-Exact "Use original --force for this Android account?" "FORCE")) {
-                return
-            }
-        } else {
-            Note "The -Force switch was explicitly supplied; no additional console confirmation in single-step mode."
-        }
-    } elseif (-not $playAccount) {
-        # An unreadable account is not proof that the wrong account is active.
-        # Never guess or bypass this identity check on a paid stage.
-        Stop-Workflow "Cannot identify the active Google Play account. Open the Play Store profile, select the intended account, then repeat Step 1."
-    } elseif ($playAccount -cne $Email) {
-        $accountMismatch = ("Play account mismatch. Detected '{0}', expected '{1}'. " +
-                            "Select the correct Play Store account and repeat Step 1.")
-        Stop-Workflow ($accountMismatch -f $playAccount, $Email)
+        Stop-Workflow "-Force is not supported for paid stages. Remove it and verify the active account."
     }
 
     # Keep the original author's Pro 5 TB stage numbering and plan IDs.
@@ -505,15 +499,13 @@ try {
         }
         Note "Inspect today's checkout price, all future pricing phases and the next charge date."
         Note "A 0-price first phase is NOT proof of free-trial eligibility or stacking."
-        # Approve the main sequence once. Step 5 stays optional,
-        # and a standalone -Step N run still requires explicit permission.
-        if ($AllStages -and $stage.Number -eq 5) {
+        # Step 5 requires an explicit CLI confirmation or the dashboard approval.
+        if ($stage.Number -eq 5 -and ($AllStages -or $env:EPLUS_TUI -ne "1")) {
             if (-not (Confirm-Exact "Run this optional original live stage?" "RUN 5")) { break }
         }
 
         $args = @("ultra0.py", "--account", $Email, "--no-add", "--no-switch",
                   "--plan", $stage.Plan, "--serial", $Serial, "--activity-method", $ActivityMethod)
-        if ($Force) { $args += "--force" }
         if ($stage.Stack) { $args += "--stack" }
         Run-Command $Python $args
 

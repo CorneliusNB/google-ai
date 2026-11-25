@@ -299,6 +299,14 @@ class CoreTests(unittest.TestCase):
         result = outcome_for_stage(3, 1, {"status": "checkout_requested"})
         self.assertFalse(result.can_review)
 
+    def test_numbered_masked_account_picker_hints(self):
+        from tui_core import account_picker_label
+        first = account_picker_label("alice@example.com", 1)
+        second = account_picker_label("alicia@example.com", 2)
+        self.assertNotEqual(first, second)
+        self.assertNotIn("alice@example.com", first)
+        self.assertNotIn("alicia@example.com", second)
+
     def test_account_mask(self):
         self.assertEqual(mask_email("example@gmail.com"), "ex***@gmail.com")
         self.assertEqual(mask_email("invalid"), "Not detected")

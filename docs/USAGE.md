@@ -122,4 +122,4 @@ Optional parameters:
 .\run-all.ps1 -AllStages -Email "account@gmail.com"
 ```
 
-Only use a `-Serial` observed through ADB. `-Email` constrains the account expected by the checks. `-Force` exists for compatibility but bypasses account-matching protections; **avoid using it**. It does not override Google Play payment restrictions or eligibility.
+Only use a `-Serial` observed through ADB. `-Email` constrains the account expected by the checks. `-Force` is retained as a legacy flag but is rejected for paid stages. A verified matching Play account is required. Direct CLI Step 5 also requires a separate confirmation.

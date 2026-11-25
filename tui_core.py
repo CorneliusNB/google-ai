@@ -454,6 +454,14 @@ def mask_email(value: str) -> str:
     return f"{name[:2]}***@{domain}"
 
 
+def account_picker_label(value: str, index: int) -> str:
+    """Keep a numbered masked hint with a trailing character for longer aliases."""
+    name, _, domain = value.partition("@")
+    if len(name) >= 4 and domain:
+        return f"{index}. {name[:2]}***{name[-1]}@{domain}"
+    return f"{index}. {mask_email(value)}"
+
+
 def report_summary(report: dict | None) -> str:
     if not report:
         return "No fresh report"

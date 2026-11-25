@@ -31,7 +31,7 @@ from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Stati
 from sku_check_core import render_result
 from offer_discovery import (ExtraOffer, parse_step1,
                              merge_extra_offers, offer_step_label, offer_details)
-from tui_core import STAGES, Outcome, command_for_step, mask_email, \
+from tui_core import STAGES, Outcome, command_for_step, mask_email, account_picker_label, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
     readable_issue_line, report_summary, safe_launch_diagnostic, validate_step
 from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_connection, poll_connection
@@ -156,7 +156,7 @@ class AccountPicker(ModalScreen[str | None]):
                          "account Google Play uses. Switch accounts inside Play Store "
                          "and run Check Device & Offers to verify.")
             # Numbered masked labels; full values remain internal.
-            yield Select([(f"{i + 1}. {mask_email(email)}", email)
+            yield Select([(account_picker_label(email, i + 1), email)
                           for i, email in enumerate(self.accounts)],
                          value=self.accounts[0], allow_blank=False, id="account_choice")
             with Horizontal(id="account_picker_actions"):
@@ -215,22 +215,30 @@ class ConnectionNotice(SetupNotice):
 
     @work(thread=True, exclusive=True, group="connection-retry")
     def _start_mumu_worker(self) -> None:
-        from device_diagnostics import locate_adb
-        from mumu_remote import MuMuError, start_android
+        result = ConnectionStatus("adb_error")
+        message = "MuMu startup could not complete. Open MuMu manually and check ADB."
         try:
-            adb = locate_adb()
-            if not adb:
-                raise MuMuError("ADB not found. Run the environment setup first.")
-            serial = start_android(adb)
-            result = poll_connection()
-            if result.state != "connected" or result.devices != (serial,):
-                raise MuMuError("The started instance is not the only online device. Disconnect other devices or select explicitly.")
-            message = ""
-        except MuMuError as error:
-            result, message = ConnectionStatus("adb_error"), str(error)
-        except (OSError, RuntimeError, subprocess.SubprocessError):
-            result, message = ConnectionStatus("adb_error"), "MuMu startup could not complete. Open MuMu manually and check ADB."
-        self.app.call_from_thread(self._retry_finished, result, message)
+            from device_diagnostics import locate_adb
+            from mumu_remote import MuMuError, start_android
+            try:
+                adb = locate_adb()
+                if not adb:
+                    raise MuMuError("ADB not found. Run the environment setup first.")
+                serial = start_android(adb)
+                observed = poll_connection()
+                if observed.state != "connected" or observed.devices != (serial,):
+                    raise MuMuError("The started instance is not the only online device. Disconnect other devices or select explicitly.")
+                result, message = observed, ""
+            except MuMuError as error:
+                message = str(error)
+        except Exception:
+            # Even missing imports or unexpected worker errors must restore controls.
+            pass
+        finally:
+            try:
+                self.app.call_from_thread(self._retry_finished, result, message)
+            except RuntimeError:
+                pass  # The app has exited.
 
     @on(Button.Pressed, "#connection_retry")
     def retry_connection(self) -> None:
@@ -1757,6 +1765,13 @@ class GoogleAITUI(App[None]):
         # Keep the original marker for the parser, but never print raw
         # EPLUS_ISSUE codes in the visible RichLog, even when Debug is open.
         visible_line = readable_issue_line(line)
+        visible_line = re.sub(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
+                              "[account hidden]", visible_line)
+        transport = re.search(r"\b(?:Connected ADB device:|Device)\s+([A-Za-z0-9._:/-]{1,90})\s*$", line)
+        if transport:
+            visible_line = visible_line.replace(transport.group(1), "[device hidden]")
+        if self._checked_device:
+            visible_line = visible_line.replace(self._checked_device, "[device hidden]")
         self._last_output.append(visible_line)
         self._run_output.append(line)
         self._last_activity_at = time.monotonic()
