@@ -219,6 +219,7 @@ CLI_ISSUES = {
     "offer_query_failed": MESSAGES["offer_query_failed"],
     "offers_unavailable": MESSAGES["offer_query_failed"],
     "report_missing": ("The tool did not return a result", "Open Debug for details."),
+    "ui_capture_failed": ("Android UI capture failed", "Android could not read its screen after a retry. Close MuMu and reopen it, or restart the selected Android device. Wait for boot, unlock the screen, open Google Play, then run Check Device & Offers again from Step 1."),
     "account_unverified": ("Google Play account was not verified", "Open the Play Store profile and confirm the intended account before continuing."),
     "wrong_account": ("Google Play is using the wrong account", "Switch to the intended Google Play account and run Step 1 again."),
 }
@@ -270,6 +271,7 @@ def runtime_error_outcome(message: str, step: int) -> Outcome:
     validate_step(step)
     detail = message.lower()
     cases = (
+        ("android ui capture failed", "ui_capture_failed"),
         ("adb is missing", "adb_missing"),
         ("no online android device", "device_missing"),
         ("android device changed since step 1", "device_mismatch"),

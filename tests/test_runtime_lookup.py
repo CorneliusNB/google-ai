@@ -63,6 +63,15 @@ class RuntimeLookupTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), candidates)
         billing.assert_not_called()
 
+    def test_capture_crash_has_distinct_exit_and_no_result(self):
+        import ultra0
+        with patch.object(ultra0, "find_adb", return_value="adb"), \
+             patch.object(ultra0, "pick_device"), \
+             patch.object(ultra0, "current_play_account", side_effect=ultra0.UICaptureError("Android UI capture failed")), \
+             patch.object(sys, "stdout", new_callable=io.StringIO) as stdout:
+            self.assertEqual(module.main(["play-account", "--serial", "emulator-5554"]), 23)
+            self.assertEqual(stdout.getvalue(), "")
+
     def test_account_lookup_requires_serial(self):
         with self.assertRaises(SystemExit):
             module.main(["play-account"])

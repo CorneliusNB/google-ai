@@ -13,6 +13,7 @@ $cases = @(
     @{ Code = "subscribe_button_not_found"; Needle = "The checkout button was not found" },
     @{ Code = "offer_not_available"; Needle = "not available" },
     @{ Code = "offer_query_failed"; Needle = "Could not load" },
+    @{ Code = "ui_capture_failed"; Needle = "Android UI capture failed" },
     @{ Code = "account_unavailable"; Needle = "Google Play account" },
     @{ Code = "device_missing"; Needle = "MuMu is not connected" },
     @{ Code = "launch_failed"; Needle = "Could not open Google Play checkout" },
@@ -38,6 +39,7 @@ foreach ($case in $cases) {
     }
 }
 $errors = @(
+    @{ Message = "Android UI capture failed"; Expected = "ui_capture_failed" },
     @{ Message = "No online ADB devices"; Expected = "device_missing" },
     @{ Message = "Play account mismatch. Detected 'one@example.com', expected 'two@example.com'."; Expected = "account_mismatch" },
     @{ Message = "Cannot identify the active Google Play account. Open the Play Store profile."; Expected = "account_unavailable" },

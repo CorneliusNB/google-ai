@@ -20,6 +20,17 @@ class CoreTests(unittest.TestCase):
         self.assertIn("Google One", result.instruction)
         self.assertFalse(result.can_review)
 
+    def test_ui_capture_failure_has_restart_guidance_and_never_authorizes_checkout(self):
+        for step in (1, 3):
+            for result in (runtime_error_outcome("Android UI capture failed", step),
+                           cli_issue_outcome(["EPLUS_ISSUE:ui_capture_failed"], step)):
+                self.assertEqual(result.code, "ui_capture_failed")
+                self.assertIn("restart", result.instruction)
+                self.assertIn("Step 1", result.instruction)
+                self.assertFalse(result.can_review)
+                if step >= 2:
+                    self.assertIn("payment history", result.instruction)
+
     def test_paid_cli_errors_never_authorize_next_and_warn_about_payments(self):
         result = cli_issue_outcome(["EPLUS_ISSUE:offer_query_failed"], 2)
         self.assertFalse(result.can_review)

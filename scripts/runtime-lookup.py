@@ -18,6 +18,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
+class RuntimeUICaptureError(RuntimeError):
+    """A recognized UI capture failure, mapped to the shared exit code 23."""
+
+
 def resolve_value(command, serial=None):
     with contextlib.redirect_stdout(io.StringIO()):
         if command == "adb":
@@ -48,7 +52,10 @@ def resolve_value(command, serial=None):
             if command == "play-accounts":
                 # Candidate list only: not verified as current billing account.
                 return json.dumps(ultra0.available_google_accounts(), separators=(",", ":"))
-            return str(ultra0.current_play_account() or "")
+            try:
+                return str(ultra0.current_play_account() or "")
+            except ultra0.UICaptureError:
+                raise RuntimeUICaptureError("Android UI capture failed") from None
     raise ValueError("Unsupported runtime lookup command")
 
 
@@ -61,6 +68,9 @@ def main(argv=None):
         parser.error("--serial is required for Play account lookup")
     try:
         value = resolve_value(args.command, args.serial)
+    except RuntimeUICaptureError:
+        # No result is emitted and callers must handle this distinct exit code.
+        return 23
     except (Exception, SystemExit) as exc:
         print("Runtime lookup failed ({0}); run python setup_env.py for ADB diagnostics.".format(
             type(exc).__name__), file=sys.stderr)

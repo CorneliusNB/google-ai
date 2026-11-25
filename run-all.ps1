@@ -116,12 +116,14 @@ function Run-Command([string]$Program, [string[]]$Arguments) {
         }
     }
     if ($LASTEXITCODE -ne 0) {
+        if ($LASTEXITCODE -eq 23) { Stop-Workflow "Android UI capture failed" }
         Stop-Workflow ("A tool failed (exit {0}). See local run log; do not retry checkout blindly." -f $LASTEXITCODE)
     }
 }
 function Get-RuntimeValue([string[]]$LookupArgs) {
     $output = @(& $Python "scripts/runtime-lookup.py" @LookupArgs)
     if ($LASTEXITCODE -ne 0) {
+        if ($LASTEXITCODE -eq 23) { Stop-Workflow "Android UI capture failed" }
         Stop-Workflow "Runtime lookup failed. Verify the Python and ADB environment."
     }
     $resultLine = $output | Where-Object { $_ -match '^RUNTIME_RESULT:[A-Za-z0-9+/=]*$' } | Select-Object -Last 1

@@ -61,6 +61,11 @@ class DocumentationNavigationTests(unittest.TestCase):
                 self.assertNotIn("git switch feature", body)
                 self.assertNotIn("git switch --track origin/integration", body)
 
+    def test_ui_capture_troubleshooting_has_safe_restart_guidance(self):
+        guide = (DOCS / "TROUBLESHOOTING.md").read_text(encoding="utf-8")
+        self.assertIn("Android UI capture failed / Segmentation fault", guide)
+        self.assertIn("No automatic paid-stage retry is performed", guide)
+
     def test_documentation_hub_references_every_topic(self):
         hub = (DOCS / "README.md").read_text(encoding="utf-8")
         self.assertIn("[!CAUTION]", hub)
