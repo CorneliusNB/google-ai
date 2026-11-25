@@ -182,6 +182,10 @@ MESSAGES = {
         "Android instrumentation is not ready",
         "On macOS, relaunch using run-macos.sh to prepare Frida. Check the Android connection before retrying.",
     ),
+    "billing_module_setup_failed": (
+        "Billing module setup failed",
+        "Check authorized Android access and file permissions, then rerun the environment check.",
+    ),
     "environment_failed": (
         "Android environment check did not finish",
         "Check ADB, Google One and Frida before retrying. If checkout was previously attempted, verify Google Play first.",
@@ -270,6 +274,7 @@ def runtime_error_outcome(message: str, step: int) -> Outcome:
     validate_step(step)
     detail = message.lower()
     cases = (
+        ("billing module setup failed", "billing_module_setup_failed"),
         ("adb is missing", "adb_missing"),
         ("no online android device", "device_missing"),
         ("android device changed since step 1", "device_mismatch"),

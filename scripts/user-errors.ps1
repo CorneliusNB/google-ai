@@ -166,6 +166,12 @@ function Get-UserIssue {
                 Action = "Prepare the compatible Frida version and verify the Android connection."
             }
         }
+        "billing_module_setup_failed" {
+            return [pscustomobject]@{
+                Title = "Billing module setup failed"
+                Action = "Check authorized Android access and file permissions, then rerun the environment check. Review Google Play before retrying a paid step."
+            }
+        }
         "environment_failed" {
             return [pscustomobject]@{
                 Title = "Android environment check did not finish"
@@ -273,6 +279,7 @@ function Get-UserIssue {
 
 function Get-FailureCode {
     param([string]$ErrorMessage)
+    if ($ErrorMessage -eq "Billing module setup failed") { return "billing_module_setup_failed" }
     if ($ErrorMessage -match '(?i)Python not found') { return "python_missing" }
     if ($ErrorMessage -match '(?i)adb\.exe was not found|ADB device discovery failed') { return "adb_missing" }
     if ($ErrorMessage -match '(?i)No online ADB devices|selected serial.*not online') { return "device_missing" }

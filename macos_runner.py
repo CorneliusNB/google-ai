@@ -137,16 +137,23 @@ def run_engine(command: list[str], env: dict[str, str]) -> int:
         ("google play store process is running", "Google Play Store is running."),
         ("offer_query_failed", "Google Play offer query failed. Open Google One and Google Play, then retry."),
     )
+    billing_setup_failed = False
     with subprocess.Popen(command, cwd=workdir, env=env, stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT, encoding="utf-8", errors="replace") as child:
         assert child.stdout is not None
         for line in child.stdout:
+            if line.strip() == "EPLUS_ISSUE:billing_module_setup_failed":
+                billing_setup_failed = True
+                continue
             for marker, message in notices:
                 if marker in line.lower():
                     print(message, flush=True)
                     break
         code = child.wait()
-    if code:
+    if code and billing_setup_failed:
+        print("EPLUS_ISSUE:billing_module_setup_failed", flush=True)
+        print("Billing module setup failed. Check authorized Android access and file permissions.", flush=True)
+    elif code:
         print("Android stage failed. Check the USB connection, root access and Android Frida compatibility.",
               flush=True)
     return code
