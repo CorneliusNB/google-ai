@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: 373b2175f9c487cfabacfbb406a04abc3fd3dd2a -->
+<!-- Source README.md git-blob: 2230f32ce755936e743c9b9e069eaebff8963ca1 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -186,7 +186,7 @@ Device 卡片显示读取到的 Android 版本、SDK、ABI 和 ADB 连接信息�
 
 操作面板按内容调整高度，**Live Status** 使用剩余空间，最新活动显示在顶部。**Show technical details** 的日志会自动跟随新行。主按钮和 **Run this step** 均显示正在运行的步骤及已用秒数。Windows 的优惠查询流程完成环境检查后，Step 0 会出现勾选标记。缺少新的已验证检查结果时，会显示绿色 **Check Device & Offers — Step 1** 按钮。
 
-在 Windows 上，仅通过 ADB 连接要操作的 MuMu 实例，然后打开 **Choose account → Manage Android accounts**。在 Android 设置中选择账号并确认**移除账号**。此操作会从该实例移除账号及其同步数据。订阅请在 Google Play 中单独管理。返回仪表板，为要使用的账号运行 Step 1。若使用 PowerShell，请等当前步骤结束，关闭仪表板，再用 `adb devices` 查到的设备序列号运行 `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>`。
+在 Windows 上，仅通过 ADB 连接要操作的 MuMu 实例，然后点击 **Choose account** 旁的 **Manage accounts**。在 Android 设置中选择账号并确认**移除账号**。此操作会从该实例移除账号及其同步数据。订阅请在 Google Play 中单独管理。返回仪表板，点击 **Done managing**，再为要使用的账号运行 Step 1。若使用 PowerShell，请等当前步骤结束，关闭仪表板，再用 `adb devices` 查到的设备序列号运行 `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>`。
 
 **Recent history** 将开始、结果和 **Verified in Google Play → Next** 操作保存到本地 `logs/stage-history/`。启动时恢复最近保存的记录，选择账号后显示该账号的历史。**↺** 表示曾尝试运行的步骤。历史本身不能证明订阅成功，也不会解锁付款。重新打开工具或更换账号后，需要重新运行 Step 1。加入历史记录功能之前的运行无法恢复。
 

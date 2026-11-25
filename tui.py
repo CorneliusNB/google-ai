@@ -142,50 +142,34 @@ class AccountPicker(ModalScreen[str | None]):
     #account_picker { width: 64; max-width: 94%; height: auto; padding: 1 2;
                       background: #15243a; border: round #3d6383; }
     #account_choice { width: 100%; }
-    #account_manage { width: 100%; margin-top: 1; }
     #account_picker_actions { height: 3; margin-top: 1; }
     #account_picker_actions Button { width: 1fr; }
     """
-    def __init__(self, accounts: list[str], *, can_manage: bool = False) -> None:
+    def __init__(self, options: list[tuple[str, str]], *, has_hidden_accounts: bool = False) -> None:
         super().__init__()
-        self.accounts = accounts
-        self.can_manage = can_manage
+        self.options = options
+        self.has_hidden_accounts = has_hidden_accounts
 
     def compose(self) -> ComposeResult:
         with Vertical(id="account_picker"):
             yield Static("Choose a Google account on this device", classes="section")
-            if self.accounts:
-                yield Static("These are Android account candidates, NOT proof of which "
-                             "account Google Play uses. Switch accounts inside Play Store "
-                             "and run Check Device & Offers to verify.")
-            else:
-                yield Static("No account list is available. You can check the accounts in Android settings.")
-            options = account_picker_options(self.accounts)
-            if len(options) != len(self.accounts):
+            yield Static("These are Android account candidates, NOT proof of which "
+                         "account Google Play uses. Switch accounts inside Play Store "
+                         "and run Check Device & Offers to verify.")
+            if self.has_hidden_accounts:
                 yield Static("Some account hints are indistinguishable. Select the intended profile in Google Play, then run Check Device & Offers.")
-            if options:
-                yield Select(options, value=options[0][1], allow_blank=False, id="account_choice")
+            yield Select(self.options, value=self.options[0][1], allow_blank=False, id="account_choice")
             with Horizontal(id="account_picker_actions"):
                 yield Button("Cancel", id="account_cancel")
-                yield Button("Use selected account", id="account_accept", variant="primary", disabled=not options)
-            if self.can_manage:
-                yield Button("Manage Android accounts", id="account_manage")
-
-    @on(Button.Pressed, "#account_manage")
-    def manage(self) -> None:
-        if self.can_manage:
-            self.dismiss("manage")
+                yield Button("Use selected account", id="account_accept", variant="primary")
 
     @on(Button.Pressed, "#account_picker_actions Button")
     def choose(self, event: Button.Pressed) -> None:
         if event.button.id != "account_accept":
             self.dismiss(None)
             return
-        if not self.query("#account_choice"):
-            self.dismiss(None)
-            return
         value = self.query_one("#account_choice", Select).value
-        self.dismiss(value if isinstance(value, str) and value in self.accounts else None)
+        self.dismiss(value if any(value == account for _, account in self.options) else None)
 
 
 class ConnectionNotice(SetupNotice):
@@ -355,7 +339,7 @@ class GoogleAITUI(App[None]):
         width: 100%; height: 3; margin: 0;
     }
     #nav_home, #nav_quick, #advanced, #sequence, #run_all { display: none; }
-    #choose_account { width: 18; min-width: 18; height: 3; margin: 0 0 0 1; }
+    #choose_account, #account_manage { width: 18; min-width: 18; height: 3; margin: 0 0 0 1; }
     #quickstart { display: block; width: 100%; height: 3; margin: 0; }
     #quickstart.checking:disabled, #run.checking:disabled {
         background: #123b31; color: #e5fff2; text-style: bold;
@@ -412,7 +396,9 @@ class GoogleAITUI(App[None]):
     Screen.compact #credit, Screen.compact #hint { display: none; }
     Screen.compact #details { height: 1; }
     Screen.compact #device, Screen.compact #account { height: 1; border: none; }
-    Screen.compact #choose_account { height: 1; min-height: 1; border: none; padding: 0; }
+    Screen.compact #choose_account, Screen.compact #account_manage {
+        height: 1; min-height: 1; border: none; padding: 0;
+    }
     Screen.compact #welcome_panel { padding: 0 1; }
     Screen.compact #quick_hint, Screen.compact #read_only { display: none; }
     Screen.compact #welcome { display: none; }
@@ -433,6 +419,8 @@ class GoogleAITUI(App[None]):
     Screen.narrow #run { width: 1fr; margin-left: 1; }
     Screen.narrow #mode_hint { padding: 1 0 0 0; }
     Screen.narrow #controls { width: 21; min-width: 21; }
+    Screen.tiny #details { layout: grid; grid-size: 2 2; grid-rows: 1 1; grid-gutter: 0 1; height: 2; }
+    Screen.tiny #details > * { width: 1fr; min-width: 0; height: 1; min-height: 1; border: none; margin: 0; }
     Screen.tiny #content { layout: vertical; }
     Screen.tiny #controls {
         width: 100%; min-width: 0; height: auto;
@@ -473,6 +461,7 @@ class GoogleAITUI(App[None]):
         self._environment_checked = False
         self._offer_ready_account: str | None = None
         self._accounts_loading = False
+        self._account_settings_open = False
         self._offer_check_ready = False
         self._initial_offer_ready = False
         self._checked_device: str | None = None
@@ -513,6 +502,9 @@ class GoogleAITUI(App[None]):
                 yield Static("Device  •  Auto-detect", id="device")
                 yield Static("Account  •  Not checked", id="account")
                 yield Button("Choose account", id="choose_account")
+                manage = Button("Manage accounts", id="account_manage")
+                manage.display = sys.platform == "win32"
+                yield manage
             with Horizontal(id="content"):
                 with Vertical(id="controls"):
                     yield Static("STEPS", classes="section")
@@ -610,6 +602,7 @@ class GoogleAITUI(App[None]):
             return
         self._accounts_loading = True
         self.query_one("#choose_account", Button).disabled = True
+        self._update_account_manage_button()
         self._set_status("Reading Android accounts...")
         self._set_message("Looking for accounts on the connected device. "
                           "This does not open checkout or change the active Play Store account.")
@@ -675,30 +668,29 @@ class GoogleAITUI(App[None]):
     def _account_candidates_loaded(self, accounts: list[str] | None, serial: str = "") -> None:
         self._accounts_loading = False
         self.query_one("#choose_account", Button).disabled = self.busy or self._diagnosing or self._sku_pending
+        self._update_account_manage_button()
         if self.busy or self._diagnosing or self._sku_pending:
             return
-        can_manage = self._can_manage_android_accounts(serial)
-        if not accounts and not can_manage:
+        accounts = accounts if accounts is not None else []
+        options = account_picker_options(accounts)
+        if not options:
             self._set_status("Account list unavailable")
-            self._set_message("Android did not provide a readable account list. "
-                              "Open Google Play, select the intended profile manually, "
-                              "then run Check Device & Offers.")
+            guidance = "Open Google Play, select the intended profile, then run Check Device & Offers."
+            if sys.platform == "win32":
+                guidance = "Use Manage accounts to review accounts in Android. " + guidance
+            self._set_message(guidance)
             return
-        if accounts and not (self._selected_account or self._verified_account):
+        if not (self._selected_account or self._verified_account):
             self._display_account_candidates(accounts, serial)
-        self.push_screen(AccountPicker(accounts or [], can_manage=can_manage),
-                         lambda choice: self._account_picker_closed(choice, serial))
+        self.push_screen(AccountPicker(options, has_hidden_accounts=len(options) != len(accounts)),
+                         self._account_chosen)
 
-    def _can_manage_android_accounts(self, serial: str) -> bool:
-        return bool(sys.platform == "win32" and serial and self._connection_state
-                    and self._connection_state.state == "connected"
-                    and self._connection_state.devices == (serial,))
-
-    def _account_picker_closed(self, choice: str | None, serial: str) -> None:
-        if choice == "manage":
-            self._manage_android_accounts(serial)
-        else:
-            self._account_chosen(choice)
+    def _update_account_manage_button(self) -> None:
+        if len(self.query("#account_manage")):
+            button = self.query_one("#account_manage", Button)
+            button.label = "Done managing" if self._account_settings_open else "Manage accounts"
+            button.disabled = self.busy or self._sku_pending or self._accounts_loading or (
+                self._diagnosing and not self._account_settings_open)
 
     def _account_chosen(self, account: str | None) -> None:
         if not account or self.busy or self._diagnosing or self._sku_pending:
@@ -732,11 +724,20 @@ class GoogleAITUI(App[None]):
         self.query_one("#quickstart", Button).display = True
         self.query_one("#quickstart", Button).label = "Check Device & Offers"
 
-    def _manage_android_accounts(self, serial: str) -> None:
+    @on(Button.Pressed, "#account_manage")
+    def manage_accounts_pressed(self) -> None:
+        if sys.platform != "win32" or isinstance(self.screen, ModalScreen):
+            return
+        if self._account_settings_open:
+            self._set_status("Account management finished")
+            self._finish_account_settings("Run Check Device & Offers to verify the Play account.")
+            return
         if self.busy or self._diagnosing or self._sku_pending or self._accounts_loading:
             return
-        if not self._can_manage_android_accounts(serial):
-            self._set_message("Connect only the intended Android device, then reopen Choose account.")
+        connection = self._connection_state
+        if not connection or connection.state != "connected" or len(connection.devices) != 1:
+            self._set_status("One Android connection required")
+            self._set_message("Connect only the intended Android device over ADB, then try Manage accounts again.")
             return
         self._invalidate_connection_polls()
         self._diagnosing = True
@@ -749,7 +750,8 @@ class GoogleAITUI(App[None]):
             self.query_one(control, Button).disabled = True
         self._update_run_mode()
         self._set_status("Opening Android account settings…")
-        self.open_android_account_settings(serial)
+        self._set_message("Waiting for Android settings to open on the connected device.")
+        self.open_android_account_settings(connection.devices[0])
 
     @work(thread=True, exclusive=True, group="account-settings")
     def open_android_account_settings(self, serial: str) -> None:
@@ -761,13 +763,12 @@ class GoogleAITUI(App[None]):
 
     def _android_account_settings_done(self, result: str) -> None:
         if result == "opened":
+            self._account_settings_open = True
             self._set_status("Android account settings opened")
-            self.push_screen(SetupNotice(
-                "Manage Android accounts",
-                "In Android, select the account and confirm Remove account. "
-                "This removes the account and its synced data from this device. "
-                "Return here when finished, then run Check Device & Offers.",
-            ), lambda _: self._finish_account_settings("Run Check Device & Offers to verify the Play account."))
+            self._set_message("In Android settings, select the account and confirm Remove account. "
+                              "Account data synced to this device will be removed. "
+                              "Return here and select Done managing when finished.")
+            self._update_account_manage_button()
             return
         self._set_status("Could not open Android account settings")
         self._finish_account_settings({
@@ -776,6 +777,7 @@ class GoogleAITUI(App[None]):
         }.get(result, "Open Android Settings and select Accounts to manage them."))
 
     def _finish_account_settings(self, guidance: str) -> None:
+        self._account_settings_open = False
         self._diagnosing = False
         for control in ("#choose_account", "#quickstart", "#diagnose", "#refresh_offers"):
             self.query_one(control, Button).disabled = False
@@ -799,6 +801,7 @@ class GoogleAITUI(App[None]):
         self._offer_ready_device = None
         self.query_one("#quickstart", Button).label = "Check Device & Offers"
         self._diagnosing = True
+        self._update_account_manage_button()
         self.query_one("#diagnose", Button).disabled = True
         self.query_one("#quickstart", Button).disabled = True
         self.query_one("#quickstart", Button).display = True
@@ -1023,6 +1026,7 @@ class GoogleAITUI(App[None]):
         self._update_run_mode()
 
     def _update_run_mode(self) -> None:
+        self._update_account_manage_button()
         if self.busy or self._diagnosing or self._sku_pending:
             for control in ("#step", "#mode", "#run", "#sequence"):
                 if len(self.query(control)):
@@ -1628,6 +1632,7 @@ class GoogleAITUI(App[None]):
             self._initial_offer_ready = False
         self.query_one("#quickstart", Button).label = "Check Device & Offers"
         self.busy = True
+        self._update_account_manage_button()
         self.query_one("#reload", Button).disabled = True
         self.query_one("#refresh_offers", Button).disabled = True
         self.sequence = sequence
