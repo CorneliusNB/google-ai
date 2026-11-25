@@ -26,6 +26,7 @@ $cases = @(
     @{ Code = "account_unverified"; Needle = "Google Play account was not verified" },
     @{ Code = "wrong_account"; Needle = "Google Play is using the wrong account" },
     @{ Code = "frida_missing"; Needle = "Android instrumentation is not ready" },
+    @{ Code = "billing_module_setup_failed"; Needle = "Billing module setup failed" },
     @{ Code = "environment_failed"; Needle = "Android environment check did not finish" },
     @{ Code = "confirmation_required"; Needle = "Approval is required to continue" }
 )
@@ -47,6 +48,7 @@ $errors = @(
     @{ Message = "Offer query did not complete: app_not_started"; Expected = "app_not_started" },
     @{ Message = "Offer query did not complete: play_store_not_started"; Expected = "play_store_not_started" },
     @{ Message = "No report produced at ..." ; Expected = "report_missing" },
+    @{ Message = "Billing module setup failed"; Expected = "billing_module_setup_failed" },
     @{ Message = "Python not found"; Expected = "python_missing" },
     @{ Message = "Invalid Play Store account returned by Step 1"; Expected = "account_unavailable" }
 )

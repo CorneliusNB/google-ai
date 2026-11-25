@@ -411,14 +411,44 @@ def ensure_vending(*, retry_startup: bool = False) -> bool:
 
 
 def ensure_module_apk():
-    if sh("shell", f"ls {MODULE_REMOTE} 2>/dev/null"):
-        ok("Billing module is already installed")
-        return
-    note("Pushing billing module to Android (one-time setup)...")
-    tmp = Path(tempfile.gettempdir()) / "module_521.apk"
-    tmp.write_bytes(base64.b64decode(MODULE_B64))
-    sh("push", str(tmp), MODULE_REMOTE, timeout=120)
-    ok("Billing module installed")
+    """Install the module and normalize permissions even on existing copies."""
+    try:
+        path = shlex.quote(MODULE_REMOTE)
+        # Reject links (including dangling ones) and non-regular files before
+        # any push or permission change. Do not remove an unexpected path.
+        state = sh("shell",
+                   f"if [ -L {path} ]; then echo invalid; "
+                   f"elif [ -f {path} ]; then echo present; "
+                   f"elif [ -e {path} ]; then echo invalid; "
+                   "else echo missing; fi", timeout=15, check=True).strip()
+        if state not in ("present", "missing"):
+            raise RuntimeError("Unexpected billing module file type")
+        existing = state == "present"
+        if not existing:
+            note("Pushing billing module to Android (one-time setup)...")
+            with tempfile.TemporaryDirectory(prefix="eplus-module-") as directory:
+                tmp = Path(directory) / "module_521.apk"
+                tmp.write_bytes(base64.b64decode(MODULE_B64))
+                sh("push", str(tmp), MODULE_REMOTE, timeout=120, check=True)
+        # The app loading the module must not have write access to it.
+        # Repeat the file-type guard in both shell contexts, including after
+        # a fresh push and before the privileged fallback.
+        command = f"test ! -L {path} && test -f {path} && chmod 644 {path} && echo ok"
+        try:
+            changed = sh("shell", command, timeout=15, check=True).strip() == "ok"
+        except RuntimeError:
+            changed = False
+        if not changed:
+            # Some authorized rooted devices use a non-root ADB shell.
+            changed = sh("shell", "su -c " + shlex.quote(command),
+                         timeout=15, check=True).strip() == "ok"
+        if not changed:
+            raise RuntimeError("Permission change not confirmed")
+    except (OSError, RuntimeError, subprocess.TimeoutExpired):
+        print("EPLUS_ISSUE:billing_module_setup_failed", flush=True)
+        warn("Billing module setup failed. Check authorized Android access and file permissions.")
+        raise RuntimeError("Billing module setup failed") from None
+    ok("Billing module is already installed" if existing else "Billing module installed")
 
 
 def ensure_network():
