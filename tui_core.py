@@ -470,8 +470,9 @@ def account_picker_options(accounts: list[str]) -> list[tuple[str, str]]:
     """
     hints = [account_picker_label(value, i + 1).split(". ", 1)[1]
              for i, value in enumerate(accounts)]
+    original_hints = tuple(hints)
     for i, value in enumerate(accounts):
-        if hints.count(hints[i]) <= 1:
+        if original_hints.count(original_hints[i]) <= 1:
             continue
         name, _, domain = value.partition("@")
         if len(name) >= 5:
