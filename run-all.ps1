@@ -100,10 +100,13 @@ function Stop-Workflow([string]$Reason) {
 function Run-Command([string]$Program, [string[]]$Arguments) {
     # Preserve real-time output for Android manual verification, but hide
     # routine Python/ADB diagnostics. All stdout remains in a local ignored log.
+    $billingSetupFailed = $false
     & $Program @Arguments | ForEach-Object {
         $line = [string]$_
         if ($script:RunLog) { Add-Content -LiteralPath $script:RunLog -Value $line -Encoding UTF8 }
-        if ($ShowDebug) {
+        if ($line.Trim() -ceq "EPLUS_ISSUE:billing_module_setup_failed") {
+            $billingSetupFailed = $true
+        } elseif ($ShowDebug) {
             Write-Host $line -ForegroundColor DarkGray
         } elseif ($line -match 'Action required:|Press Enter to continue') {
             Write-Host ("    {0}" -f $line.Trim()) -ForegroundColor Yellow
@@ -116,6 +119,7 @@ function Run-Command([string]$Program, [string[]]$Arguments) {
         }
     }
     if ($LASTEXITCODE -ne 0) {
+        if ($billingSetupFailed) { Stop-Workflow "Billing module setup failed" }
         Stop-Workflow ("A tool failed (exit {0}). See local run log; do not retry checkout blindly." -f $LASTEXITCODE)
     }
 }

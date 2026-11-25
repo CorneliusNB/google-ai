@@ -121,10 +121,8 @@ def show_android_details(adb: str, serial: str) -> None:
 
 def run_engine(command: list[str], env: dict[str, str]) -> int:
     workdir = env.get(LINUX_WORKDIR)
-    if workdir is None:
-        return subprocess.call(command, cwd=ROOT, env=env)
-    # Engine messages can contain tokens and device/account identifiers. Emit
-    # only fixed progress and error messages, while letting stdin reach it.
+    # Preserve native macOS output; the Linux adapter forwards only fixed
+    # messages. Both paths intercept the explicit setup failure signal.
     notices = (
         ("connected adb device:", "Android device connected."),
         ("root is unavailable", "Root is unavailable. Check root authorization on Android."),
@@ -137,16 +135,28 @@ def run_engine(command: list[str], env: dict[str, str]) -> int:
         ("google play store process is running", "Google Play Store is running."),
         ("offer_query_failed", "Google Play offer query failed. Open Google One and Google Play, then retry."),
     )
-    with subprocess.Popen(command, cwd=workdir, env=env, stdout=subprocess.PIPE,
+    billing_setup_failed = False
+    with subprocess.Popen(command, cwd=workdir or ROOT, env=env, stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT, encoding="utf-8", errors="replace") as child:
         assert child.stdout is not None
         for line in child.stdout:
+            if line.strip() == "EPLUS_ISSUE:billing_module_setup_failed":
+                billing_setup_failed = True
+                continue
+            if workdir is None:
+                print(line.rstrip("\r\n"), flush=True)
+                continue
             for marker, message in notices:
                 if marker in line.lower():
                     print(message, flush=True)
                     break
         code = child.wait()
-    if code:
+    if code and billing_setup_failed:
+        # Preserve the specific cause through list_offers and run_stage.
+        if workdir is not None:
+            print("EPLUS_ISSUE:billing_module_setup_failed", flush=True)
+        raise RuntimeError("Billing module setup failed")
+    if code and workdir is not None:
         print("Android stage failed. Check the USB connection, root access and Android Frida compatibility.",
               flush=True)
     return code
