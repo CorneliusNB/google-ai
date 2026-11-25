@@ -9,23 +9,29 @@ import ultra0
 
 
 class BillingModulePermissionTests(unittest.TestCase):
-    def _run(self, existing=True, normal="ok", fallback="ok", push_error=None):
-        calls = []
+    def _run(self, existing=True, normal="ok", fallback="ok", push_error=None,
+             state=None, calls=None):
+        if calls is None:
+            calls = []
         def shell(*args, **kwargs):
             command = " ".join(str(a) for a in args)
             calls.append(command)
-            if command.startswith("shell ls "):
-                return ultra0.MODULE_REMOTE if existing else ""
+            if command.startswith("shell if [ -L "):
+                self.assertIn(f"elif [ -f {ultra0.MODULE_REMOTE} ]", command)
+                self.assertIn(f"elif [ -e {ultra0.MODULE_REMOTE} ]", command)
+                return state if state is not None else ("present" if existing else "missing")
             if command.startswith("push "):
                 self.assertTrue(Path(args[1]).is_file())
                 self.assertTrue(kwargs["check"])
                 if push_error:
                     raise push_error
-            if command.startswith("shell chmod "):
+            if command.startswith("shell test ! -L "):
+                self.assertIn(f"test -f {ultra0.MODULE_REMOTE} && chmod 644 ", command)
                 if isinstance(normal, Exception):
                     raise normal
                 return normal
             if command.startswith("shell su -c "):
+                self.assertIn(f"test ! -L {ultra0.MODULE_REMOTE} && test -f {ultra0.MODULE_REMOTE} && chmod 644 ", command)
                 if isinstance(fallback, Exception):
                     raise fallback
                 return fallback
@@ -37,16 +43,37 @@ class BillingModulePermissionTests(unittest.TestCase):
 
     def test_existing_module_is_normalized(self):
         calls = self._run()
-        self.assertTrue(any(c.startswith("shell chmod 644 ") for c in calls))
+        self.assertTrue(any(c.startswith("shell test ! -L ") and "chmod 644 " in c for c in calls))
         self.assertFalse(any(c.startswith("push ") for c in calls))
 
     def test_new_module_is_pushed_before_permission_check(self):
         calls = self._run(existing=False)
         self.assertLess(next(i for i,c in enumerate(calls) if c.startswith("push ")),
-                        next(i for i,c in enumerate(calls) if c.startswith("shell chmod ")))
+                        next(i for i,c in enumerate(calls) if c.startswith("shell test ! -L ")))
 
     def test_authorized_root_fallback(self):
         calls = self._run(normal=RuntimeError("permission denied"))
+        self.assertTrue(any(c.startswith("shell su -c ") for c in calls))
+
+    def test_invalid_path_stops_before_push_or_chmod(self):
+        for kind in ("symlink", "dangling symlink", "directory"):
+            with self.subTest(kind=kind):
+                calls = []
+                with self.assertRaisesRegex(RuntimeError, "Billing module setup failed"):
+                    self._run(state="invalid", calls=calls)
+                self.assertEqual(len(calls), 1)
+
+    def test_unknown_path_state_fails_closed(self):
+        calls = []
+        with self.assertRaisesRegex(RuntimeError, "Billing module setup failed"):
+            self._run(state="", calls=calls)
+        self.assertEqual(len(calls), 1)
+
+    def test_root_fallback_cannot_succeed_when_guard_rejects_path(self):
+        calls = []
+        with self.assertRaisesRegex(RuntimeError, "Billing module setup failed"):
+            self._run(normal=RuntimeError("permission denied"),
+                      fallback=RuntimeError("not a regular file"), calls=calls)
         self.assertTrue(any(c.startswith("shell su -c ") for c in calls))
 
     def test_permission_failure_stops_and_emits_safe_marker(self):

@@ -413,7 +413,17 @@ def ensure_vending(*, retry_startup: bool = False) -> bool:
 def ensure_module_apk():
     """Install the module and normalize permissions even on existing copies."""
     try:
-        existing = bool(sh("shell", f"ls {MODULE_REMOTE} 2>/dev/null"))
+        path = shlex.quote(MODULE_REMOTE)
+        # Reject links (including dangling ones) and non-regular files before
+        # any push or permission change. Do not remove an unexpected path.
+        state = sh("shell",
+                   f"if [ -L {path} ]; then echo invalid; "
+                   f"elif [ -f {path} ]; then echo present; "
+                   f"elif [ -e {path} ]; then echo invalid; "
+                   "else echo missing; fi", timeout=15, check=True).strip()
+        if state not in ("present", "missing"):
+            raise RuntimeError("Unexpected billing module file type")
+        existing = state == "present"
         if not existing:
             note("Pushing billing module to Android (one-time setup)...")
             with tempfile.TemporaryDirectory(prefix="eplus-module-") as directory:
@@ -421,7 +431,9 @@ def ensure_module_apk():
                 tmp.write_bytes(base64.b64decode(MODULE_B64))
                 sh("push", str(tmp), MODULE_REMOTE, timeout=120, check=True)
         # The app loading the module must not have write access to it.
-        command = f"chmod 644 {MODULE_REMOTE} && echo ok"
+        # Repeat the file-type guard in both shell contexts, including after
+        # a fresh push and before the privileged fallback.
+        command = f"test ! -L {path} && test -f {path} && chmod 644 {path} && echo ok"
         try:
             changed = sh("shell", command, timeout=15, check=True).strip() == "ok"
         except RuntimeError:
