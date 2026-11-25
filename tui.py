@@ -142,19 +142,24 @@ class AccountPicker(ModalScreen[str | None]):
     #account_picker { width: 64; max-width: 94%; height: auto; padding: 1 2;
                       background: #15243a; border: round #3d6383; }
     #account_choice { width: 100%; }
+    #account_manage { width: 100%; margin-top: 1; }
     #account_picker_actions { height: 3; margin-top: 1; }
     #account_picker_actions Button { width: 1fr; }
     """
-    def __init__(self, accounts: list[str]) -> None:
+    def __init__(self, accounts: list[str], *, can_manage: bool = False) -> None:
         super().__init__()
         self.accounts = accounts
+        self.can_manage = can_manage
 
     def compose(self) -> ComposeResult:
         with Vertical(id="account_picker"):
             yield Static("Choose a Google account on this device", classes="section")
-            yield Static("These are Android account candidates, NOT proof of which "
-                         "account Google Play uses. Switch accounts inside Play Store "
-                         "and run Check Device & Offers to verify.")
+            if self.accounts:
+                yield Static("These are Android account candidates, NOT proof of which "
+                             "account Google Play uses. Switch accounts inside Play Store "
+                             "and run Check Device & Offers to verify.")
+            else:
+                yield Static("No account list is available. You can check the accounts in Android settings.")
             options = account_picker_options(self.accounts)
             if len(options) != len(self.accounts):
                 yield Static("Some account hints are indistinguishable. Select the intended profile in Google Play, then run Check Device & Offers.")
@@ -163,6 +168,13 @@ class AccountPicker(ModalScreen[str | None]):
             with Horizontal(id="account_picker_actions"):
                 yield Button("Cancel", id="account_cancel")
                 yield Button("Use selected account", id="account_accept", variant="primary", disabled=not options)
+            if self.can_manage:
+                yield Button("Manage Android accounts", id="account_manage")
+
+    @on(Button.Pressed, "#account_manage")
+    def manage(self) -> None:
+        if self.can_manage:
+            self.dismiss("manage")
 
     @on(Button.Pressed, "#account_picker_actions Button")
     def choose(self, event: Button.Pressed) -> None:
@@ -603,29 +615,30 @@ class GoogleAITUI(App[None]):
                           "This does not open checkout or change the active Play Store account.")
         self.discover_account_candidates()
 
+    def _account_runtime_value(self, command: str, serial: str = "", *, timeout: int = 60) -> str:
+        lookup = self.repo / "scripts" / "runtime-lookup.py"
+        args = [sys.executable, str(lookup), command]
+        if serial:
+            args.extend(["--serial", serial])
+        result = subprocess.run(args, capture_output=True, text=True, errors="replace",
+                                timeout=timeout, check=False)
+        match = re.fullmatch(r"RUNTIME_RESULT:([A-Za-z0-9+/=]*)", result.stdout.strip())
+        if result.returncode or not match:
+            raise RuntimeError("Android account lookup failed")
+        return base64.b64decode(match.group(1), validate=True).decode("utf-8")
+
     @work(thread=True, exclusive=True, group="account-candidates")
     def discover_account_candidates(self, serial: str = "", generation: int | None = None) -> None:
         accounts = None
         try:
-            lookup = self.repo / "scripts" / "runtime-lookup.py"
-            def read_value(command: str, serial: str = "") -> str:
-                args = [sys.executable, str(lookup), command]
-                if serial:
-                    args.extend(["--serial", serial])
-                result = subprocess.run(args, capture_output=True, text=True,
-                                        errors="replace", timeout=60, check=False)
-                line = result.stdout.strip()
-                match = re.fullmatch(r"RUNTIME_RESULT:([A-Za-z0-9+/=]*)", line)
-                if result.returncode or not match:
-                    raise RuntimeError("Android account lookup failed")
-                return base64.b64decode(match.group(1), validate=True).decode("utf-8")
             if not serial:
                 if generation is not None:
                     raise RuntimeError("Startup account lookup needs a unique existing transport")
-                serial = self._checked_device or read_value("device")
+                serial = self._checked_device or self._account_runtime_value("device")
             if not serial or not re.fullmatch(r"[A-Za-z0-9._:/-]{1,90}", serial):
                 raise RuntimeError("No unambiguous Android device was found")
-            raw = json.loads(read_value("play-accounts-existing" if generation is not None else "play-accounts", serial))
+            raw = json.loads(self._account_runtime_value(
+                "play-accounts-existing" if generation is not None else "play-accounts", serial))
             if not isinstance(raw, list):
                 raise ValueError("Android account list was invalid")
             accounts = sorted({x.lower() for x in raw if isinstance(x, str) and
@@ -664,20 +677,43 @@ class GoogleAITUI(App[None]):
         self.query_one("#choose_account", Button).disabled = self.busy or self._diagnosing or self._sku_pending
         if self.busy or self._diagnosing or self._sku_pending:
             return
-        if not accounts:
+        can_manage = self._can_manage_android_accounts(serial)
+        if not accounts and not can_manage:
             self._set_status("Account list unavailable")
             self._set_message("Android did not provide a readable account list. "
                               "Open Google Play, select the intended profile manually, "
                               "then run Check Device & Offers.")
             return
-        if not (self.busy or self._diagnosing or self._selected_account or self._verified_account):
+        if accounts and not (self._selected_account or self._verified_account):
             self._display_account_candidates(accounts, serial)
-        self.push_screen(AccountPicker(accounts), self._account_chosen)
+        self.push_screen(AccountPicker(accounts or [], can_manage=can_manage),
+                         lambda choice: self._account_picker_closed(choice, serial))
+
+    def _can_manage_android_accounts(self, serial: str) -> bool:
+        return bool(sys.platform == "win32" and serial and self._connection_state
+                    and self._connection_state.state == "connected"
+                    and self._connection_state.devices == (serial,))
+
+    def _account_picker_closed(self, choice: str | None, serial: str) -> None:
+        if choice == "manage":
+            self._manage_android_accounts(serial)
+        else:
+            self._account_chosen(choice)
 
     def _account_chosen(self, account: str | None) -> None:
-        if not account or self.busy or self._sku_pending:
+        if not account or self.busy or self._diagnosing or self._sku_pending:
             return
         self._selected_account = account
+        self._reset_account_verification()
+        self._show_history(account)
+        self.query_one("#account", Static).update("Account  •  " + escape(mask_email(account)) + " (selected)")
+        self._update_run_mode()
+        self._set_status("Account selected — not yet verified")
+        self._set_message("In Google Play, switch to the selected account. "
+                          "Run Check Device & Offers. Selecting a candidate alone "
+                          "never authorizes a checkout.")
+
+    def _reset_account_verification(self) -> None:
         self._extra_scan_generation += 1
         self._update_discovered([], replace=True)
         self._offer_report = None
@@ -685,23 +721,66 @@ class GoogleAITUI(App[None]):
         self.query_one("#offer_view", RichLog).clear()
         self.query_one("#offer_view", RichLog).display = False
         self.query_one("#offers_title", Static).display = False
-        self._show_history(account)
         self._verified_account = None
         self._offer_ready_account = None
         self._offer_check_ready = False
         self._initial_offer_ready = False
         self._offer_ready_device = None
-        self.query_one("#account", Static).update("Account  •  " + escape(mask_email(account)) + " (selected)")
         self.sequence = False
         self.query_one("#next", Button).display = False
         self.query_one("#next", Button).disabled = True
         self.query_one("#quickstart", Button).display = True
         self.query_one("#quickstart", Button).label = "Check Device & Offers"
+
+    def _manage_android_accounts(self, serial: str) -> None:
+        if self.busy or self._diagnosing or self._sku_pending or self._accounts_loading:
+            return
+        if not self._can_manage_android_accounts(serial):
+            self._set_message("Connect only the intended Android device, then reopen Choose account.")
+            return
+        self._invalidate_connection_polls()
+        self._diagnosing = True
+        self._selected_account = None
+        self._detected_account_device = None
+        self._reset_account_verification()
+        self._render_history(latest_history(self.repo), "Previous run · select an account and run Step 1 to verify")
+        self.query_one("#account", Static).update("Account  •  Not checked")
+        for control in ("#choose_account", "#quickstart", "#diagnose", "#refresh_offers"):
+            self.query_one(control, Button).disabled = True
         self._update_run_mode()
-        self._set_status("Account selected — not yet verified")
-        self._set_message("In Google Play, switch to the selected account. "
-                          "Run Check Device & Offers. Selecting a candidate alone "
-                          "never authorizes a checkout.")
+        self._set_status("Opening Android account settings…")
+        self.open_android_account_settings(serial)
+
+    @work(thread=True, exclusive=True, group="account-settings")
+    def open_android_account_settings(self, serial: str) -> None:
+        try:
+            result = self._account_runtime_value("android-account-settings", serial, timeout=20)
+        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired):
+            result = "settings_unavailable"
+        self.call_from_thread(self._android_account_settings_done, result)
+
+    def _android_account_settings_done(self, result: str) -> None:
+        if result == "opened":
+            self._set_status("Android account settings opened")
+            self.push_screen(SetupNotice(
+                "Manage Android accounts",
+                "In Android, select the account and confirm Remove account. "
+                "This removes the account and its synced data from this device. "
+                "Return here when finished, then run Check Device & Offers.",
+            ), lambda _: self._finish_account_settings("Run Check Device & Offers to verify the Play account."))
+            return
+        self._set_status("Could not open Android account settings")
+        self._finish_account_settings({
+            "missing_adb": "Set ADB_PATH to an existing adb executable and reopen the toolkit.",
+            "device_offline": "Reconnect the intended Android device and retry.",
+        }.get(result, "Open Android Settings and select Accounts to manage them."))
+
+    def _finish_account_settings(self, guidance: str) -> None:
+        self._diagnosing = False
+        for control in ("#choose_account", "#quickstart", "#diagnose", "#refresh_offers"):
+            self.query_one(control, Button).disabled = False
+        self._update_run_mode()
+        self._set_message(guidance)
 
     @on(Button.Pressed, "#diagnose")
     def diagnose_pressed(self) -> None:

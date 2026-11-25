@@ -28,10 +28,11 @@ The sidebar lists the six stages. Android Device / Google Account cards update f
 
 ### Remove a Google account from MuMu on Windows
 
-1. Finish any running stage and close the dashboard. Leave the intended MuMu instance running.
-2. Find its exact serial with `adb devices`. Run `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` in PowerShell. If ADB is outside the usual locations, set `ADB_PATH` to your existing `adb.exe`.
-3. In Android settings, select the intended Google account and confirm **Remove account**. Android removes that account and its synced data from the instance. Manage subscriptions separately in Google Play.
-4. Reopen the dashboard and run Step 1 for the Google Play account you intend to use.
+1. Finish any running stage. With only the intended Android device connected over ADB, open **Choose account → Manage Android accounts**.
+2. In Android settings, select the intended Google account and confirm **Remove account**. Android removes that account and its synced data from the instance. Manage subscriptions separately in Google Play.
+3. Return to the dashboard, dismiss the notice and run Step 1 for the Google Play account you intend to use.
+
+From PowerShell, close the dashboard after the current stage finishes. Find the instance's serial with `adb devices` and run `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>`. If ADB is outside the usual locations, set `ADB_PATH` to your existing `adb.exe`.
 
 **Recent history** shows the last six saved events for the selected or freshly verified account, newest first. It records stage starts, results and the user's **Verified in Google Play → Next** action. Private history stays under `logs/stage-history/`, with hashed account filenames. Opening the toolkit requires a fresh device and offer check before paid stages.
 Startup displays the most recently saved history even before account selection. The sidebar uses **↺** for previously attempted steps. Select an account to view its own history. A fresh current-session check is still required. Attempts made before account detection are saved as account unverified.

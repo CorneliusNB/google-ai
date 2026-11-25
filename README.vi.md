@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: 1da9187367f5816fbf716def6b8a885ce80e38b1 -->
+<!-- Source README.md git-blob: 373b2175f9c487cfabacfbb406a04abc3fd3dd2a -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -189,7 +189,7 @@ Khi một bước đang chạy, các nút **Check Device & Offers**, **Run** và
 
 Khung thao tác vừa nội dung; **Live Status** dùng phần chiều cao còn lại và đặt hoạt động mới nhất ở đầu. **Show technical details** mở nhật ký tự cuộn theo dòng mới. Nút chính và **Run this step** hiển thị bước đang chạy cùng số giây. Trên Windows, Step 0 có dấu ✓ sau khi kiểm tra môi trường hoàn tất trong luồng kiểm tra ưu đãi. Khi chưa có kết quả mới đã xác minh, phần chọn bước hiện nút xanh **Check Device & Offers — Step 1**.
 
-Để gỡ tài khoản khỏi MuMu trên Windows, hãy đợi bước đang chạy kết thúc rồi đóng giao diện toolkit. Chạy `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` với mã thiết bị lấy từ `adb devices`. Trong phần cài đặt Android, chọn tài khoản rồi xác nhận **Xóa tài khoản**. Android sẽ gỡ tài khoản và dữ liệu đã đồng bộ khỏi phiên giả lập đó. Bạn quản lý gói đăng ký riêng trong Google Play. Sau đó, mở lại toolkit và chạy Step 1 cho tài khoản muốn sử dụng.
+Trên Windows, chỉ kết nối phiên MuMu cần dùng qua ADB rồi mở **Choose account → Manage Android accounts**. Trong phần cài đặt Android, chọn tài khoản rồi xác nhận **Xóa tài khoản**. Android sẽ gỡ tài khoản và dữ liệu đã đồng bộ khỏi phiên đó. Các gói đăng ký được quản lý riêng trong Google Play. Quay lại giao diện toolkit và chạy Step 1 cho tài khoản bạn muốn dùng. Nếu dùng PowerShell, hãy đợi bước đang chạy kết thúc, đóng giao diện rồi chạy `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` với mã thiết bị từ `adb devices`.
 
 **Recent history** lưu lần bắt đầu, kết quả và thao tác **Verified in Google Play → Next** tại `logs/stage-history/`. Khi mở lại, giao diện khôi phục lịch sử gần nhất; chọn tài khoản sẽ xem lịch sử riêng. **↺** đánh dấu bước từng chạy. Lịch sử chưa chứng minh gói đã kích hoạt và không tự mở khóa thanh toán. Mở lại toolkit hoặc đổi tài khoản cần chạy Step 1 mới. Các lượt trước khi bổ sung lưu lịch sử không có dữ liệu khôi phục.
 

@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: 1da9187367f5816fbf716def6b8a885ce80e38b1 -->
+<!-- Source README.md git-blob: 373b2175f9c487cfabacfbb406a04abc3fd3dd2a -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -187,7 +187,7 @@ La tarjeta Device muestra la versión de Android, SDK, ABI y conexión ADB cuand
 
 El panel de acciones se ajusta a sus controles y **Live Status** ocupa la altura restante, con la actividad más reciente arriba. **Show technical details** abre un registro que sigue las líneas nuevas. El botón principal y **Run this step** muestran el paso en ejecución y los segundos transcurridos. En Windows, Step 0 recibe una marca al terminar la comprobación del entorno dentro de la consulta de ofertas. Si falta una comprobación reciente verificada, aparece **Check Device & Offers — Step 1** en verde.
 
-Para quitar una cuenta de MuMu en Windows, espera a que termine el paso en curso y cierra el panel. Usa el número de serie que muestra `adb devices` para ejecutar `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>`. En los ajustes de Android, selecciona la cuenta y confirma **Quitar cuenta**. Se quitarán la cuenta y sus datos sincronizados de esa instancia. Las suscripciones se gestionan por separado en Google Play. Vuelve a abrir el panel y ejecuta Step 1 con la cuenta que quieras usar.
+En Windows, conecta por ADB solo la instancia de MuMu que quieras usar y abre **Choose account → Manage Android accounts**. En los ajustes de Android, selecciona la cuenta y confirma **Quitar cuenta**. Se quitarán la cuenta y sus datos sincronizados de esa instancia. Las suscripciones se gestionan por separado en Google Play. Vuelve al panel y ejecuta Step 1 con la cuenta que quieras usar. Si prefieres PowerShell, espera a que termine el paso en curso, cierra el panel y ejecuta `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` con el número de serie que muestra `adb devices`.
 
 **Recent history** guarda inicios, resultados y la acción **Verified in Google Play → Next** en `logs/stage-history/`. Al abrir la aplicación se recupera el historial más reciente; al elegir una cuenta se muestra el suyo. **↺** indica un paso intentado anteriormente. El historial no confirma una suscripción ni desbloquea pagos. Tras reiniciar la aplicación o cambiar de cuenta hay que repetir Step 1. Las ejecuciones anteriores a esta función no se pueden recuperar.
 
