@@ -7,7 +7,7 @@
   original command-line interface. Original Steps 2-5 require explicit selection.
   -AllStages runs original Steps 2-5, with approval for each billable stage.
   -StartStep 3 with -AllStages skips Step 2 when a subscription is already active.
-  Individual -Step 2..5 commands do not require typed confirmations.
+  Individual -Step 2..4 commands do not require typed confirmations; CLI Step 5 does.
   -AllStages retains verification prompts between potentially billable steps.
   Step 5 is the author's optional additional offer and can be skipped.
   The original ultra0.py may automatically click Subscribe during a live stage.

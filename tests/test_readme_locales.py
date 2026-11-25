@@ -83,6 +83,14 @@ class ReadmeLocalesTests(unittest.TestCase):
                 for item in ("Source code (zip)", "`.exe`", "ADB/Frida"):
                     self.assertIn(item, guide)
 
+    def test_windows_startup_guidance(self):
+        usage = content("docs/USAGE.md")
+        troubleshooting = content("docs/TROUBLESHOOTING.md")
+        for label in ("Start MuMu", "-MumuInstance", "MUMU_DIR", "Retry never starts a VM"):
+            self.assertIn(label, troubleshooting)
+        for label in ("-StartMumu", "-NoStartMumu", "-MumuInstance", "No VM is created"):
+            self.assertIn(label, usage)
+
     def test_support_and_muse_distinction_remains_in_detailed_guides(self):
         for overview in OVERVIEWS:
             with self.subTest(file=overview):

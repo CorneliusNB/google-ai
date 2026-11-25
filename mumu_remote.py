@@ -24,7 +24,7 @@ def find_manager(mumu_dir: str | None = None) -> Path:
                      "MuMuPlayerGlobal-12.0", "MuMu Player 12")
     ]
     for root in roots:
-        for manager in (root / "nx_main" / "MuMuManager.exe", root / "MuMuManager.exe"):
+        for manager in (root / "nx_main" / "MuMuManager.exe", root / "shell" / "MuMuManager.exe", root / "MuMuManager.exe"):
             if manager.is_file():
                 return manager
     raise MuMuError("MuMu Manager not found. Install MuMu or configure MUMU_DIR.")

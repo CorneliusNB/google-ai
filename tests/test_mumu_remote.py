@@ -17,6 +17,13 @@ class MuMuTests(unittest.TestCase):
             manager.touch()
             self.assertEqual(mu.find_manager(directory), manager)
 
+    def test_shell_manager_layout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manager = Path(directory) / "shell" / "MuMuManager.exe"
+            manager.parent.mkdir()
+            manager.touch()
+            self.assertEqual(mu.find_manager(directory), manager)
+
     def test_manager_failure_is_safe(self):
         with patch.object(mu, "_run", return_value=subprocess.CompletedProcess([], 1, "", "private@example.com")):
             with self.assertRaisesRegex(mu.MuMuError, "^MuMu main launch failed"):
