@@ -86,7 +86,7 @@ class DeviceDiagnosticsTests(unittest.TestCase):
                  patch.object(mod.time, "sleep"):
                 mod.ensure_vending(retry_startup=retry)
             commands = [call.args[1] for call in adb.call_args_list]
-            launch = f"monkey -p {mod.VENDING} -c android.intent.category.LAUNCHER 1"
+            launch = f"monkey --pct-syskeys 0 -p {mod.VENDING} -c android.intent.category.LAUNCHER 1"
             self.assertEqual(commands.count(launch), expected_launches)
             self.assertEqual(commands.count(f"am force-stop {mod.VENDING}"), int(retry))
 

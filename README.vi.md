@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: afc22139893546e8a4b9449722ededacfedd7f2c -->
+<!-- Source README.md git-blob: 75a84b32348777bb9ad3ae214b25376c9e5d4765 -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -9,10 +9,13 @@
 
 **ePlus AI Toolkit** giúp bạn kiểm tra các ưu đãi Google AI Pro được hiển thị qua Google One và Google Play trên thiết bị Android. Công cụ chạy trên **Windows, macOS và Linux**: Windows sử dụng PowerShell, còn macOS sử dụng Terminal (zsh/bash). Cả giao diện Textual lẫn chế độ dòng lệnh đều dùng chung bộ xử lý Python, ADB và Frida.
 
+> [!NOTE]
+> **Bản phân nhánh (fork) của [hoangsvit/google-ai](https://github.com/hoangsvit/google-ai).** Bản này bổ sung hỗ trợ Waydroid trên Linux, đồng thời cho các bước trả phí trên Linux và macOS dừng lại ở màn hình thanh toán Google Play để bạn tự nhấn **Subscribe**. Toàn bộ ghi công gốc được giữ nguyên trong [CONTRIBUTORS.md](CONTRIBUTORS.md) và mục ghi công.
+
 ![Giao diện ePlus AI Toolkit](images/terminal-ui-overview.png)
 
 > [!CAUTION]
-> **Đây không phải công cụ chính thức của Google và có thể phát sinh chi phí.** Ở các bước **2–5**, công cụ có thể mở trang thanh toán Google Play và tự nhấn **Subscribe**. Ưu đãi xuất hiện trong danh sách, mức giá đầu tiên bằng 0 hoặc thông báo đã gửi yêu cầu thanh toán **không có nghĩa là** bạn đủ điều kiện, được dùng miễn phí hay đã gia hạn thành công. Trước khi thực hiện, hãy kiểm tra đúng tài khoản, khoản tiền phải trả ngay, mức phí những kỳ sau và ngày gia hạn trong **Google Play**. Dừng công cụ không hủy được giao dịch đã gửi.
+> **Đây không phải công cụ chính thức của Google và có thể phát sinh chi phí.** Ở các bước **2–5**, công cụ có thể mở trang thanh toán Google Play và tự nhấn **Subscribe**. Việc tự nhấn này chỉ xảy ra trên Windows; trên macOS và Linux, công cụ dừng ở màn hình thanh toán và bạn tự quyết định có nhấn **Subscribe** hay không. Ưu đãi xuất hiện trong danh sách, mức giá đầu tiên bằng 0 hoặc thông báo đã gửi yêu cầu thanh toán **không có nghĩa là** bạn đủ điều kiện, được dùng miễn phí hay đã gia hạn thành công. Trước khi thực hiện, hãy kiểm tra đúng tài khoản, khoản tiền phải trả ngay, mức phí những kỳ sau và ngày gia hạn trong **Google Play**. Dừng công cụ không hủy được giao dịch đã gửi.
 
 > [!NOTE]
 > **Cần có tối thiểu 3 USD khả dụng cho 3 giao dịch riêng biệt, mỗi giao dịch 1 USD — không phải một lần trừ 3 USD.** Theo quy trình **24 tháng** đã được người dùng báo cáo, Step 2 (dùng thử 12 tháng), Step 3 (gia hạn thêm 6 tháng) và Step 4 (gia hạn thêm 6 tháng) tương ứng với **ba lần xác minh thẻ/thanh toán, mỗi lần 1 USD**: **3 × US$1 = US$3**. Tùy trạng thái ngân hàng và Google Play, khoản 1 USD có thể chỉ là **tạm giữ để xác thực**, không phải phí đã trừ chính thức; số tiền thực tế cũng có thể khác. **3 USD là mức số dư tối thiểu cho ví dụ này, không phải mức phí cố định hoặc bảo đảm mọi tài khoản đều đủ điều kiện.** Khoản tạm giữ có thể làm giảm số dư khả dụng và thường được giải tỏa trong **1–14 ngày làm việc**, tùy ngân hàng. Sau từng bước, hãy tự kiểm tra trạng thái giao dịch và ngày gia hạn tại Google Play. Step 5 là tùy chọn, **không tính trong ba giao dịch trên**. [Giải thích chính thức của Google Play](https://support.google.com/googleplay/answer/6224192?hl=en).
@@ -60,7 +63,7 @@ Bạn có thể xem thêm [hướng dẫn cài đặt kèm hình ảnh trên Git
 Mở PowerShell:
 
 ```powershell
-git clone https://github.com/hoangsvit/google-ai.git
+git clone https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 .\run-all.ps1
 ```
@@ -99,7 +102,7 @@ Trên **macOS**, cài **Git**, **Python 3.10+** và **Android SDK Platform-Tools
 Mở **Terminal** và chạy:
 
 ```sh
-git clone https://github.com/hoangsvit/google-ai.git
+git clone https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 adb devices
 sh run-macos.sh
@@ -111,8 +114,19 @@ Lệnh `sh run-macos.sh` mở cùng giao diện Textual với **Steps 0–5**. `
 
 Trên Ubuntu x86_64, hãy cài Git, Python 3.10 trở lên kèm `venv` và `pip`, cùng Android SDK Platform-Tools. Thêm `adb` vào `PATH` hoặc đặt `ADB_PATH` trỏ tới tệp thực thi. Kết nối qua USB với điện thoại Android đã root và có Google Play Store, Google One. Bật gỡ lỗi USB, mở khóa điện thoại và chấp nhận yêu cầu cấp quyền. ADB phải hiển thị một thiết bị ở trạng thái `device`.
 
+**Waydroid (trình giả lập trên Linux):** bạn có thể dùng ảnh Waydroid có Google Play, Google One và lệnh `su` hoạt động thay cho điện thoại. Khởi động phiên Waydroid, rồi kết nối ADB qua địa chỉ mà `waydroid status` hiển thị:
+
 ```sh
-git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
+waydroid session start
+waydroid status            # ghi lại địa chỉ IP
+adb connect <waydroid-ip>:5555
+adb devices                # đúng một thiết bị, trạng thái "device"
+```
+
+Waydroid không có phím phần cứng và không hỗ trợ `adb root`; công cụ mở ứng dụng bằng `monkey --pct-syskeys 0`, dùng `su` để có quyền root và chờ ADB kết nối lại sau khi kiểm tra root. **Hãy để Play Store ở màn hình chính** (thẻ Apps, ảnh hồ sơ ở góc trên bên phải) trong khi chạy Step 1 và các bước 2–5: tài khoản Google Play đang dùng được đọc từ nút hồ sơ đó. Nếu Play Store đang mở trang của một ứng dụng hoặc màn hình **Payments & subscriptions**, bước kiểm tra tài khoản sẽ thất bại và trang thanh toán sẽ không được mở. Hỗ trợ Waydroid đã được kiểm tra với Step 0–1 và các bước kiểm tra trước thanh toán của Step 2; riêng quá trình thanh toán Google Play trên Waydroid chưa được kiểm chứng độc lập.
+
+```sh
+git clone --branch main --single-branch https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 "${ADB_PATH:-adb}" devices
 sh run-linux.sh
@@ -129,6 +143,8 @@ Dùng phiên bản có tệp `run-linux.sh`. Tập lệnh mở giao diện và c
 **Android 16 trở lên:** Tập lệnh Linux dừng trước khi thiết lập thiết bị vì Frida 16.5.9 chưa hỗ trợ Android 16. Bạn vẫn có thể kiểm tra USB bằng **Diagnose Android connection**.
 
 **Các bước 2–5 có thể phát sinh khoản thanh toán thật trên Google Play.** Mỗi bước cần xác nhận riêng, tài khoản Play đang dùng đã được xác minh, và kết quả mới chứa đúng ưu đãi có kỳ đầu giá 0. Trước khi tiếp tục chuỗi, hãy xác minh gói thuê bao và ngày gia hạn trong Google Play. Luồng thanh toán trên Linux được kiểm thử bằng mô phỏng. Kiểm tra trọn quy trình trên thiết bị thật vẫn chưa hoàn tất. [Cài đặt Linux, xử lý lỗi USB và kiểm tra](docs/LINUX.md).
+
+Trên Linux và macOS, mỗi bước trả phí sẽ mở trang thanh toán Google Play rồi **dừng lại mà không nhấn Subscribe** (`--manual-subscribe`). Hãy chọn phương thức thanh toán trên Android (ví dụ thẻ hoặc ví điện tử được Google Play chấp nhận tại quốc gia của bạn) và chỉ nhấn **Subscribe** khi bạn đồng ý với các điều khoản hiển thị.
 
 
 ## 3. Sử dụng giao diện
@@ -198,6 +214,8 @@ Khi mở toolkit mà chưa có thiết bị Android, hoặc khi kết nối bị
 Popup mất kết nối có **Retry connection**, hiển thị **Retrying…** cùng số giây; **Got it** đóng popup. Trên Windows, nút thử nối lại máy ảo cục bộ; khi bắt đầu bước mà ADB chưa có thiết bị, công cụ cũng thử nối lại. Trong lượt tra cứu, nếu ứng dụng chưa khởi động, công cụ thử mở lại một lần. Nếu vẫn lỗi, đóng MuMu, mở lại, đợi Android khởi động xong rồi chạy Step 1. Google One được khởi động lại trước khi truy vấn; Play Store tiếp tục chạy nếu đã sẵn sàng. **Reload toolkit** nạp lại giao diện bằng code cục bộ khi rảnh và tạo phiên mới.
 
 Trước khi tự bấm **Subscribe**, màn hình thanh toán phải có đúng email dự kiến, tổng tiền hôm nay bằng 0 và đúng thời hạn dùng thử; ưu đãi được yêu cầu cũng phải khớp. Thiếu hoặc sai email sẽ dừng thao tác tự bấm để bạn kiểm tra. Mỗi bước thanh toán cần xác nhận riêng. Sau khi gửi yêu cầu, tự kiểm tra gói, ngày gia hạn và khoản phí trong Google Play. Nội dung nhắc ba lần xác minh thẻ nằm trong hộp xác nhận thanh toán.
+
+Việc tự nhấn ở trên chỉ áp dụng cho Windows. **Trên macOS và Linux, công cụ không bao giờ nhấn Subscribe:** sau cùng các bước kiểm tra đó, công cụ để nguyên trang thanh toán và hiển thị **Checkout is open - finish it on Android**. Hãy chọn phương thức thanh toán, đọc kỹ điều khoản và chỉ tự nhấn **Subscribe** nếu bạn đồng ý. Nếu có điểm nào chưa rõ, công cụ vẫn dừng lại kèm cảnh báo và giữ nguyên màn hình để bạn tự kiểm tra. Sau đó, **Verified in Google Play → Next** chỉ ghi nhận việc chính bạn đã xác nhận gói đăng ký tồn tại; công cụ không thể biết bạn đã đăng ký hay chưa.
 
 ## 4. PowerShell CLI (nâng cao)
 

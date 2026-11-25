@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Français
 
-<!-- Source README.md git-blob: afc22139893546e8a4b9449722ededacfedd7f2c -->
+<!-- Source README.md git-blob: 75a84b32348777bb9ad3ae214b25376c9e5d4765 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
@@ -10,10 +10,13 @@
 
 **ePlus AI Toolkit** permet de consulter les offres Google AI Pro accessibles via Google One et Google Play sur un appareil Android. L'outil fonctionne sous **Windows, macOS et Linux** : vous le lancez depuis PowerShell sur Windows, ou Terminal (zsh/bash) sur Mac. L'interface Textual et les commandes utilisent le même moteur Python, ADB et Frida.
 
+> [!NOTE]
+> **Dérivé (fork) de [hoangsvit/google-ai](https://github.com/hoangsvit/google-ai).** Cette version ajoute la prise en charge de Waydroid sous Linux et fait s’arrêter les étapes payantes sous Linux et macOS sur l’écran de paiement Google Play : c’est vous qui appuyez sur **Subscribe**. Tous les crédits d’origine sont conservés dans [CONTRIBUTORS.md](CONTRIBUTORS.md) et dans la section Crédits.
+
 ![Interface ePlus AI Toolkit](images/terminal-ui-overview.png)
 
 > [!CAUTION]
-> **Outil non officiel ; des frais réels peuvent être facturés.** Les **étapes 2 à 5** peuvent ouvrir un véritable paiement Google Play et appuyer automatiquement sur **Subscribe (S'abonner)**. L'affichage d'une offre, d'un prix initial nul ou d'un message indiquant qu'un paiement a été demandé **ne prouve pas** l'éligibilité, la gratuité, l'activation ni la prolongation de l'abonnement. Avant toute opération, vérifiez dans Google Play le compte, le montant dû aujourd'hui, le prix de renouvellement et la date de facturation. Arrêter l'outil n'annule pas une transaction déjà envoyée.
+> **Outil non officiel ; des frais réels peuvent être facturés.** Les **étapes 2 à 5** peuvent ouvrir un véritable paiement Google Play et appuyer automatiquement sur **Subscribe (S'abonner)**. Cela ne concerne que Windows ; sous macOS et Linux, l’outil s’arrête sur l’écran de paiement et c’est vous qui décidez d’appuyer ou non sur **Subscribe**. L'affichage d'une offre, d'un prix initial nul ou d'un message indiquant qu'un paiement a été demandé **ne prouve pas** l'éligibilité, la gratuité, l'activation ni la prolongation de l'abonnement. Avant toute opération, vérifiez dans Google Play le compte, le montant dû aujourd'hui, le prix de renouvellement et la date de facturation. Arrêter l'outil n'annule pas une transaction déjà envoyée.
 
 > [!NOTE]
 > **Prévoyez au moins 3 USD de solde disponible pour trois opérations distinctes de 1 USD, et non un seul débit de 3 USD.** Dans le parcours de **24 mois** signalé, l'étape 2 (12 mois initiaux), l'étape 3 (+6 mois) et l'étape 4 (+6 mois) correspondent à **trois opérations de vérification de carte ou de paiement de 1 USD chacune** : **3 × US$1 = US$3**. Une opération peut n'être qu'une préautorisation temporaire, et non un débit définitif ; le montant peut varier selon la banque, le compte et Google Play. **Les 3 USD représentent le solde minimal de cet exemple, pas des frais fixes ni une garantie d'obtenir 24 mois.** Une préautorisation peut réduire le solde disponible et est généralement levée sous **1 à 14 jours ouvrés**, selon la banque. Vérifiez après chaque étape l'opération et la date de renouvellement dans Google Play. L'étape 5 est facultative et **ne fait pas partie de ces trois opérations**. [Documentation officielle de Google Play](https://support.google.com/googleplay/answer/6224192?hl=en).
@@ -59,7 +62,7 @@ Pour un parcours illustré, consultez le [guide d'installation sur le Wiki GitHu
 Dans PowerShell :
 
 ```powershell
-git clone https://github.com/hoangsvit/google-ai.git
+git clone https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 .\run-all.ps1
 ```
@@ -98,7 +101,7 @@ Sous macOS, installez **Git**, **Python 3.10+** et **Android SDK Platform-Tools 
 Ouvrez le **Terminal** et exécutez :
 
 ```sh
-git clone https://github.com/hoangsvit/google-ai.git
+git clone https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 adb devices
 sh run-macos.sh
@@ -110,8 +113,19 @@ sh run-macos.sh
 
 Sous Ubuntu x86_64, installez Git, Python 3.10 ou une version ultérieure avec `venv` et `pip`, ainsi qu’Android SDK Platform-Tools. Ajoutez `adb` au `PATH` ou indiquez le chemin de l’exécutable dans `ADB_PATH`. Branchez en USB un téléphone Android rooté équipé du Google Play Store et de Google One. Activez le débogage USB, déverrouillez le téléphone et autorisez la connexion. ADB doit afficher un seul appareil à l’état `device`.
 
+**Waydroid (émulateur sous Linux) :** à la place d’un téléphone, vous pouvez utiliser une image Waydroid avec Google Play, Google One et une commande `su` fonctionnelle. Lancez la session, puis connectez ADB à l’adresse indiquée par `waydroid status` :
+
 ```sh
-git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
+waydroid session start
+waydroid status            # notez l’adresse IP
+adb connect <waydroid-ip>:5555
+adb devices                # un seul appareil, à l’état "device"
+```
+
+Waydroid n’a pas de touches physiques et ne prend pas en charge `adb root` ; l’outil lance les applications avec `monkey --pct-syskeys 0`, utilise `su` pour l’accès root et attend la reconnexion d’ADB après les vérifications root. **Laissez Play Store sur son écran d’accueil** (onglet Apps, photo de profil en haut à droite) pendant l’étape 1 et les étapes 2–5 : le compte Google Play actif est lu depuis ce bouton de profil, et si la page d’une application ou l’écran **Payments & subscriptions** est ouvert, la vérification du compte échoue sans ouvrir le paiement. La prise en charge de Waydroid a été vérifiée avec les étapes 0–1 et les contrôles préalables au paiement de l’étape 2 ; le paiement Google Play lui-même sur Waydroid n’a pas été vérifié de manière indépendante.
+
+```sh
+git clone --branch main --single-branch https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 "${ADB_PATH:-adb}" devices
 sh run-linux.sh
@@ -128,6 +142,8 @@ Utilisez une version qui contient `run-linux.sh`. Le script ouvre l’interface 
 **Android 16 et versions ultérieures.** Le script Linux s’arrête avant de configurer l’appareil, car Frida 16.5.9 est antérieur à la prise en charge d’Android 16. **Diagnose Android connection** permet toujours de vérifier la connexion USB.
 
 **Les étapes 2–5 peuvent entraîner de vrais prélèvements sur Google Play.** Pour chacune, il faut une confirmation distincte, vérifier le compte Play actif et obtenir un résultat récent qui correspond exactement à l’offre dont la première période coûte zéro. Avant de poursuivre, vérifiez l’abonnement et la date de renouvellement dans Google Play. Les paiements sous Linux sont testés par simulation. La validation complète sur un appareil réel reste à faire. [Installation sous Linux, dépannage USB et vérification](docs/LINUX.md).
+
+Sous Linux et macOS, chaque étape payante ouvre l’écran de paiement Google Play puis **s’arrête sans appuyer sur Subscribe** (`--manual-subscribe`). Choisissez le moyen de paiement sur Android (par exemple une carte ou un portefeuille électronique accepté par Google Play dans votre pays) et n’appuyez sur **Subscribe** que si vous acceptez les conditions affichées.
 
 
 ## 3. Interface Textual
@@ -196,6 +212,8 @@ L’avis s’affiche si aucun appareil Android n’est connecté à l’ouvertur
 La fenêtre de déconnexion propose **Retry connection**, qui affiche **Retrying…** et les secondes; **Got it** ferme la fenêtre. Sous Windows, l’outil tente de reconnecter l’émulateur local, également au lancement d’une étape sans appareil ADB connecté. Lors des consultations, une application qui ne démarre pas fait l’objet d’une seule tentative de redémarrage. Si elle échoue, fermez puis rouvrez MuMu, attendez le démarrage complet d’Android et relancez Step 1. Google One redémarre avant la consultation; Play Store reste ouvert s’il est déjà disponible. **Reload toolkit** relance l’interface au repos avec le code local et crée une nouvelle session.
 
 Avant d’appuyer automatiquement sur **Subscribe**, l’écran de paiement doit afficher exactement l’adresse attendue, un total nul pour aujourd’hui et la durée d’essai prévue; l’offre demandée doit aussi correspondre. Si l’adresse manque ou diffère, l’action automatique s’arrête pour permettre une vérification manuelle. Chaque étape de paiement exige son accord propre. Après l’envoi, vérifiez l’abonnement, la date de renouvellement et les frais dans Google Play. Le rappel des trois vérifications de carte figure dans les confirmations de paiement.
+
+Cet appui automatique ne concerne que Windows. **Sous macOS et Linux, l’outil n’appuie jamais sur Subscribe :** après les mêmes vérifications, il laisse l’écran de paiement ouvert et affiche **Checkout is open - finish it on Android**. Choisissez votre moyen de paiement, lisez les conditions et n’appuyez vous-même sur **Subscribe** que si vous les acceptez ; si un élément n’est pas clair, l’outil s’arrête quand même avec un avertissement et vous laisse l’écran pour vérification. Ensuite, **Verified in Google Play → Next** enregistre seulement votre propre confirmation que l’abonnement existe ; l’outil ne peut pas savoir si vous vous êtes abonné.
 
 ## 4. Commandes PowerShell (utilisateurs avancés)
 

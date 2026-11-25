@@ -4,10 +4,13 @@
 
 A terminal toolkit for **Windows, macOS and Linux** to inspect Google AI Pro offers through Android, ADB, Frida and Google Play. Windows uses a PowerShell/Python launcher; macOS and Linux use native shell launchers with a shared Python adapter.
 
+> [!NOTE]
+> **Fork of [hoangsvit/google-ai](https://github.com/hoangsvit/google-ai).** This fork adds Waydroid support on Linux and makes the Linux and macOS paid steps stop on the Google Play checkout screen so you tap **Subscribe** yourself. All original credits are kept in [CONTRIBUTORS.md](CONTRIBUTORS.md) and the Credits section.
+
 ![ePlus AI Toolkit — startup dashboard (110×35)](images/terminal-ui-overview.png)
 
 > [!CAUTION]
-> **Unofficial project. Potential billing charges.** Steps **2–5** can open a real Google Play checkout and may automatically tap **Subscribe**. An offer appearing in a list, a displayed first-phase price of zero, or a message indicating that the Subscribe action was attempted does **not** establish eligibility, an active subscription, a free subscription, or a changed renewal date. Verify the exact account, today's charge, future pricing and renewal date directly in Google Play before any checkout.
+> **Unofficial project. Potential billing charges.** Steps **2–5** can open a real Google Play checkout. On Windows they may automatically tap **Subscribe**; on macOS and Linux they stop on the checkout screen and you decide whether to tap **Subscribe** yourself. An offer appearing in a list, a displayed first-phase price of zero, or a message indicating that the Subscribe action was attempted does **not** establish eligibility, an active subscription, a free subscription, or a changed renewal date. Verify the exact account, today's charge, future pricing and renewal date directly in Google Play before any checkout.
 
 > [!NOTE]
 > **At least US$3 available for three separate US$1 transactions—not one US$3 charge.** In the currently reported **24-month** sequence, Step 2 (initial 12 months), Step 3 (first +6 months) and Step 4 (second +6 months) each involve a **US$1 card-verification/payment event**: **3 × US$1 = US$3** across three transactions. An event may be a temporary authorization hold rather than a settled charge; the actual amount can differ by bank, account or Google Play. US$3 is the minimum balance for this reported example, **not a universal Google fee or a guarantee that US$3 will always suffice**. Pending holds may reduce the available balance; according to Google, authorizations are not purchases and typically clear in **1–14 business days**, depending on the bank. Verify transaction status and subscription/renewal dates directly in Google Play after each stage. Step 5 is optional and is **not** part of this three-transaction example. [Google Play: Fees, charges & authorizations](https://support.google.com/googleplay/answer/6224192?hl=en).
@@ -60,7 +63,7 @@ For illustrated setup instructions, use the **[Install guide on this project's G
 Open **PowerShell** in the folder where you want to install the toolkit:
 
 ```powershell
-git clone https://github.com/hoangsvit/google-ai.git
+git clone https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 .\run-all.ps1
 ```
@@ -103,7 +106,7 @@ The native [macOS implementation](docs/MACOS-PREVIEW.md) supports **Steps 0–5*
 Open **Terminal** and install from the default repository branch:
 
 ```sh
-git clone https://github.com/hoangsvit/google-ai.git
+git clone https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 adb devices
 sh run-macos.sh
@@ -118,8 +121,19 @@ The macOS adapter exposes **Steps 0–5**. **Steps 2–5 may initiate real Googl
 
 On Ubuntu x86_64, install Git, Python 3.10+ with `venv` and `pip`, and Android SDK Platform-Tools. Put `adb` on `PATH` or set `ADB_PATH` to its executable. Connect a rooted Android phone with Google Play Store and Google One over USB. Enable USB debugging, unlock the phone, and approve the authorization prompt. Check that ADB reports one device with status `device`.
 
+**Waydroid (Linux emulator):** a Waydroid image with Google Play, Google One and working `su` can be used instead of a phone. Start the session, then connect ADB over the address shown by `waydroid status`:
+
 ```sh
-git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
+waydroid session start
+waydroid status            # note the IP address
+adb connect <waydroid-ip>:5555
+adb devices                # exactly one device, status "device"
+```
+
+Waydroid has no hardware keys and no `adb root`; the toolkit launches apps with `monkey --pct-syskeys 0`, uses `su` for root and waits for ADB to reconnect after root checks. **Keep Play Store on its home screen** (Apps tab, profile picture in the top-right corner) while Step 1 and Steps 2–5 run: the active Google Play account is read from that profile button, and an app page or **Payments & subscriptions** screen makes the account check fail without starting checkout. Waydroid support has been checked with Steps 0–1 and the pre-checkout checks of Step 2; Google Play checkout itself on Waydroid is not independently verified.
+
+```sh
+git clone --branch main --single-branch https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 "${ADB_PATH:-adb}" devices
 sh run-linux.sh
@@ -133,7 +147,7 @@ The `main` branch is the stable entrypoint for Linux after this integration merg
 
 **Android 16 and later:** The Linux launcher stops before device setup because pinned Frida 16.5.9 predates Android 16 support. **Diagnose Android connection** remains available for USB checks.
 
-**Steps 2–5 can incur real Google Play charges.** Each requires separate approval, a verified current Play account and a fresh exact-match offer with a zero-priced first phase. Guided continuation requires verifying the subscription and renewal date in Google Play. Linux checkout coverage uses mocks, and an end-to-end device check is pending. [Linux setup, USB troubleshooting and verification](docs/LINUX.md).
+**Steps 2–5 can incur real Google Play charges.** Each requires separate approval, a verified current Play account and a fresh exact-match offer with a zero-priced first phase. On Linux and macOS, each paid step opens Google Play checkout and **stops without tapping Subscribe** (`--manual-subscribe`); choose the payment method on Android (for example a card or an e-wallet that Google Play accepts in your country) and tap **Subscribe** only if you accept the terms shown. Guided continuation requires verifying the subscription and renewal date in Google Play. Linux checkout coverage uses mocks, and an end-to-end device check is pending. [Linux setup, USB troubleshooting and verification](docs/LINUX.md).
 
 
 ## Use the dashboard (recommended)
@@ -169,7 +183,7 @@ The dashboard shows a connection notice if Android is unavailable at startup or 
 
 **Retry connection** in the disconnected-device popup shows **Retrying…** and elapsed seconds. On Windows it tries the existing local emulator connection routine; Windows stages also attempt reconnection when no ADB device is online. **Got it** dismisses the popup. During read-only checks, a failed app startup gets one restart attempt. If recovery fails, close and reopen MuMu, wait for Android to boot and repeat Step 1. The engine restarts Google One before querying offers; Play Store stays running when already available. **Reload toolkit** restarts the idle dashboard with local code and begins a new session.
 
-Before automatically tapping **Subscribe**, checkout must show exactly the expected email, today's zero total and the expected trial duration, with the requested offer already matched. Missing or different checkout accounts stop the automatic tap and require manual review. The submitted checkout still needs independent subscription, renewal-date and charge verification in Google Play. Each paid stage requires its own approval. The three-card-event reminder appears in the payment approvals.
+Before automatically tapping **Subscribe** (Windows), checkout must show exactly the expected email, today's zero total and the expected trial duration, with the requested offer already matched. Missing or different checkout accounts stop the automatic tap and require manual review. **On macOS and Linux the toolkit never taps Subscribe:** after the same checks it leaves checkout open and shows **Checkout is open - finish it on Android**. Select your payment method, read the terms and tap **Subscribe** yourself only if you agree; if anything was unclear, the toolkit still stops with a warning and leaves the screen for you to review. **Verified in Google Play → Next** then records your own confirmation that the subscription exists; the toolkit cannot see whether you subscribed. The submitted checkout still needs independent subscription, renewal-date and charge verification in Google Play. Each paid stage requires its own approval. The three-card-event reminder appears in the payment approvals.
 
 ### Additional run options
 

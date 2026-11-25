@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: afc22139893546e8a4b9449722ededacfedd7f2c -->
+<!-- Source README.md git-blob: 75a84b32348777bb9ad3ae214b25376c9e5d4765 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -9,10 +9,13 @@
 
 **ePlus AI Toolkit** 用于查看 Android 设备上的 Google One 和 Google Play 提供的 Google AI Pro 优惠。它支持 **Windows、macOS 和 Linux**：Windows 用户通过 PowerShell 启动，Mac 用户则使用 Terminal（zsh/bash）。Textual 图形化终端界面与命令行模式共用 Python、ADB 和 Frida 执行引擎。
 
+> [!NOTE]
+> **本项目是 [hoangsvit/google-ai](https://github.com/hoangsvit/google-ai) 的分支（fork）。** 此分支为 Linux 增加了 Waydroid 支持，并让 Linux 和 macOS 上的付费步骤停在 Google Play 付款页面，由你自行点击 **Subscribe**。原有的全部致谢信息均保留在 [CONTRIBUTORS.md](CONTRIBUTORS.md) 和致谢部分中。
+
 ![ePlus AI Toolkit 界面](images/terminal-ui-overview.png)
 
 > [!CAUTION]
-> **非官方工具，可能产生真实费用。** **Step 2–5** 可能打开 Google Play 的真实结账页面，并自动点击 **Subscribe（订阅）**。发现优惠、看到首期价格为 0，或收到“已提交结账”的消息，**均不代表**账户有资格、订阅免费、已激活或续期成功。每次操作前，请在 Google Play 上核实账户、本次收费、后续价格和续订日期。停止工具不能撤销已经提交的交易。
+> **非官方工具，可能产生真实费用。** **Step 2–5** 可能打开 Google Play 的真实结账页面，并自动点击 **Subscribe（订阅）**。此自动点击仅发生在 Windows 上；在 macOS 和 Linux 上，工具会停在付款页面，由你决定是否点击 **Subscribe**。发现优惠、看到首期价格为 0，或收到“已提交结账”的消息，**均不代表**账户有资格、订阅免费、已激活或续期成功。每次操作前，请在 Google Play 上核实账户、本次收费、后续价格和续订日期。停止工具不能撤销已经提交的交易。
 
 > [!NOTE]
 > **至少准备 3 美元可用余额，用于三笔各 1 美元的独立交易，并非一次扣除 3 美元。** 在用户报告的 **24 个月**流程中，Step 2（最初 12 个月）、Step 3（延长 6 个月）和 Step 4（再延长 6 个月）各涉及**一笔 1 美元的银行卡验证或支付交易**：**3 × US$1 = US$3**。其中的 1 美元可能只是临时预授权冻结，并非已入账的实际扣款；金额也可能因银行、账户或 Google Play 的要求而不同。**3 美元只是这一案例的最低备用余额，不是固定手续费，也不保证所有账户都能获得 24 个月。** 预授权会暂时占用可用余额，通常依据银行处理情况在 **1–14 个工作日**内解除。每完成一步，请到 Google Play 核实交易状态和订阅续订日期。可选的 Step 5 **不计入上述三笔交易**。[Google Play 官方说明](https://support.google.com/googleplay/answer/6224192?hl=en)。
@@ -58,7 +61,7 @@
 在 PowerShell 中运行：
 
 ```powershell
-git clone https://github.com/hoangsvit/google-ai.git
+git clone https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 .\run-all.ps1
 ```
@@ -97,7 +100,7 @@ macOS 需安装 **Git**、**Python 3.10+** 与 **Android SDK Platform-Tools (ADB
 在 **Terminal** 中执行：
 
 ```sh
-git clone https://github.com/hoangsvit/google-ai.git
+git clone https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 adb devices
 sh run-macos.sh
@@ -109,8 +112,19 @@ sh run-macos.sh
 
 在 Ubuntu x86_64 上安装 Git、带有 `venv` 和 `pip` 的 Python 3.10 或更高版本，以及 Android SDK Platform-Tools。将 `adb` 加入 `PATH`，或用 `ADB_PATH` 指定可执行文件。用 USB 连接已取得 root 权限且装有 Google Play 商店和 Google One 的 Android 手机。打开 USB 调试，解锁手机并确认授权。ADB 应只显示一台状态为 `device` 的设备。
 
+**Waydroid（Linux 模拟器）：** 可以用装有 Google Play、Google One 且 `su` 可用的 Waydroid 镜像代替手机。先启动会话，再通过 `waydroid status` 显示的地址连接 ADB：
+
 ```sh
-git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
+waydroid session start
+waydroid status            # 记下 IP 地址
+adb connect <waydroid-ip>:5555
+adb devices                # 只有一台设备，状态为 "device"
+```
+
+Waydroid 没有硬件按键，也不支持 `adb root`；本工具会用 `monkey --pct-syskeys 0` 启动应用，通过 `su` 获取 root 权限，并在检查 root 后等待 ADB 重新连接。运行 Step 1 和第 2–5 步时，**请让 Play 商店停留在首页**（Apps 标签页，右上角显示头像）：当前 Google Play 账号是从该头像按钮读取的；如果停留在某个应用页面或 **Payments & subscriptions** 页面，账号检查会失败，且不会打开付款页面。Waydroid 支持已通过 Step 0–1 以及 Step 2 付款前的各项检查验证；Waydroid 上的 Google Play 付款流程本身尚未经过独立验证。
+
+```sh
+git clone --branch main --single-branch https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 "${ADB_PATH:-adb}" devices
 sh run-linux.sh
@@ -127,6 +141,8 @@ sh run-linux.sh
 **Android 16 及更高版本：** 固定使用的 Frida 16.5.9 尚不支持 Android 16，因此 Linux 启动脚本会在配置设备前停止。仍可通过 **Diagnose Android connection** 检查 USB 连接。
 
 **第 2–5 步可能产生真实的 Google Play 费用。** 每一步都须单独确认、核实当前 Play 账号，并通过本次查询确认优惠完全匹配且首期价格为零。继续引导流程前，请在 Google Play 中核实订阅和续订日期。Linux 结账仅通过模拟测试，真机端到端验证尚未完成。 [Linux 安装、USB 故障排查和验证](docs/LINUX.md).
+
+在 Linux 和 macOS 上，每个付费步骤都会打开 Google Play 付款页面，然后**停下而不点击 Subscribe**（`--manual-subscribe`）。请在 Android 上选择付款方式（例如银行卡，或 Google Play 在你所在国家/地区支持的电子钱包），仅在你接受页面上显示的条款时才点击 **Subscribe**。
 
 
 ## 3. Textual 界面
@@ -195,6 +211,8 @@ Device 卡片显示读取到的 Android 版本、SDK、ABI 和 ADB 连接信息�
 断开连接的弹窗提供 **Retry connection**，处理时显示 **Retrying…** 和已用秒数；**Got it** 关闭弹窗。Windows 会尝试重新连接本地模拟器，启动步骤时找不到在线 ADB 设备也会尝试连接。只读查询期间，应用启动失败会重启一次。若仍失败，请关闭并重新打开 MuMu，等待 Android 启动完成后重跑 Step 1。查询优惠前会重启 Google One；已正常运行的 Play Store 会保持运行。空闲时点击 **Reload toolkit** 可使用本地代码重新打开界面并开始新会话。
 
 自动点击 **Subscribe** 前，付款画面必须显示准确匹配的邮箱、今天应付总额为零及预期试用期，所请求的优惠也必须匹配。邮箱缺失或不匹配时，会停止自动点击并要求人工核对。每个付款步骤都需要单独批准。提交后仍需在 Google Play 核实订阅、续费日期和扣款。三次银行卡验证的提醒显示在付款确认框中。
+
+上述自动点击仅适用于 Windows。**在 macOS 和 Linux 上，本工具从不点击 Subscribe：** 完成相同的检查后，它会保持付款页面打开，并显示 **Checkout is open - finish it on Android**。请选择付款方式、阅读条款，只有在同意时才自行点击 **Subscribe**。如有任何信息不明确，工具同样会停下并给出警告，把页面留给你自行核对。之后的 **Verified in Google Play → Next** 只代表你本人确认订阅已存在；工具无法得知你是否已订阅。
 
 ## 4. PowerShell 命令行操作（高级）
 

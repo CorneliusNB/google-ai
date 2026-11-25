@@ -55,7 +55,8 @@ def stage_command(step: int, serial: str, account: str = "",
     if not EMAIL.fullmatch(account):
         raise ValueError("A verified Google Play email is required before checkout")
     plan, _offer, stack = STAGES[step]
-    result = base + ["--account", account, "--no-add", "--no-switch",
+    # Stop on the Google Play checkout sheet; the user taps Subscribe.
+    result = base + ["--account", account, "--no-add", "--no-switch", "--manual-subscribe",
                      "--plan", plan, "--serial", serial]
     if stack:
         result.append("--stack")
