@@ -1421,14 +1421,14 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     app._received("  Android     12 (SDK 31), ABI x86_64")
                     await pilot.pause()
                     self.assertIn("Android 12 · SDK 31 · x86_64", card.render().plain)
-                    self.assertEqual(card.tooltip, "Android 12 · SDK 31 · x86_64\nADB: emulator-5554")
+                    self.assertEqual(card.tooltip, "Android 12 · SDK 31 · x86_64")
                     self.assertGreaterEqual(card.content_region.width, len("Android 12 · SDK 31 · x86_64"))
                     with patch.object(app, "run_stage"):
                         app._start(1, False)
                     self.assertIsNone(card.tooltip)
                     self.assertNotIn("Android 12", card.render().plain)
                     app._received("Device emulator-5556")
-                    self.assertEqual(card.tooltip, "emulator-5556")
+                    self.assertEqual(card.tooltip, "Android connected (ADB)")
 
     async def test_checkout_confirmations_explain_each_one_dollar_event(self):
         from textual.widgets import Static

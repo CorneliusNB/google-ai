@@ -157,7 +157,7 @@ class AccountPicker(ModalScreen[str | None]):
                          "and run Check Device & Offers to verify.")
             # Show complete addresses only in this local selection dialog so
             # two similar aliases cannot be confused; cards/logs stay masked.
-            yield Select([(f"{i + 1}. {email}", email)
+            yield Select([(f"{i + 1}. {mask_email(email)}", email)
                           for i, email in enumerate(self.accounts)],
                          value=self.accounts[0], allow_blank=False, id="account_choice")
             with Horizontal(id="account_picker_actions"):
@@ -187,6 +187,8 @@ class ConnectionNotice(SetupNotice):
             with VerticalScroll(id="notice_scroll"):
                 yield Static(self.notice_title, classes="section")
                 yield Static(self.instruction, id="connection_instruction")
+            if sys.platform == "win32":
+                yield Button("Start MuMu", id="connection_start_mumu", variant="success")
             with Horizontal(id="connection_actions"):
                 yield Button("Retry connection", id="connection_retry", variant="primary")
                 yield Button("Got it", id="notice_close")
@@ -200,11 +202,45 @@ class ConnectionNotice(SetupNotice):
             elapsed = int(time.monotonic() - self._retry_started)
             self.query_one("#connection_retry", Button).label = f"Retrying… {elapsed}s"
 
+    @on(Button.Pressed, "#connection_start_mumu")
+    def start_mumu(self) -> None:
+        if self._retry_started is not None or self.app.busy:
+            return
+        self._retry_started = time.monotonic()
+        self.app._invalidate_connection_polls()
+        self.query_one("#connection_start_mumu", Button).disabled = True
+        self.query_one("#connection_retry", Button).disabled = True
+        self.query_one("#notice_close", Button).disabled = True
+        self.query_one("#connection_instruction", Static).update("Starting an existing MuMu instance…")
+        self._start_mumu_worker()
+
+    @work(thread=True, exclusive=True, group="connection-retry")
+    def _start_mumu_worker(self) -> None:
+        from device_diagnostics import locate_adb
+        from mumu_remote import MuMuError, start_android
+        try:
+            adb = locate_adb()
+            if not adb:
+                raise MuMuError("ADB not found. Run the environment setup first.")
+            serial = start_android(adb)
+            result = poll_connection()
+            if result.state != "connected" or result.devices != (serial,):
+                raise MuMuError("The started instance is not the only online device. Disconnect other devices or select explicitly.")
+            message = ""
+        except MuMuError as error:
+            result, message = ConnectionStatus("adb_error"), str(error)
+        except (OSError, RuntimeError, subprocess.SubprocessError):
+            result, message = ConnectionStatus("adb_error"), "MuMu startup could not complete. Open MuMu manually and check ADB."
+        self.app.call_from_thread(self._retry_finished, result, message)
+
     @on(Button.Pressed, "#connection_retry")
     def retry_connection(self) -> None:
         if self._retry_started is not None or self.app.busy:
             return
         self._retry_started = time.monotonic()
+        self.app._invalidate_connection_polls()
+        if self.query("#connection_start_mumu"):
+            self.query_one("#connection_start_mumu", Button).disabled = True
         self.query_one("#connection_retry", Button).disabled = True
         self.query_one("#notice_close", Button).disabled = True
         self._update_retry_time()
@@ -218,16 +254,18 @@ class ConnectionNotice(SetupNotice):
                 from setup_env import connect_emulator
                 adb = locate_adb()
                 if adb:
-                    connect_emulator(adb)
+                    connect_emulator(adb, quiet=True)
             result = poll_connection()
         except Exception:
             result = ConnectionStatus("adb_error")
         self.app.call_from_thread(self._retry_finished, result)
 
-    def _retry_finished(self, result: ConnectionStatus) -> None:
+    def _retry_finished(self, result: ConnectionStatus, message: str = "") -> None:
         if not self.is_mounted:
             return
         self._retry_started = None
+        if self.query("#connection_start_mumu"):
+            self.query_one("#connection_start_mumu", Button).disabled = False
         self.query_one("#connection_retry", Button).disabled = False
         self.query_one("#connection_retry", Button).label = "Retry connection"
         self.query_one("#notice_close", Button).disabled = False
@@ -243,7 +281,7 @@ class ConnectionNotice(SetupNotice):
             else:
                 guidance = ("Still unable to connect. Close and reopen MuMu, wait for Android "
                             "to boot, enable ADB debugging, then press Retry connection.")
-            self.query_one("#connection_instruction", Static).update(guidance)
+            self.query_one("#connection_instruction", Static).update(message or guidance)
 
 
 def is_macos_platform() -> bool:
@@ -647,6 +685,10 @@ class GoogleAITUI(App[None]):
         self._initial_offer_ready = False
         self._offer_ready_device = None
         self.query_one("#account", Static).update("Account  •  " + escape(mask_email(account)) + " (selected)")
+        self.sequence = False
+        self.query_one("#next", Button).display = False
+        self.query_one("#next", Button).disabled = True
+        self.query_one("#quickstart", Button).display = True
         self.query_one("#quickstart", Button).label = "Check Device & Offers"
         self._update_run_mode()
         self._set_status("Account selected — not yet verified")
@@ -751,7 +793,8 @@ class GoogleAITUI(App[None]):
 
     def _poll_connection(self, startup: bool = False) -> None:
         if (self.busy or self._diagnosing or self._sku_pending or self._connection_polling or
-                (isinstance(self.screen, ModalScreen) and not isinstance(self.screen, ConnectionNotice))):
+                (isinstance(self.screen, ModalScreen) and not isinstance(self.screen, ConnectionNotice)) or
+                (isinstance(self.screen, ConnectionNotice) and self.screen._retry_started is not None)):
             return
         self._connection_polling = True
         self._inspect_connection_periodically(self._connection_generation, startup)
@@ -1643,7 +1686,10 @@ class GoogleAITUI(App[None]):
                                 report = data
                         except (OSError, ValueError):
                             pass
-                connection = poll_connection()
+                try:
+                    connection = poll_connection()
+                except (OSError, RuntimeError, subprocess.SubprocessError):
+                    connection = ConnectionStatus("adb_error")
                 # Match only the transport that actually produced this
                 # invocation's report; a later poll is not proof of origin.
                 binding = report.pop("device_binding", "") if report else ""
@@ -1753,8 +1799,8 @@ class GoogleAITUI(App[None]):
         if selected_device:
             self._checked_device = selected_device.group(1)
             card = self.query_one("#device", Static)
-            card.update("Device  •  " + escape(self._checked_device))
-            card.tooltip = self._checked_device
+            card.update("Device  •  Android connected (ADB)")
+            card.tooltip = "Android connected (ADB)"
         android = re.fullmatch(
             r"\s*Android\s+([A-Za-z0-9._-]{1,16}) \(SDK ([0-9]{1,4})\), ABI ([A-Za-z0-9_-]{1,24})\s*",
             line,
@@ -1763,8 +1809,8 @@ class GoogleAITUI(App[None]):
             release, sdk, abi = android.groups()
             details = f"Android {release} · SDK {sdk} · {abi}"
             card = self.query_one("#device", Static)
-            card.update(f"{details} · {escape(self._checked_device)}")
-            card.tooltip = f"{details}\nADB: {self._checked_device}"
+            card.update(details)
+            card.tooltip = details
         # Trust only the structured PowerShell "Account <email>" status line,
         # not arbitrary log messages containing an email address.
         account = re.match(
