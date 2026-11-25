@@ -43,6 +43,10 @@ param(
     [switch]$Force,
     [ValidateSet("auto", "choose", "thread")]
     [string]$ActivityMethod = "auto",
+    [switch]$StartMumu,
+    [switch]$NoStartMumu,
+    [ValidateRange(0, 9999)]
+    [int]$MumuInstance,
     [switch]$SetupOnly,
     [switch]$ListOnly,
     [switch]$Tui,
@@ -187,7 +191,10 @@ if ($PSBoundParameters.ContainsKey("StartStep") -and -not $AllStages) {
 if ($Tui -and $Cli) {
     Stop-Workflow "Choose -Tui or -Cli, not both."
 }
-$useTui = $Tui -or (-not $Cli -and -not $PSBoundParameters.ContainsKey("Step") -and
+if (($StartMumu -or $PSBoundParameters.ContainsKey("MumuInstance")) -and ($Tui -or $NoStartMumu -or $Serial)) {
+    Stop-Workflow "Choose either MuMu startup or an explicit serial; do not combine startup with -Tui or -NoStartMumu."
+}
+$useTui = $Tui -or (-not $Cli -and -not $StartMumu -and -not $PSBoundParameters.ContainsKey("MumuInstance") -and -not $PSBoundParameters.ContainsKey("Step") -and
                    -not $AllStages -and -not $SetupOnly -and -not $ListOnly -and -not $Help)
 if ($useTui) {
     if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
@@ -237,6 +244,14 @@ try {
     Run-Command $Adb @("version")
 
     Stage "Preflight: Identify Android device"
+    if ($StartMumu -or $PSBoundParameters.ContainsKey("MumuInstance")) {
+        $lookup = @("start-mumu")
+        if ($PSBoundParameters.ContainsKey("MumuInstance")) { $lookup += @("--vmindex", [string]$MumuInstance) }
+        $Serial = Get-RuntimeValue -LookupArgs $lookup
+        if (-not $Serial -or $Serial -notmatch '^127\.0\.0\.1:[0-9]+$') {
+            Stop-Workflow "MuMu startup failed. Open the intended instance manually."
+        }
+    }
     $deviceLines = @(& $Adb devices)
     if ($LASTEXITCODE -ne 0) { Stop-Workflow "ADB device discovery failed." }
     $online = @(
@@ -244,7 +259,7 @@ try {
             if ($line -match '^\s*(\S+)\s+device\s*$') { $Matches[1] }
         }
     )
-    if ($online.Count -eq 0) {
+    if ($online.Count -eq 0 -and -not $Serial) {
         Show-Status "Connection" "Trying local emulator ADB ports..."
         $null = Get-RuntimeValue -LookupArgs @("connect-device")
         $deviceLines = @(& $Adb devices)
@@ -310,7 +325,7 @@ try {
     Stage "Original Step 0: Environment check"
     Note "The original ultra0.py may repair Frida and change emulator proxy/network settings."
     Run-Command $Python @("ultra0.py", "--check", "--serial", $Serial)
-    Write-Host "EPLUS_STAGE_DONE:0"
+    if ($env:EPLUS_TUI -eq "1") { Write-Host "EPLUS_STAGE_DONE:0" }
 
     if ($SetupOnly -or ($Step -eq 0 -and -not $AllStages)) {
         Note "Original Step 0 complete. No checkout or purchase requested."
