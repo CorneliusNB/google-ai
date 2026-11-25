@@ -13,6 +13,7 @@ import json
 import os
 import signal
 from collections import deque
+from datetime import datetime
 from pathlib import Path
 import re
 import subprocess
@@ -38,6 +39,25 @@ from device_diagnostics import (
     ConnectionDiagnosis, ConnectionStatus, inspect_connection, open_google_one_listing, poll_connection,
 )
 from stage_history import latest_history, read_history, record_history
+
+
+class LocalClock(Static):
+    """Display the host's local date, time and current UTC offset."""
+
+    def on_mount(self) -> None:
+        self.update_time()
+        self.set_interval(1, self.update_time)
+
+    def update_time(self) -> None:
+        local_time = datetime.now().astimezone()
+        offset = local_time.strftime("%z")
+        self.update(f"{local_time:%Y-%m-%d %H:%M:%S} UTC{offset[:3]}:{offset[3:]}")
+
+
+class DashboardHeader(Header):
+    def compose(self) -> ComposeResult:
+        yield from super().compose()
+        yield LocalClock(id="local_clock")
 
 
 class TechnicalLog(RichLog):
@@ -374,6 +394,12 @@ class GoogleAITUI(App[None]):
     CSS = """
     Screen { background: #081424; color: #e8f2fc; }
     Header, Footer { background: #11243e; color: #d7e8fa; }
+    DashboardHeader HeaderClockSpace { display: none; }
+    #local_clock {
+        dock: right; width: 31; max-width: 100%; height: 100%; padding: 0 1;
+        background: #1c3450; content-align: center middle; text-wrap: nowrap;
+    }
+    Screen.tiny DashboardHeader HeaderIcon { width: 3; }
     #screen { height: 1fr; min-height: 0; padding: 0 1; }
     #brand {
         height: 3; background: #122741; border: round #28628d;
@@ -552,7 +578,7 @@ class GoogleAITUI(App[None]):
         self._sku_exit = False
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield DashboardHeader()
         with Vertical(id="screen"):
             with Horizontal(id="brand"):
                 yield Static("Support: ", id="support_label")

@@ -373,6 +373,31 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
+    async def test_header_clock_shows_local_date_time_and_utc_offset(self):
+        from datetime import datetime, timedelta, timezone
+        from tui import GoogleAITUI, LocalClock
+
+        local_zone = timezone(timedelta(hours=7))
+        for size in ((58, 20), (90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                with patch("tui.datetime") as host_time:
+                    host_time.now.return_value.astimezone.return_value = datetime(
+                        2026, 11, 25, 23, 59, 59, tzinfo=local_zone,
+                    )
+                    async with app.run_test(size=size) as pilot:
+                        await pilot.pause()
+                        clock = app.query_one(LocalClock)
+                        self.assertEqual(str(clock.render()), "2026-11-25 23:59:59 UTC+07:00")
+                        self.assertEqual(clock.region.right, size[0])
+                        self.assertGreaterEqual(clock.region.width, len(str(clock.render())))
+                        self.assertLessEqual(app.query_one("HeaderTitle").region.right, clock.region.x)
+                        host_time.now.return_value.astimezone.return_value = datetime(
+                            2026, 11, 26, tzinfo=local_zone,
+                        )
+                        clock.update_time()
+                        self.assertEqual(str(clock.render()), "2026-11-26 00:00:00 UTC+07:00")
+
     async def test_mode_refresh_ignores_unmounted_widgets(self):
         from tui import GoogleAITUI
 
