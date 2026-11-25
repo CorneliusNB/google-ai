@@ -135,6 +135,7 @@ function Run-Command([string]$Program, [string[]]$Arguments) {
     }
     if ($LASTEXITCODE -ne 0) {
         if ($billingSetupFailed) { Stop-Workflow "Billing module setup failed" }
+        if ($LASTEXITCODE -eq 23) { Stop-Workflow "Android UI capture failed" }
         Stop-Workflow ("A tool failed (exit {0}). See local run log; do not retry checkout blindly." -f $LASTEXITCODE)
     }
 }
@@ -155,6 +156,7 @@ function Get-RuntimeValue([string[]]$LookupArgs) {
         $lookupExit = $LASTEXITCODE
     }
     if ($lookupExit -ne 0) {
+        if ($lookupExit -eq 23) { Stop-Workflow "Android UI capture failed" }
         if ($isMumuStartup) {
             $recovery = $output | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^MUMU_RECOVERY:[A-Za-z0-9_ .,;/-]+$' } | Select-Object -Last 1
             if ($recovery) {

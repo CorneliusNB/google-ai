@@ -464,24 +464,45 @@ def ensure_network():
 
 
 # ---------- UI ----------
+class UICaptureError(RuntimeError):
+    """Android UI capture failed; do not infer account or checkout state."""
+
+
 def ui_xml() -> str:
-    # A failed dump can leave an old hierarchy at a fixed path.
-    path = f"/sdcard/eplus-ui-{uuid4().hex}.xml"
-    command = (
-        f"trap 'rm -f {path}' EXIT; "
-        f"uiautomator dump {path} >/dev/null && cat {path}"
-    )
-    try:
-        xml = sh("shell", command, check=True)
-    except RuntimeError as exc:
-        # Keep the machine-readable stdout protocol clean; never log UI XML.
-        diagnostic = " ".join(str(exc).split())
-        if "<" in diagnostic:
-            diagnostic = "XML diagnostic omitted"
-        print("Android UI capture failed: " + (diagnostic or "no stderr diagnostic"),
-              file=sys.stderr, flush=True)
+    # A failed dump can leave old data. Use a unique path for every attempt,
+    # and read it only after the dump exits successfully.
+    recovering = False
+    for attempt in range(2):
+        path = f"/sdcard/eplus-ui-{uuid4().hex}.xml"
+        command = (
+            f"trap 'rm -f {path}' EXIT; "
+            f"uiautomator dump {path} >/dev/null && cat {path}"
+        )
+        try:
+            xml = sh("shell", command, timeout=20, check=True)
+        except (RuntimeError, subprocess.TimeoutExpired) as exc:
+            diagnostic = " ".join(str(exc).split())
+            transient = (isinstance(exc, subprocess.TimeoutExpired) or
+                         bool(re.search(r"segmentation fault|sigsegv", diagnostic, re.I)))
+            if transient or recovering:
+                if attempt == 0:
+                    recovering = True
+                    time.sleep(1)
+                    continue
+                raise UICaptureError("Android UI capture failed") from None
+            # Preserve existing handling for other dump failures.
+            # Keep machine-readable stdout clean; never log UI XML.
+            if "<" in diagnostic:
+                diagnostic = "XML diagnostic omitted"
+            print("Android UI capture failed: " + (diagnostic or "no stderr diagnostic"),
+                  file=sys.stderr, flush=True)
+            return ""
+        if xml.endswith("</hierarchy>"):
+            return xml
+        if recovering:
+            raise UICaptureError("Android UI capture failed") from None
         return ""
-    return xml if xml.endswith("</hierarchy>") else ""
+    raise UICaptureError("Android UI capture failed")
 
 
 def nodes(xml: str):
@@ -1197,6 +1218,8 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
             if not add_account(email, password, totp_secret):
                 rec["status"] = "add_account_failed"
                 return rec
+        except UICaptureError:
+            raise
         except Exception as e:
             warn(f"Could not add Google account: {e}")
             rec["status"] = "add_account_error"
@@ -1206,6 +1229,8 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
             if not add_card(card):
                 rec["status"] = "payment_method_not_confirmed"
                 return rec
+        except UICaptureError:
+            raise
         except Exception as e:
             warn(f"Could not add payment card: {type(e).__name__}")
             rec["status"] = "payment_method_not_confirmed"
@@ -1429,6 +1454,14 @@ def main():
                 rec = process(email, pw, sec, add=(not a.no_add and not a.list), card=card, plan=a.plan,
                               no_switch=a.no_switch, list_only=a.list, stack=a.stack, old_token=a.old_token,
                               stack_mode=a.mode, activity_method=a.activity_method)
+        except UICaptureError:
+            # Stop the whole invocation, including multi-account runs. No
+            # automatic checkout retry or account substitution is permitted.
+            rec = {"email": email, "status": "ui_capture_failed"}
+            (REPORT_DIR / report_filename(email)).write_text(
+                json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
+            warn("Android UI capture failed. Restart the Android device, then repeat Step 1. Check Google Play payment history before retrying any paid step.")
+            return 23
         except Exception as e:
             warn(f"{type(e).__name__}: {str(e)[:320]}")
             rec = {"email": email, "status": "exception", "error": str(e)[:320],

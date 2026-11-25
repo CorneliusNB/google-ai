@@ -92,6 +92,12 @@ class ReadmeLocalesTests(unittest.TestCase):
         for label in ("-StartMumu", "-NoStartMumu", "-MumuInstance", "No VM is created"):
             self.assertIn(label, usage)
 
+    def test_ui_capture_failure_guidance_is_actionable(self):
+        guide = content("docs/TROUBLESHOOTING.md")
+        self.assertIn("Android UI capture failed / Segmentation fault", guide)
+        self.assertIn("restart the selected Android device", guide)
+        self.assertIn("Check Device & Offers", guide)
+
     def test_support_and_muse_distinction_remains_in_detailed_guides(self):
         for overview in OVERVIEWS:
             with self.subTest(file=overview):

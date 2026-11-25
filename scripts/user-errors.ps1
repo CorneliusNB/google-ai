@@ -70,6 +70,12 @@ function Get-UserIssue {
                 Action = "Open Google One and Google Play, check the connection, then run -Step 1."
             }
         }
+        "ui_capture_failed" {
+            return [pscustomobject]@{
+                Title = "Android UI capture failed"
+                Action = "Close MuMu and reopen it, or restart the selected Android device. Wait for boot, unlock Android, open Google Play and run Check Device & Offers again from Step 1. Review subscriptions and payment history before retrying any paid step."
+            }
+        }
         "account_unavailable" {
             return [pscustomobject]@{
                 Title = "Could not identify the Google Play account"
@@ -286,6 +292,7 @@ function Get-UserIssue {
 function Get-FailureCode {
     param([string]$ErrorMessage)
     if ($ErrorMessage -like "MuMu startup failed*") { return "mumu_start_failed" }
+    if ($ErrorMessage -eq "Android UI capture failed") { return "ui_capture_failed" }
     if ($ErrorMessage -eq "Billing module setup failed") { return "billing_module_setup_failed" }
     if ($ErrorMessage -match '(?i)Python not found') { return "python_missing" }
     if ($ErrorMessage -match '(?i)adb\.exe was not found|ADB device discovery failed') { return "adb_missing" }

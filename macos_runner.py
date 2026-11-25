@@ -156,7 +156,7 @@ def run_engine(command: list[str], env: dict[str, str]) -> int:
         if workdir is not None:
             print("EPLUS_ISSUE:billing_module_setup_failed", flush=True)
         raise RuntimeError("Billing module setup failed")
-    if code and workdir is not None:
+    if code and code != 23 and workdir is not None:
         print("Android stage failed. Check the USB connection, root access and Android Frida compatibility.",
               flush=True)
     return code
@@ -168,6 +168,8 @@ def read_play_account(serial: str, env: dict[str, str]) -> str:
                "play-account", "--serial", serial]
     result = subprocess.run(command, cwd=ROOT, env=env, capture_output=True,
                             text=True, errors="replace", timeout=60)
+    if result.returncode == 23:
+        raise RuntimeError("Android UI capture failed")
     if result.returncode:
         raise RuntimeError("Google Play account lookup failed; no checkout started")
     lines = [line.removeprefix("RUNTIME_RESULT:") for line in result.stdout.splitlines()
@@ -205,7 +207,10 @@ def list_offers(serial: str, env: dict[str, str], plan: str = "pro12") -> dict:
     if linux and (directory / "current.json").exists():
         raise RuntimeError("The result belongs to an older invocation")
     start_ns = 0 if linux else time.time_ns()
-    if run_engine(command, env):
+    code = run_engine(command, env)
+    if code == 23:
+        raise RuntimeError("Android UI capture failed")
+    if code:
         raise RuntimeError("Google Play offer listing failed; checkout not started")
     report = fresh_report("current.json", start_ns, directory)
     if report["status"] in ("app_not_started", "play_store_not_started"):
@@ -328,6 +333,8 @@ def run_stage(step: int, serial: str, env: dict[str, str],
     if linux and any(path.name != "current.json" for path in directory.glob("*.json")):
         raise RuntimeError("An earlier checkout report is present. No checkout started.")
     code = run_engine(stage_command(step, serial, account), env)
+    if code == 23:
+        raise RuntimeError("Android UI capture failed")
     if linux and code == 0:
         report = read_fresh_report(directory, step, 0, expected_account=account)
         if report is None:
@@ -382,7 +389,13 @@ def main(argv: list[str] | None = None) -> int:
         return run_stage(args.step, serial, env, args.confirmed, args.active_confirmed,
                          None, args.expected_account, args.expected_device)
     except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
-        if linux:
+        if linux and str(error) == "Android UI capture failed":
+            from tui_core import runtime_error_outcome
+            issue = runtime_error_outcome(str(error), args.step)
+            if os.environ.get("EPLUS_TUI") == "1":
+                print(f"EPLUS_ISSUE:{issue.code}", flush=True)
+            print(f"{issue.title}. Next: {issue.instruction}", file=sys.stderr, flush=True)
+        elif linux:
             if isinstance(error, RuntimeError):
                 print(f"Stage stopped: {error}", file=sys.stderr, flush=True)
             else:
