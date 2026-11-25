@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 한국어
 
-<!-- Source README.md git-blob: afc22139893546e8a4b9449722ededacfedd7f2c -->
+<!-- Source README.md git-blob: 75a84b32348777bb9ad3ae214b25376c9e5d4765 -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -9,10 +9,13 @@
 
 **ePlus AI Toolkit**은 Android 기기의 Google One과 Google Play에 표시되는 Google AI Pro 혜택을 확인하는 도구입니다. **Windows**에서는 PowerShell로, **macOS**와 **Linux**에서는 Terminal(zsh/bash)로 실행합니다. Textual 화면과 명령줄 방식은 모두 Python·ADB·Frida 기반의 동일한 실행 엔진을 사용합니다.
 
+> [!NOTE]
+> **이 저장소는 [hoangsvit/google-ai](https://github.com/hoangsvit/google-ai)의 포크입니다.** Linux에서 Waydroid를 지원하고, Linux와 macOS의 유료 단계가 Google Play 결제 화면에서 멈추도록 바꿨습니다. **Subscribe**는 직접 누르세요. 원래의 모든 크레딧은 [CONTRIBUTORS.md](CONTRIBUTORS.md)와 크레딧 섹션에 그대로 남아 있습니다.
+
 ![ePlus AI Toolkit 화면](images/terminal-ui-overview.png)
 
 > [!CAUTION]
-> **비공식 도구이며 실제 요금이 청구될 수 있습니다.** **Step 2–5**는 실제 Google Play 결제 화면을 열고 상황에 따라 **Subscribe(구독)**를 자동으로 누를 수 있습니다. 프로모션이 표시되거나 첫 결제 금액이 0이거나 결제 요청 메시지가 나타나더라도 **프로모션 적용, 무료 구독, 구독 활성화, 기간 연장이 확인된 것은 아닙니다**. 실행 전에 Google Play에서 계정, 오늘의 결제 금액, 이후 요금과 갱신일을 확인해야 합니다. 도구를 중지해도 이미 제출한 거래는 취소되지 않습니다.
+> **비공식 도구이며 실제 요금이 청구될 수 있습니다.** **Step 2–5**는 실제 Google Play 결제 화면을 열고 상황에 따라 **Subscribe(구독)**를 자동으로 누를 수 있습니다. 자동 누르기는 Windows에서만 일어나며, macOS와 Linux에서는 결제 화면에서 멈추고 **Subscribe**를 누를지는 직접 결정합니다. 프로모션이 표시되거나 첫 결제 금액이 0이거나 결제 요청 메시지가 나타나더라도 **프로모션 적용, 무료 구독, 구독 활성화, 기간 연장이 확인된 것은 아닙니다**. 실행 전에 Google Play에서 계정, 오늘의 결제 금액, 이후 요금과 갱신일을 확인해야 합니다. 도구를 중지해도 이미 제출한 거래는 취소되지 않습니다.
 
 > [!NOTE]
 > **미화 3달러가 한 번에 결제되는 것이 아니라, 1달러씩 세 번의 별도 거래가 진행되므로 최소 3달러의 사용 가능 잔액을 준비하세요.** 보고된 **24개월** 이용 사례는 Step 2(최초 12개월), Step 3(+6개월), Step 4(추가 +6개월)에서 **각각 1달러의 카드 확인 또는 결제 거래**가 발생한 흐름입니다. 합계는 **3 × US$1 = US$3**입니다. 다만 1달러는 실제 확정 청구가 아닌 임시 승인 보류일 수도 있으며, 은행·계정·Google Play에 따라 금액이 달라질 수 있습니다. **3달러는 이 사례의 최소 준비 잔액일 뿐 고정 수수료나 24개월 이용 보장이 아닙니다.** 임시 승인 금액은 사용 가능 잔액을 줄일 수 있으며 은행에 따라 보통 **영업일 기준 1~14일** 내 해제됩니다. 각 단계가 끝나면 Google Play에서 거래 상태와 갱신일을 직접 확인하세요. 선택 사항인 Step 5는 **이 세 거래에 포함되지 않습니다**. [Google Play 공식 안내](https://support.google.com/googleplay/answer/6224192?hl=en).
@@ -58,7 +61,7 @@
 PowerShell에서 실행:
 
 ```powershell
-git clone https://github.com/hoangsvit/google-ai.git
+git clone https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 .\run-all.ps1
 ```
@@ -97,7 +100,7 @@ macOS에서는 **Git**, **Python 3.10+**, **Android SDK Platform-Tools (ADB)**�
 **Terminal**에서 실행:
 
 ```sh
-git clone https://github.com/hoangsvit/google-ai.git
+git clone https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 adb devices
 sh run-macos.sh
@@ -109,8 +112,19 @@ sh run-macos.sh
 
 Ubuntu x86_64에서 Git, `venv`와 `pip`를 사용할 수 있는 Python 3.10 이상, Android SDK Platform-Tools를 설치하세요. `adb`를 `PATH`에 추가하거나 `ADB_PATH`로 실행 파일을 지정합니다. Google Play 스토어와 Google One이 설치된 루팅 Android 휴대전화를 USB로 연결하세요. USB 디버깅을 켜고 휴대전화의 잠금을 해제한 후 연결을 승인합니다. ADB에 상태가 `device`인 기기가 한 대만 표시되는지 확인하세요.
 
+**Waydroid(Linux 에뮬레이터):** 휴대폰 대신 Google Play와 Google One이 설치되어 있고 `su`가 동작하는 Waydroid 이미지를 사용할 수 있습니다. 세션을 시작한 뒤 `waydroid status`에 표시된 주소로 ADB를 연결하세요.
+
 ```sh
-git clone --branch main --single-branch https://github.com/hoangsvit/google-ai.git
+waydroid session start
+waydroid status            # IP 주소를 확인합니다
+adb connect <waydroid-ip>:5555
+adb devices                # 기기 1대, 상태 "device"
+```
+
+Waydroid에는 하드웨어 키가 없고 `adb root`도 지원되지 않습니다. 이 도구는 `monkey --pct-syskeys 0`으로 앱을 실행하고, root 권한은 `su`로 얻으며, root 확인 후 ADB가 다시 연결될 때까지 기다립니다. Step 1과 Steps 2–5를 실행하는 동안 **Play 스토어를 홈 화면에 두세요**(Apps 탭, 오른쪽 위에 프로필 사진). 현재 Google Play 계정은 이 프로필 버튼에서 읽기 때문에, 앱 상세 페이지나 **Payments & subscriptions** 화면이 열려 있으면 계정 확인이 실패하고 결제 화면은 열리지 않습니다. Waydroid는 Step 0–1과 Step 2의 결제 전 확인까지 검증했으며, Waydroid에서의 Google Play 결제 과정 자체는 별도로 검증되지 않았습니다.
+
+```sh
+git clone --branch main --single-branch https://github.com/CorneliusNB/google-ai.git
 cd google-ai
 "${ADB_PATH:-adb}" devices
 sh run-linux.sh
@@ -127,6 +141,8 @@ sh run-linux.sh
 **Android 16 이상:** 고정 버전인 Frida 16.5.9는 Android 16을 지원하지 않으므로 Linux 실행 스크립트는 기기를 설정하기 전에 중단됩니다. **Diagnose Android connection**으로 USB 연결은 확인할 수 있습니다.
 
 **Steps 2–5에서는 Google Play에 실제 요금이 발생할 수 있습니다.** 각 단계마다 개별 승인, 현재 Play 계정 확인, 그리고 최신 조회 결과에서 정확히 일치하며 첫 기간 요금이 0인 혜택이 필요합니다. 다음 단계로 넘어가기 전에 Google Play에서 구독과 갱신일을 확인하세요. Linux 결제는 모의 테스트로 검증하며, 실기기 전체 검증은 아직 완료되지 않았습니다. [Linux 설치, USB 문제 해결 및 검증](docs/LINUX.md).
+
+Linux와 macOS에서는 각 유료 단계가 Google Play 결제 화면을 연 뒤 **Subscribe를 누르지 않고 멈춥니다**(`--manual-subscribe`). Android에서 결제 수단(예: 카드 또는 거주 국가에서 Google Play가 지원하는 전자지갑)을 선택하고, 표시된 조건에 동의하는 경우에만 **Subscribe**를 누르세요.
 
 
 ## 3. 대시보드 사용법
@@ -195,6 +211,8 @@ Windows에서 사용할 MuMu 인스턴스만 ADB로 연결한 뒤 **Choose accou
 연결 끊김 창의 **Retry connection**은 처리 중 **Retrying…**와 경과 초를 표시합니다. **Got it**으로 창을 닫습니다. Windows에서는 로컬 에뮬레이터 재연결을 시도하며, 단계 시작 시 연결된 ADB 기기가 없을 때도 동일하게 처리합니다. 조회 중 앱이 시작되지 않으면 한 번 다시 시작합니다. 실패하면 MuMu를 닫았다가 다시 열고 Android 부팅이 끝난 뒤 Step 1을 실행하세요. 혜택 조회 전에 Google One을 다시 시작하며, Play Store가 이미 실행 중이면 계속 사용합니다. **Reload toolkit**은 대기 중인 화면을 로컬 코드로 다시 시작하고 새 세션을 엽니다.
 
 **Subscribe**를 자동으로 누르려면 결제 화면의 이메일이 예상 계정과 정확히 일치하고, 오늘 결제할 합계가 0이며, 체험 기간과 요청한 혜택도 일치해야 합니다. 이메일이 없거나 다르면 자동 누르기를 중단하고 직접 확인하도록 안내합니다. 결제 단계마다 별도 승인이 필요합니다. 제출 후에는 Google Play에서 구독, 갱신일 및 청구 내역을 확인하세요. 세 번의 카드 확인 안내는 결제 승인 화면에 표시됩니다.
+
+위의 자동 누르기는 Windows에만 해당합니다. **macOS와 Linux에서는 이 도구가 Subscribe를 누르지 않습니다.** 같은 확인을 마친 뒤 결제 화면을 열어 둔 채 **Checkout is open - finish it on Android**를 표시합니다. 결제 수단을 선택하고 조건을 읽은 다음, 동의하는 경우에만 직접 **Subscribe**를 누르세요. 불명확한 부분이 있으면 도구는 이 경우에도 경고와 함께 멈추고 화면을 그대로 남겨 직접 확인하게 합니다. 이후 **Verified in Google Play → Next**는 구독이 있다는 것을 사용자가 직접 확인했다는 기록일 뿐이며, 도구는 실제로 구독했는지 알 수 없습니다.
 
 ## 4. PowerShell 명령어 (고급)
 

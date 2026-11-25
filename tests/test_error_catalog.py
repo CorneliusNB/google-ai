@@ -46,5 +46,25 @@ class ErrorCatalogTests(unittest.TestCase):
                 self.assertTrue(visible.strip())
 
 
+class ManualSubscribeOutcomeTests(unittest.TestCase):
+    def test_open_checkout_awaits_user_and_allows_user_verified_next(self):
+        report = {"status": "awaiting_user_subscribe",
+                  "sheet": {"confirmed": False, "reason": "awaiting_user_subscribe"}}
+        result = outcome_for_stage(2, 0, report)
+        self.assertEqual(result.code, "awaiting_user_subscribe")
+        self.assertIn("NOT tapped", result.instruction)
+        self.assertTrue(result.can_review)
+
+    def test_contradictory_open_checkout_report_never_unlocks_next(self):
+        for sheet in (None, {"confirmed": True, "reason": "awaiting_user_subscribe"},
+                      {"confirmed": False, "reason": "today_price_unverified"}):
+            with self.subTest(sheet=sheet):
+                report = {"status": "awaiting_user_subscribe", "sheet": sheet}
+                self.assertFalse(outcome_for_stage(2, 0, report).can_review)
+        report = {"status": "awaiting_user_subscribe",
+                  "sheet": {"confirmed": False, "reason": "awaiting_user_subscribe"}}
+        self.assertFalse(outcome_for_stage(2, 1, report).can_review)
+
+
 if __name__ == "__main__":
     unittest.main()

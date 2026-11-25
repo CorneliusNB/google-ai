@@ -1308,7 +1308,10 @@ class GoogleAITUI(App[None]):
         if step == 2:
             title = "Start initial 12-month checkout?"
             message = ("Confirm this Google Play account has NO active Google One subscription. "
-                       "This step can automatically press Subscribe and create real charges.")
+                       "This step can automatically press Subscribe and create real charges."
+                       if not (self.linux_mode or self.macos_mode) else
+                       "This step opens Google Play checkout and stops there. You choose the "
+                       "payment method and tap Subscribe yourself; that can create real charges.")
         elif step >= 3:
             title = f"Start Step {step} (+6 months)?"
             message = ("Google AI Pro must already be active. Verify the previous "
@@ -1559,6 +1562,7 @@ class GoogleAITUI(App[None]):
         labels = {
             "started": "Started; outcome unverified",
             "checkout_requested": "Checkout submitted; verify in Google Play",
+            "awaiting_user_subscribe": "Checkout opened; user decides on Subscribe",
             "user_verified": "User verified in Google Play",
             "listed": "Offers loaded",
             "account_unverified": "Account could not be verified",
@@ -2214,6 +2218,9 @@ class GoogleAITUI(App[None]):
             return
         if outcome.code == "checkout_requested":
             self.notify("Review the actual subscription in Google Play.", severity="warning")
+        elif outcome.code == "awaiting_user_subscribe":
+            self.notify("Checkout is open on Android; Subscribe was not tapped. "
+                        "Finish or close it there, then verify in Google Play.", severity="warning")
         elif outcome.code not in ("listed", "environment_ok", "cancelled"):
             self.notify("Step stopped; check Google Play charges and subscription status "
                         "before a manual retry.", severity="warning")

@@ -138,6 +138,8 @@ def find_adb() -> str:
 
 ADB = None
 SERIAL = None
+# When True, checkout stops on the verified Google Play sheet and the user taps Subscribe.
+MANUAL_SUBSCRIBE = False
 
 
 def sh(*args, timeout=60, check=False, binary=False):
@@ -207,18 +209,29 @@ def ensure_root():
         except Exception:
             return ""
 
+    def _wait_online():
+        # `adb root` can restart adbd even when it reports that root is not
+        # available (e.g. Waydroid), leaving the device briefly offline.
+        try:
+            sh("wait-for-device", timeout=20)
+        except Exception:
+            pass
+
+    _wait_online()
     uid = _id()
     if "uid=0" not in uid:
         # Some emulators support adb root without needing su.
         try:
             sh("root", timeout=20)
             time.sleep(2)
+            _wait_online()
             uid = _id()
             if "uid=0" in uid:
                 note("Successfully enabled adb root")
         except Exception:
             pass
     if "uid=0" not in uid:
+        _wait_online()
         try:
             uid = sh("shell", "su -c id", timeout=15)
         except Exception:
@@ -396,7 +409,7 @@ def ensure_vending(*, retry_startup: bool = False) -> bool:
             warn("Google Play Store did not start during the offer check; restarting it once.")
             sh("shell", f"am force-stop {VENDING}", timeout=15)
         try:
-            sh("shell", f"monkey -p {VENDING} -c android.intent.category.LAUNCHER 1", timeout=30)
+            sh("shell", f"monkey --pct-syskeys 0 -p {VENDING} -c android.intent.category.LAUNCHER 1", timeout=30)
         except subprocess.TimeoutExpired:
             if not retry_startup:
                 raise
@@ -835,7 +848,7 @@ def launch_app() -> int:
     step("Restarting Google One before querying offers")
     sh("shell", f"am force-stop {PKG}", check=True)
     try:
-        launch_output = sh("shell", f"monkey -p {PKG} -c android.intent.category.LAUNCHER 1", timeout=30)
+        launch_output = sh("shell", f"monkey --pct-syskeys 0 -p {PKG} -c android.intent.category.LAUNCHER 1", timeout=30)
     except subprocess.TimeoutExpired:
         warn("Google One launch (monkey) timed out; inspect the emulator screen.")
         launch_output = ""
@@ -848,7 +861,7 @@ def launch_app() -> int:
         if pid.isdigit():
             return int(pid)
     warn("Google One stopped or did not launch after 16 seconds. Open it manually in MuMu.")
-    warn(f"Diagnostics: adb shell pm path {PKG} ; adb shell monkey -p {PKG} -c android.intent.category.LAUNCHER 1")
+    warn(f"Diagnostics: adb shell pm path {PKG} ; adb shell monkey --pct-syskeys 0 -p {PKG} -c android.intent.category.LAUNCHER 1")
     return 0
 
 
@@ -1198,6 +1211,13 @@ def confirm_zero(wait=40, password="", expected_plan="auto", expected_account=""
                     warn("Google Play does not explicitly identify the purchase payer. "
                          "No automatic Subscribe tap; verify manually in Google Play.")
                     return out
+            if MANUAL_SUBSCRIBE:
+                # Leave the verified checkout sheet open; the user chooses the
+                # payment method and decides whether to tap Subscribe.
+                out["reason"] = "awaiting_user_subscribe"
+                ok("Checkout is open with today's $0 total and the expected period verified. "
+                   "Not tapping Subscribe: review the payment method and decide on Android.")
+                return out
             if tap_text("\u8ba2\u9605", "Subscribe", "Đăng ký"):
                 out["confirmed"] = True
                 ok("Tapped Subscribe after verifying today's zero total and expected trial period.")
@@ -1368,6 +1388,7 @@ def process(email, password="", totp_secret="", add=True, card=None, plan="auto"
             # Button tap means submitted, not paid or subscription activated.
             rec["status"] = "checkout_requested"
         elif reason in (
+                "awaiting_user_subscribe",
                 "purchase_unavailable", "ineligible", "already_subscribed",
                 "processing", "backup_payment_methods_prompt",
                 "today_price_unverified", "trial_duration_unverified",
@@ -1451,8 +1472,11 @@ def main():
                     help="Verify the current Google Play account without switching automatically")
     ap.add_argument("--plan", default="auto", choices=["auto", "5x", "20x", "pro12", "pro6", "pro6b", "pro6c"],
                     help="auto=query available products; 5x=Ultra 20TB; 20x=Ultra 30TB")
+    ap.add_argument("--manual-subscribe", action="store_true",
+                    help="Open and verify checkout, but leave the Subscribe tap to the user")
     a = ap.parse_args()
 
+    globals()["MANUAL_SUBSCRIBE"] = bool(a.manual_subscribe)
     ADB = find_adb()
     globals()["SKIP_ACCOUNT_CHECK"] = bool(a.force)
     if a.check:

@@ -166,5 +166,34 @@ class CheckoutTests(unittest.TestCase):
         verify.assert_not_called()
 
 
+    def test_manual_subscribe_leaves_verified_checkout_open_without_tapping(self):
+        with patch.object(app, "MANUAL_SUBSCRIBE", True), \
+             patch.object(app, "ui_xml", return_value="screen"), \
+             patch.object(app, "nodes", return_value=[{
+                 "text": "Google AI Pro Subscribe Today US$0 12-month free trial Google Play account: selected@example.com",
+                 "desc": ""}]), \
+             patch.object(app, "tap_text") as tap, \
+             patch.object(app, "tap") as raw_tap, \
+             patch.object(app.time, "sleep"):
+            result = app.confirm_zero(wait=2, expected_plan="pro12",
+                                      expected_account="selected@example.com")
+        self.assertFalse(result["confirmed"])
+        self.assertEqual(result["reason"], "awaiting_user_subscribe")
+        tap.assert_not_called()
+        raw_tap.assert_not_called()
+
+    def test_manual_subscribe_still_stops_on_unverified_account(self):
+        with patch.object(app, "MANUAL_SUBSCRIBE", True), \
+             patch.object(app, "ui_xml", return_value="screen"), \
+             patch.object(app, "nodes", return_value=[{
+                 "text": "Google AI Pro Subscribe Today US$0 12-month free trial other@example.com",
+                 "desc": ""}]), \
+             patch.object(app, "tap_text") as tap:
+            result = app.confirm_zero(wait=2, expected_plan="pro12",
+                                      expected_account="selected@example.com")
+        self.assertEqual(result["reason"], "checkout_account_mismatch")
+        tap.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -46,6 +46,7 @@ class MacStageAdapterTests(unittest.TestCase):
                 self.assertEqual("--stack" in cmd, stacking)
                 self.assertIn("--no-switch", cmd)
                 self.assertIn("--no-add", cmd)
+                self.assertIn("--manual-subscribe", cmd)
                 self.assertNotIn("--force", cmd)
         for step in (-1, 6, True, "2"):
             with self.assertRaises(ValueError):

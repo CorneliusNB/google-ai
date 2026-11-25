@@ -64,6 +64,12 @@ MESSAGES = {
         "Checkout submitted - not yet verified",
         "Check Google Play Subscriptions, renewal date and charges before proceeding.",
     ),
+    "awaiting_user_subscribe": (
+        "Checkout is open - finish it on Android",
+        "Google Play shows a $0 total today and the expected period; Subscribe was NOT tapped. "
+        "Choose your payment method and tap Subscribe only if you agree to the terms. Then check "
+        "Subscriptions, renewal date and charges in Google Play before any next step.",
+    ),
     "checkout_security_blocked": (
         "Google Play requires account verification",
         "Review Google Account Security and Google Payments alerts (OR-REH-04). Stop retrying.",
@@ -443,9 +449,15 @@ def outcome_for_stage(step: int, exit_code: int, report: dict | None) -> Outcome
     title, instruction = (CLI_ISSUES.get(code) or MESSAGES.get(
         code, ("Could not verify this step",
                "Check the Android screen and Debug before retrying.")))
+    # In manual mode the user taps Subscribe; "Verified in Google Play → Next"
+    # remains their own confirmation that the subscription exists.
+    awaiting_user = bool(
+        isinstance(sheet, dict) and sheet.get("confirmed") is not True
+        and status == "awaiting_user_subscribe" and reason == "awaiting_user_subscribe"
+    )
     return Outcome(code, title, instruction,
-                   can_review=(step >= 2 and status == "checkout_requested"
-                               and tapped_with_verified_terms))
+                   can_review=step >= 2 and ((status == "checkout_requested"
+                                              and tapped_with_verified_terms) or awaiting_user))
 
 
 def mask_email(value: str) -> str:
