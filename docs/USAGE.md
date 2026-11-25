@@ -6,6 +6,8 @@
 
 The top-right clock shows the local date, time, and current UTC offset of the computer running the dashboard.
 
+Choose **Play subscriptions** at the top of the dashboard to open Google Play subscriptions in your browser.
+
 ### Start with Check Device & Offers
 
 While idle, the dashboard checks existing ADB connections roughly every five seconds. If Android is not connected, it shows a dismissible notice and checks again; connecting does not by itself unlock paid steps. Monitoring pauses during stages and other dialogs. It only reads `adb devices` (which can start the local ADB server); it does not scan ports, connect devices, or install ADB in the background.

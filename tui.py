@@ -406,11 +406,12 @@ class GoogleAITUI(App[None]):
         color: #f0f8ff; padding: 0 2; align: left middle;
     }
     #support_label { width: auto; height: 1; color: #c8dff1; }
-    #support_link {
+    #brand Link {
         width: auto; height: 1; color: #75d8ff;
         text-style: underline bold;
     }
-    #support_link:hover { color: #e6f8ff; }
+    #brand Link:hover { color: #e6f8ff; }
+    #play_subscriptions { dock: right; margin-left: 1; }
     #credit { height: 1; color: #87b8d4; }
     #credit Static { width: auto; height: 1; color: #87b8d4; }
     #credit Link { width: auto; height: 1; color: #75d8ff; text-style: underline; }
@@ -585,6 +586,8 @@ class GoogleAITUI(App[None]):
                 yield Static("Support: ", id="support_label")
                 yield Link("https://t.me/eplus_news", url="https://t.me/eplus_news",
                            tooltip="Telegram support channel", id="support_link")
+                yield Link("Play subscriptions", url="https://play.google.com/store/account/subscriptions",
+                           tooltip="Open Google Play subscriptions in your browser", id="play_subscriptions")
             with Horizontal(id="credit"):
                 yield Static("  Original ")
                 yield Link("@gylive", url="https://github.com/gylive",

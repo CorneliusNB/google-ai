@@ -925,6 +925,31 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     )
                 popen.assert_not_called()
 
+    async def test_play_subscriptions_link_is_visible_and_opens_on_request(self):
+        from textual.widgets import Link
+        from tui import GoogleAITUI
+
+        url = "https://play.google.com/store/account/subscriptions"
+        for size in ((58, 20), (90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                with patch.object(app, "open_url") as open_url:
+                    async with app.run_test(size=size) as pilot:
+                        await pilot.pause()
+                        link = app.query_one("#play_subscriptions", Link)
+                        support = app.query_one("#support_link", Link)
+                        self.assertEqual(link.url, url)
+                        self.assertGreaterEqual(link.region.x, support.region.right)
+                        self.assertLessEqual(link.region.right, size[0])
+                        self.assertGreaterEqual(link.region.width, len(link.text))
+                        open_url.assert_not_called()
+                        link.focus()
+                        await pilot.press("enter")
+                        open_url.assert_called_once_with(url)
+                        open_url.reset_mock()
+                        self.assertTrue(await pilot.click("#play_subscriptions"))
+                        open_url.assert_called_once_with(url)
+
     async def test_tui_loads_without_starting_any_checkout(self):
         from textual.widgets import Button, Select, Static
         from tui import GoogleAITUI
