@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 简体中文
 
-<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
+<!-- Source README.md git-blob: afc22139893546e8a4b9449722ededacfedd7f2c -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -186,7 +186,11 @@ Device 卡片显示读取到的 Android 版本、SDK、ABI 和 ADB 连接信息�
 
 操作面板按内容调整高度，**Live Status** 使用剩余空间，最新活动显示在顶部。**Show technical details** 的日志会自动跟随新行。主按钮和 **Run this step** 均显示正在运行的步骤及已用秒数。Windows 的优惠查询流程完成环境检查后，Step 0 会出现勾选标记。缺少新的已验证检查结果时，会显示绿色 **Check Device & Offers — Step 1** 按钮。
 
+在 Windows 上，仅通过 ADB 连接要操作的 MuMu 实例，然后打开 **Choose account** 后，点击 **Remove account in Android**。在 Android 设置中选择账号并确认**移除账号**。此操作会从该实例移除账号及其同步数据。订阅请在 Google Play 中单独管理。返回仪表板，点击 **Done managing**，再为要使用的账号运行 Step 1。若使用 PowerShell，请等当前步骤结束，关闭仪表板，再用 `adb devices` 查到的设备序列号运行 `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>`。
+
 **Recent history** 将开始、结果和 **Verified in Google Play → Next** 操作保存到本地 `logs/stage-history/`。启动时恢复最近保存的记录，选择账号后显示该账号的历史。**↺** 表示曾尝试运行的步骤。历史本身不能证明订阅成功，也不会解锁付款。重新打开工具或更换账号后，需要重新运行 Step 1。加入历史记录功能之前的运行无法恢复。
+
+启动工具时若没有连接 Android 设备，或空闲期间连接断开，工具会显示提示。关闭提示后，连接状态发生变化时才会再次提示。
 
 断开连接的弹窗提供 **Retry connection**，处理时显示 **Retrying…** 和已用秒数；**Got it** 关闭弹窗。Windows 会尝试重新连接本地模拟器，启动步骤时找不到在线 ADB 设备也会尝试连接。只读查询期间，应用启动失败会重启一次。若仍失败，请关闭并重新打开 MuMu，等待 Android 启动完成后重跑 Step 1。查询优惠前会重启 Google One；已正常运行的 Play Store 会保持运行。空闲时点击 **Reload toolkit** 可使用本地代码重新打开界面并开始新会话。
 
@@ -244,6 +248,8 @@ CLI 确认选项为 **1 = Continue（继续）、2 = End run（结束）、0 = S
 - **支付安全错误（如 OR-REH-04）：**停止付费步骤，按官方流程处理账号安全问题。
 
 日志位于 `logs/`，报告位于 `ultra0-report/`。**不要公开包含账户、token 或支付信息的原始文件。** CI 仅执行静态检查和模拟测试，**不会进行或验证真实的 Google Play 交易**。
+
+如果工具提示缺少 Android 应用，请点击 **Open Google Play**，在设备上打开 Google One 的商店页面。在 Google Play 中选择**安装**或**启用**，打开 Google One 一次，然后重新运行 Step 1。如果 Google Play 商店已停用，请在 Android 设置中启用；如果模拟器镜像未包含商店，请使用内置 Google Play 的镜像。
 
 ## 社区支持及相关项目
 

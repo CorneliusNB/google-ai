@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — 日本語
 
-<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
+<!-- Source README.md git-blob: afc22139893546e8a4b9449722ededacfedd7f2c -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -186,7 +186,11 @@ Device 欄には、取得できた Android のバージョン、SDK、ABI、ADB 
 
 操作欄は内容に合わせた高さになり、残りを **Live Status** が使用します。最新の処理状況が先頭に表示されます。**Show technical details** のログは新しい行まで自動スクロールします。メインボタンと **Run this step** には実行中のステップと経過秒数が表示されます。Windows では、特典確認中の環境チェックが完了すると Step 0 にチェックが付きます。新しい確認結果が不足している場合は、緑色の **Check Device & Offers — Step 1** が表示されます。
 
+Windows では、操作する MuMu インスタンスだけを ADB で接続し、**Choose account** を開き、**Remove account in Android** を選びます。Android の設定画面で対象のアカウントを選び、**アカウントを削除**を確定します。そのインスタンスからアカウントと同期済みのデータが削除されます。定期購入は Google Play で別途管理します。ダッシュボードに戻り、**Done managing** を選んでから、使用するアカウントで Step 1 を実行してください。PowerShell を使う場合は、実行中のステップが完了してからダッシュボードを閉じ、`adb devices` で確認したシリアル番号を指定して `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` を実行します。
+
 **Recent history** は開始、結果、**Verified in Google Play → Next** の操作を `logs/stage-history/` に保存します。起動時には最新の保存履歴が表示され、アカウントを選ぶとそのアカウントの履歴になります。**↺** は以前に実行を試みたステップです。履歴だけでは契約成立を確認できず、支払い操作も有効になりません。再起動後やアカウント変更後には Step 1 を再実行してください。履歴保存機能の追加前の実行は復元できません。
+
+起動時に Android 端末が未接続の場合や、待機中に接続が切れた場合に通知が表示されます。閉じた通知は、接続状態が変わるまで再表示されません。
 
 接続切れの画面には **Retry connection** があり、処理中は **Retrying…** と経過秒数を表示します。**Got it** で閉じられます。Windows ではローカルのエミュレーターへの再接続を試みます。ステップ開始時に ADB 端末が見つからない場合も同様です。参照処理でアプリが起動しない場合は一度だけ再起動を試みます。失敗した場合は MuMu を閉じて開き直し、Android の起動完了後に Step 1 を再実行してください。特典照会前には Google One を再起動します。Play Store が既に利用可能なら、そのまま使用します。**Reload toolkit** は処理待機中の画面をローカルのコードで再起動し、新しいセッションを開始します。
 
@@ -244,6 +248,8 @@ TUI とは異なり、個別の `-Step 2..5` には **PowerShell 側で追加の
 - **セキュリティエラー（例：OR-REH-04）：**課金ステップを止めて正規のアカウント保護手順に従う。
 
 ログは `logs/`、レポートは `ultra0-report/` に保存されます。**アカウント情報、トークン、決済情報を含む生データを共有しないでください。** CI では静的テストや模擬環境での検証のみを行い、実際の購入が成功するかどうかは確認していません。
+
+Android アプリが見つからない場合は、**Open Google Play** を選ぶと端末に Google One のストアページが開きます。Google Play でアプリをインストールまたは有効化し、Google One を一度開いてから Step 1 を再実行してください。Google Play ストアが無効なら Android の設定で有効化します。ストアが入っていないエミュレーターでは、Google Play 付きのイメージを使用してください。
 
 ## コミュニティサポートと関連プロジェクト
 

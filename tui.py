@@ -13,6 +13,7 @@ import json
 import os
 import signal
 from collections import deque
+from datetime import datetime
 from pathlib import Path
 import re
 import subprocess
@@ -34,8 +35,29 @@ from offer_discovery import (ExtraOffer, parse_step1,
 from tui_core import STAGES, Outcome, command_for_step, mask_email, account_picker_options, redact_diagnostic, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
     readable_issue_line, report_summary, safe_launch_diagnostic, validate_step
-from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_connection, poll_connection
+from device_diagnostics import (
+    ConnectionDiagnosis, ConnectionStatus, inspect_connection, open_google_one_listing, poll_connection,
+)
 from stage_history import latest_history, read_history, record_history
+
+
+class LocalClock(Static):
+    """Display the host's local date, time and current UTC offset."""
+
+    def on_mount(self) -> None:
+        self.update_time()
+        self.set_interval(1, self.update_time)
+
+    def update_time(self) -> None:
+        local_time = datetime.now().astimezone()
+        offset = local_time.strftime("%z")
+        self.update(f"{local_time:%Y-%m-%d %H:%M:%S} UTC{offset[:3]}:{offset[3:]}")
+
+
+class DashboardHeader(Header):
+    def compose(self) -> ComposeResult:
+        yield from super().compose()
+        yield LocalClock(id="local_clock")
 
 
 class TechnicalLog(RichLog):
@@ -119,20 +141,76 @@ class SetupNotice(ModalScreen[None]):
     #notice_close { width: 100%; }
     """
 
-    def __init__(self, title: str, instruction: str) -> None:
+    def __init__(self, title: str, instruction: str, *, close_label: str = "Got it") -> None:
         super().__init__()
         self.notice_title, self.instruction = title, instruction
+        self.close_label = close_label
 
     def compose(self) -> ComposeResult:
         with Vertical(id="notice_card"):
             with VerticalScroll(id="notice_scroll"):
                 yield Static(self.notice_title, classes="section")
                 yield Static(self.instruction)
-            yield Button("Got it", id="notice_close", variant="primary")
+            yield Button(self.close_label, id="notice_close", variant="primary")
 
     @on(Button.Pressed, "#notice_close")
     def close_notice(self) -> None:
         self.dismiss(None)
+
+
+class MissingAppNotice(SetupNotice):
+    CSS = SetupNotice.CSS + """
+    MissingAppNotice { align: center middle; }
+    #app_notice_actions { height: 3; }
+    #app_notice_actions Button { width: 1fr; min-width: 0; }
+    """
+
+    def __init__(self, title: str, instruction: str, serial: str) -> None:
+        super().__init__(title, instruction)
+        self.serial = serial
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="notice_card"):
+            with VerticalScroll(id="notice_scroll"):
+                yield Static(self.notice_title, classes="section")
+                yield Static(self.instruction, id="app_notice_instruction")
+            with Horizontal(id="app_notice_actions"):
+                yield Button("Got it", id="notice_close")
+                yield Button("Open Google Play", id="open_google_play", variant="primary")
+
+    @on(Button.Pressed, "#open_google_play")
+    def open_play_pressed(self) -> None:
+        button = self.query_one("#open_google_play", Button)
+        if button.disabled:
+            return
+        button.disabled = True
+        self.query_one("#notice_close", Button).disabled = True
+        self.query_one("#app_notice_instruction", Static).update("Opening the Google One page on Android…")
+        self.open_listing()
+
+    @work(thread=True, exclusive=True, group="google-play-listing")
+    def open_listing(self) -> None:
+        outcome = open_google_one_listing(self.serial)
+        try:
+            self.app.call_from_thread(self.show_listing_result, outcome)
+        except RuntimeError:
+            pass  # The dashboard was closed while ADB was running.
+
+    def show_listing_result(self, outcome: str) -> None:
+        if not self.is_mounted:
+            return
+        guidance = {
+            "opened": "Switch to Android and install or enable Google One in Google Play. "
+                      "Open Google One once, then return here and run Check Device & Offers.",
+            "missing_adb": "ADB was not found. Reconnect Android or set ADB_PATH to an existing adb executable.",
+            "device_offline": "Reconnect the Android device, then try Open Google Play again.",
+            "multiple_devices": "Leave only the intended Android device connected over ADB, then try again.",
+            "store_unavailable": "Google Play is missing or disabled. Enable it in Android Settings, "
+                                 "or use an Android image that includes Google Play.",
+        }.get(outcome, "Could not open the listing. Open Google Play on Android and search for Google One.")
+        self.query_one("#app_notice_instruction", Static).update(guidance)
+        self.query_one("#open_google_play", Button).disabled = outcome == "opened"
+        self.query_one("#notice_close", Button).disabled = False
 
 
 class AccountPicker(ModalScreen[str | None]):
@@ -142,38 +220,48 @@ class AccountPicker(ModalScreen[str | None]):
     #account_picker { width: 64; max-width: 94%; height: auto; padding: 1 2;
                       background: #15243a; border: round #3d6383; }
     #account_choice { width: 100%; }
+    #account_remove { width: 100%; margin-top: 1; }
     #account_picker_actions { height: 3; margin-top: 1; }
     #account_picker_actions Button { width: 1fr; }
     """
-    def __init__(self, accounts: list[str]) -> None:
+    REMOVE = "remove"
+
+    def __init__(self, options: list[tuple[str, str]], *, has_hidden_accounts: bool = False,
+                 can_remove: bool = False) -> None:
         super().__init__()
-        self.accounts = accounts
+        self.options = options
+        self.has_hidden_accounts = has_hidden_accounts
+        self.can_remove = can_remove
 
     def compose(self) -> ComposeResult:
         with Vertical(id="account_picker"):
-            yield Static("Choose a Google account on this device", classes="section")
-            yield Static("These are Android account candidates, NOT proof of which "
-                         "account Google Play uses. Switch accounts inside Play Store "
-                         "and run Check Device & Offers to verify.")
-            options = account_picker_options(self.accounts)
-            if len(options) != len(self.accounts):
-                yield Static("Some account hints are indistinguishable. Select the intended profile in Google Play, then run Check Device & Offers.")
-            if options:
-                yield Select(options, value=options[0][1], allow_blank=False, id="account_choice")
+            yield Static("Google accounts on this device", classes="section")
+            if self.options:
+                yield Static("Select the matching profile in Google Play and run Check Device & Offers to verify.")
+                if self.has_hidden_accounts:
+                    yield Static("Some account hints are indistinguishable.")
+                yield Select(self.options, value=self.options[0][1], allow_blank=False, id="account_choice")
+            else:
+                yield Static("No accounts are available to select. You can remove an account in Android settings.")
+            if self.can_remove:
+                yield Button("Remove account in Android", id="account_remove")
             with Horizontal(id="account_picker_actions"):
-                yield Button("Cancel", id="account_cancel")
-                yield Button("Use selected account", id="account_accept", variant="primary", disabled=not options)
+                yield Button("Close", id="account_cancel")
+                if self.options:
+                    yield Button("Use selected account", id="account_accept", variant="primary")
+
+    @on(Button.Pressed, "#account_remove")
+    def remove_pressed(self) -> None:
+        if self.can_remove:
+            self.dismiss(self.REMOVE)
 
     @on(Button.Pressed, "#account_picker_actions Button")
     def choose(self, event: Button.Pressed) -> None:
         if event.button.id != "account_accept":
             self.dismiss(None)
             return
-        if not self.query("#account_choice"):
-            self.dismiss(None)
-            return
         value = self.query_one("#account_choice", Select).value
-        self.dismiss(value if isinstance(value, str) and value in self.accounts else None)
+        self.dismiss(value if any(value == account for _, account in self.options) else None)
 
 
 class ConnectionNotice(SetupNotice):
@@ -306,17 +394,24 @@ class GoogleAITUI(App[None]):
     CSS = """
     Screen { background: #081424; color: #e8f2fc; }
     Header, Footer { background: #11243e; color: #d7e8fa; }
+    DashboardHeader HeaderClockSpace { display: none; }
+    #local_clock {
+        dock: right; width: 31; max-width: 100%; height: 100%; padding: 0 1;
+        background: #1c3450; content-align: center middle; text-wrap: nowrap;
+    }
+    Screen.tiny DashboardHeader HeaderIcon { width: 3; }
     #screen { height: 1fr; min-height: 0; padding: 0 1; }
     #brand {
         height: 3; background: #122741; border: round #28628d;
         color: #f0f8ff; padding: 0 2; align: left middle;
     }
     #support_label { width: auto; height: 1; color: #c8dff1; }
-    #support_link {
+    #brand Link {
         width: auto; height: 1; color: #75d8ff;
         text-style: underline bold;
     }
-    #support_link:hover { color: #e6f8ff; }
+    #brand Link:hover { color: #e6f8ff; }
+    #play_subscriptions { dock: right; margin-left: 1; }
     #credit { height: 1; color: #87b8d4; }
     #credit Static { width: auto; height: 1; color: #87b8d4; }
     #credit Link { width: auto; height: 1; color: #75d8ff; text-style: underline; }
@@ -443,6 +538,7 @@ class GoogleAITUI(App[None]):
         self.show_advanced = show_advanced
         self.startup_probe = startup_probe
         self._detected_account_device: str | None = None
+        self._detected_account_hint: str | None = None
         self.debug_visible = initial_debug
         self.busy = False
         self._diagnosing = False
@@ -484,12 +580,14 @@ class GoogleAITUI(App[None]):
         self._sku_exit = False
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield DashboardHeader()
         with Vertical(id="screen"):
             with Horizontal(id="brand"):
                 yield Static("Support: ", id="support_label")
                 yield Link("https://t.me/eplus_news", url="https://t.me/eplus_news",
                            tooltip="Telegram support channel", id="support_link")
+                yield Link("Play subscriptions", url="https://play.google.com/store/account/subscriptions",
+                           tooltip="Open Google Play subscriptions in your browser", id="play_subscriptions")
             with Horizontal(id="credit"):
                 yield Static("  Original ")
                 yield Link("@gylive", url="https://github.com/gylive",
@@ -603,29 +701,30 @@ class GoogleAITUI(App[None]):
                           "This does not open checkout or change the active Play Store account.")
         self.discover_account_candidates()
 
+    def _account_runtime_value(self, command: str, serial: str = "", *, timeout: int = 60) -> str:
+        lookup = self.repo / "scripts" / "runtime-lookup.py"
+        args = [sys.executable, str(lookup), command]
+        if serial:
+            args.extend(["--serial", serial])
+        result = subprocess.run(args, capture_output=True, text=True, errors="replace",
+                                timeout=timeout, check=False)
+        match = re.fullmatch(r"RUNTIME_RESULT:([A-Za-z0-9+/=]*)", result.stdout.strip())
+        if result.returncode or not match:
+            raise RuntimeError("Android account lookup failed")
+        return base64.b64decode(match.group(1), validate=True).decode("utf-8")
+
     @work(thread=True, exclusive=True, group="account-candidates")
     def discover_account_candidates(self, serial: str = "", generation: int | None = None) -> None:
         accounts = None
         try:
-            lookup = self.repo / "scripts" / "runtime-lookup.py"
-            def read_value(command: str, serial: str = "") -> str:
-                args = [sys.executable, str(lookup), command]
-                if serial:
-                    args.extend(["--serial", serial])
-                result = subprocess.run(args, capture_output=True, text=True,
-                                        errors="replace", timeout=60, check=False)
-                line = result.stdout.strip()
-                match = re.fullmatch(r"RUNTIME_RESULT:([A-Za-z0-9+/=]*)", line)
-                if result.returncode or not match:
-                    raise RuntimeError("Android account lookup failed")
-                return base64.b64decode(match.group(1), validate=True).decode("utf-8")
             if not serial:
                 if generation is not None:
                     raise RuntimeError("Startup account lookup needs a unique existing transport")
-                serial = self._checked_device or read_value("device")
+                serial = self._checked_device or self._account_runtime_value("device")
             if not serial or not re.fullmatch(r"[A-Za-z0-9._:/-]{1,90}", serial):
                 raise RuntimeError("No unambiguous Android device was found")
-            raw = json.loads(read_value("play-accounts-existing" if generation is not None else "play-accounts", serial))
+            raw = json.loads(self._account_runtime_value(
+                "play-accounts-existing" if generation is not None else "play-accounts", serial))
             if not isinstance(raw, list):
                 raise ValueError("Android account list was invalid")
             accounts = sorted({x.lower() for x in raw if isinstance(x, str) and
@@ -658,26 +757,74 @@ class GoogleAITUI(App[None]):
         identity = mask_email(accounts[0]) if len(accounts) == 1 else f"{len(accounts)} Android accounts"
         self.query_one("#account", Static).update(f"Account  •  {escape(identity)} · Play unverified")
         self._detected_account_device = serial or None
+        self._detected_account_hint = identity if serial else None
+
+    def _display_step_one_account(self, *, checking: bool) -> None:
+        # Account hints are display-only. Only a fresh Play Store lookup can
+        # fill _verified_account and participate in the checkout gate.
+        device = self._detected_account_device
+        connection = self._connection_state
+        if self._checked_device:
+            same_device = device == self._checked_device
+        else:
+            same_device = bool(connection and connection.state == "connected"
+                               and device in connection.devices)
+        identity = self._detected_account_hint if same_device else None
+        if self._selected_account:
+            identity = mask_email(self._selected_account)
+        status = "Checking…" if checking else "Play unverified"
+        label = f"{escape(identity)} · {status}" if identity else status
+        self.query_one("#account", Static).update("Account  •  " + label)
 
     def _account_candidates_loaded(self, accounts: list[str] | None, serial: str = "") -> None:
         self._accounts_loading = False
         self.query_one("#choose_account", Button).disabled = self.busy or self._diagnosing or self._sku_pending
         if self.busy or self._diagnosing or self._sku_pending:
             return
-        if not accounts:
+        lookup_failed = accounts is None
+        accounts = accounts if accounts is not None else []
+        options = account_picker_options(accounts)
+        can_remove = sys.platform == "win32"
+        if lookup_failed:
             self._set_status("Account list unavailable")
-            self._set_message("Android did not provide a readable account list. "
-                              "Open Google Play, select the intended profile manually, "
-                              "then run Check Device & Offers.")
+            self._set_message("Could not read Android accounts. Check the connection and retry Choose account.")
+        elif not accounts:
+            self._set_status("No Android accounts detected")
+            self._set_message("Open Google Play, select the intended profile, then run Check Device & Offers.")
+        elif not options:
+            self._set_status("No distinguishable account hints")
+            self._set_message("Open Google Play, select the intended profile, then run Check Device & Offers.")
+        else:
+            self._set_status("Account lookup complete")
+            self._set_message("Choose an account or close the picker without changing the selection.")
+        if not options and not can_remove:
             return
-        if not (self.busy or self._diagnosing or self._selected_account or self._verified_account):
+        if accounts and not (self._selected_account or self._verified_account):
             self._display_account_candidates(accounts, serial)
-        self.push_screen(AccountPicker(accounts), self._account_chosen)
+        self.push_screen(AccountPicker(options, has_hidden_accounts=len(options) != len(accounts),
+                                       can_remove=can_remove),
+                         lambda choice: self._account_picker_closed(choice, serial))
+
+    def _account_picker_closed(self, choice: str | None, serial: str) -> None:
+        if choice == AccountPicker.REMOVE:
+            self._manage_android_accounts(serial)
+        else:
+            self._account_chosen(choice)
 
     def _account_chosen(self, account: str | None) -> None:
-        if not account or self.busy or self._sku_pending:
+        if not account or self.busy or self._diagnosing or self._sku_pending:
             return
         self._selected_account = account
+        self._reset_account_verification()
+        self._show_history(account)
+        self.query_one("#account", Static).update("Account  •  " + escape(mask_email(account)) + " (selected)")
+        self._update_run_mode()
+        self._set_status("Account selected — not yet verified")
+        self._set_message("In Google Play, switch to the selected account. "
+                          "Run Check Device & Offers. Selecting a candidate alone "
+                          "never authorizes a checkout.")
+
+    def _reset_account_verification(self) -> None:
         self._extra_scan_generation += 1
         self._update_discovered([], replace=True)
         self._offer_report = None
@@ -685,23 +832,72 @@ class GoogleAITUI(App[None]):
         self.query_one("#offer_view", RichLog).clear()
         self.query_one("#offer_view", RichLog).display = False
         self.query_one("#offers_title", Static).display = False
-        self._show_history(account)
         self._verified_account = None
         self._offer_ready_account = None
         self._offer_check_ready = False
         self._initial_offer_ready = False
         self._offer_ready_device = None
-        self.query_one("#account", Static).update("Account  •  " + escape(mask_email(account)) + " (selected)")
         self.sequence = False
         self.query_one("#next", Button).display = False
         self.query_one("#next", Button).disabled = True
         self.query_one("#quickstart", Button).display = True
         self.query_one("#quickstart", Button).label = "Check Device & Offers"
+
+    def _manage_android_accounts(self, serial: str) -> None:
+        if sys.platform != "win32" or isinstance(self.screen, ModalScreen):
+            return
+        if self.busy or self._diagnosing or self._sku_pending or self._accounts_loading:
+            return
+        self._invalidate_connection_polls()
+        self._diagnosing = True
+        self._selected_account = None
+        self._detected_account_device = None
+        self._detected_account_hint = None
+        self._reset_account_verification()
+        self._render_history(latest_history(self.repo), "Previous run · select an account and run Step 1 to verify")
+        self.query_one("#account", Static).update("Account  •  Not checked")
+        for control in ("#choose_account", "#quickstart", "#diagnose", "#refresh_offers"):
+            self.query_one(control, Button).disabled = True
         self._update_run_mode()
-        self._set_status("Account selected — not yet verified")
-        self._set_message("In Google Play, switch to the selected account. "
-                          "Run Check Device & Offers. Selecting a candidate alone "
-                          "never authorizes a checkout.")
+        self._set_status("Opening Android account settings…")
+        self._set_message("Waiting for Android settings to open on the connected device.")
+        self.open_android_account_settings(serial)
+
+    @work(thread=True, exclusive=True, group="account-settings")
+    def open_android_account_settings(self, serial: str) -> None:
+        try:
+            result = self._account_runtime_value("android-account-settings-connected", serial, timeout=35)
+        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired):
+            result = "settings_unavailable"
+        self.call_from_thread(self._android_account_settings_done, result)
+
+    def _android_account_settings_done(self, result: str) -> None:
+        if result == "opened":
+            self._set_status("Android account settings opened")
+            self.push_screen(SetupNotice(
+                "Continue in MuMu",
+                "Switch to the MuMu window. In Android settings, select the account and confirm Remove account. "
+                "Synced account data will be removed from this device. Then return here.",
+                close_label="Done managing",
+            ), lambda _: self._finish_account_settings("Run Check Device & Offers to verify the Play account."))
+            return
+        title = "Could not open Android account settings"
+        guidance = {
+            "missing_adb": "Set ADB_PATH to an existing adb executable and reopen the toolkit.",
+            "device_offline": "Reconnect the intended Android device and retry.",
+            "adb_error": "Could not query ADB devices. Run Diagnose Android connection and retry.",
+            "multiple_devices": "Leave only the intended MuMu device connected over ADB and try again.",
+        }.get(result, "Open Settings in the MuMu window and select Accounts to remove an account.")
+        self._set_status(title)
+        self.push_screen(SetupNotice(title, guidance),
+                         lambda _: self._finish_account_settings(guidance))
+
+    def _finish_account_settings(self, guidance: str) -> None:
+        self._diagnosing = False
+        for control in ("#choose_account", "#quickstart", "#diagnose", "#refresh_offers"):
+            self.query_one(control, Button).disabled = False
+        self._update_run_mode()
+        self._set_message(guidance)
 
     @on(Button.Pressed, "#diagnose")
     def diagnose_pressed(self) -> None:
@@ -864,34 +1060,34 @@ class GoogleAITUI(App[None]):
             self.query_one("#quickstart", Button).display = True
             self.query_one("#quickstart", Button).label = "Check Device & Offers"
             self._update_run_mode()
+        if self._detected_account_device and self._detected_account_device not in result.devices:
+            self.query_one("#account", Static).update("Account  •  Not checked")
+            self._detected_account_device = None
+            self._detected_account_hint = None
         if self.startup_probe and changed and not (self._selected_account or self._verified_account):
-            if self._detected_account_device and self._detected_account_device not in result.devices:
-                self.query_one("#account", Static).update("Account  •  Not checked")
-                self._detected_account_device = None
             if result.state == "connected" and not self._accounts_loading:
                 if len(result.devices) == 1:
                     self.discover_account_candidates(result.devices[0], self._connection_generation)
                 else:
                     self.query_one("#account", Static).update(
                         "Account  •  Android device not resolved; choose account manually")
-        if startup and changed and result.state in ("missing_adb", "disconnected", "adb_error"):
-            guidance = {"missing_adb": "ADB not found. Run Check Device & Offers or install Android platform-tools.",
-                        "disconnected": "Android not connected. Start Android, enable ADB and authorize the connection.",
-                        "adb_error": "ADB not responding. Check the installation or use Diagnose Android connection."}
-            self._set_message(guidance[result.state])
-        if not startup and result.state in ("missing_adb", "disconnected", "adb_error") and changed:
+        if result.state in ("missing_adb", "disconnected", "adb_error") and changed:
             if isinstance(self.screen, ConnectionNotice):
                 return
             if result.state == "missing_adb":
-                guidance = ("Run Check Device & Offers to prepare ADB on Windows. On macOS, "
-                            "install Android SDK Platform-Tools and reconnect Android.")
                 title = "ADB not found"
+                guidance = ("Install Android SDK Platform-Tools and reconnect Android." if self.native_mode
+                            else "Run Check Device & Offers to prepare ADB or install Android SDK Platform-Tools.")
             elif result.state == "adb_error":
                 title = "ADB is not responding"
                 guidance = "Check the ADB installation, then run Check Device & Offers."
             else:
                 title = "Android is not connected"
-                guidance = "Start MuMu, enable ADB debugging and approve any Android authorization prompt. The connection will be checked again automatically."
+                target = "Connect your Android device" if self.native_mode else "Start MuMu"
+                guidance = (f"{target}, enable ADB debugging and approve any Android authorization prompt. "
+                            "The connection will be checked again automatically.")
+            if startup:
+                self._set_message(guidance)
             self.push_screen(ConnectionNotice(title, guidance))
 
     @on(Button.Pressed, "#advanced_toggle")
@@ -1566,7 +1762,10 @@ class GoogleAITUI(App[None]):
         self.query_one("#offers_title", Static).display = False
         self.query_one("#device", Static).tooltip = None
         self.query_one("#device", Static).update("Device  •  Auto-detect")
-        self.query_one("#account", Static).update("Account  •  Not checked")
+        if step == 1:
+            self._display_step_one_account(checking=True)
+        else:
+            self.query_one("#account", Static).update("Account  •  Not checked")
         self.query_one("#manual", Button).display = False
         self.query_one("#manual", Button).disabled = True
         self._started_at = time.monotonic()
@@ -1805,6 +2004,11 @@ class GoogleAITUI(App[None]):
         )
         if selected_device:
             self._checked_device = selected_device.group(1)
+            if self._detected_account_device and self._detected_account_device != self._checked_device:
+                self._detected_account_device = None
+                self._detected_account_hint = None
+                if self.busy and self.current_step == 1 and not self._verified_account:
+                    self._display_step_one_account(checking=True)
             card = self.query_one("#device", Static)
             card.update("Device  •  Android connected (ADB)")
             card.tooltip = "Android connected (ADB)"
@@ -1826,6 +2030,9 @@ class GoogleAITUI(App[None]):
         )
         if account:
             self._verified_account = account.group(1).lower()
+            if self._checked_device:
+                self._detected_account_device = self._checked_device
+                self._detected_account_hint = mask_email(self._verified_account)
             self.query_one("#account", Static).update(
                 "Account  •  " + escape(mask_email(self._verified_account))
             )
@@ -1955,6 +2162,8 @@ class GoogleAITUI(App[None]):
         self._set_message(instruction)
         if step == 1:
             self.query_one("#step_result", Static).update(report_summary(report))
+            if not self.linux_mode and not self._verified_account:
+                self._display_step_one_account(checking=False)
             if isinstance(report, dict):
                 self._render_offer_catalog()
             if self.macos_mode and isinstance(report, dict):
@@ -1998,7 +2207,10 @@ class GoogleAITUI(App[None]):
         if step <= 1 and outcome.code not in ("listed", "environment_ok", "cancelled"):
             # Step 0/1 errors are always actionable for non-technical users,
             # including unknown setup failures and newly added engine codes.
-            self.push_screen(SetupNotice(outcome.title, outcome.instruction))
+            if outcome.code == "app_missing":
+                self.push_screen(MissingAppNotice(outcome.title, outcome.instruction, self._checked_device or ""))
+            else:
+                self.push_screen(SetupNotice(outcome.title, outcome.instruction))
             return
         if outcome.code == "checkout_requested":
             self.notify("Review the actual subscription in Google Play.", severity="warning")

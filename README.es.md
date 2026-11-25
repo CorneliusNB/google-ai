@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Español
 
-<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
+<!-- Source README.md git-blob: afc22139893546e8a4b9449722ededacfedd7f2c -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md)
 
@@ -187,7 +187,11 @@ La tarjeta Device muestra la versión de Android, SDK, ABI y conexión ADB cuand
 
 El panel de acciones se ajusta a sus controles y **Live Status** ocupa la altura restante, con la actividad más reciente arriba. **Show technical details** abre un registro que sigue las líneas nuevas. El botón principal y **Run this step** muestran el paso en ejecución y los segundos transcurridos. En Windows, Step 0 recibe una marca al terminar la comprobación del entorno dentro de la consulta de ofertas. Si falta una comprobación reciente verificada, aparece **Check Device & Offers — Step 1** en verde.
 
+En Windows, conecta por ADB solo la instancia de MuMu que quieras usar y abre **Choose account** y selecciona **Remove account in Android**. En los ajustes de Android, selecciona la cuenta y confirma **Quitar cuenta**. Se quitarán la cuenta y sus datos sincronizados de esa instancia. Las suscripciones se gestionan por separado en Google Play. Vuelve al panel, selecciona **Done managing** y ejecuta Step 1 con la cuenta que quieras usar. Si prefieres PowerShell, espera a que termine el paso en curso, cierra el panel y ejecuta `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` con el número de serie que muestra `adb devices`.
+
 **Recent history** guarda inicios, resultados y la acción **Verified in Google Play → Next** en `logs/stage-history/`. Al abrir la aplicación se recupera el historial más reciente; al elegir una cuenta se muestra el suyo. **↺** indica un paso intentado anteriormente. El historial no confirma una suscripción ni desbloquea pagos. Tras reiniciar la aplicación o cambiar de cuenta hay que repetir Step 1. Las ejecuciones anteriores a esta función no se pueden recuperar.
+
+El aviso aparece si Android no está conectado al abrir la herramienta o si se pierde la conexión mientras el panel está inactivo. Una vez cerrado, vuelve a aparecer cuando cambia el estado de la conexión.
 
 El aviso de desconexión incluye **Retry connection**, que muestra **Retrying…** y los segundos; **Got it** cierra el aviso. En Windows se intenta reconectar el emulador local, también al iniciar un paso sin dispositivos ADB conectados. Durante las consultas se intenta reiniciar una vez una aplicación que no arranca. Si falla, cierra MuMu, vuelve a abrirlo, espera a que Android termine de arrancar y repite Step 1. Google One se reinicia antes de consultar; Play Store continúa abierto si ya está disponible. **Reload toolkit** reinicia la interfaz inactiva con el código local y crea una sesión nueva.
 
@@ -245,6 +249,8 @@ Usa solo un número de serie mostrado por ADB. Evita `-Force`: omite la comproba
 - **Error de seguridad de pagos (por ejemplo OR-REH-04):** detén los pasos de pago y sigue el procedimiento oficial.
 
 Los registros están en `logs/` y los informes en `ultra0-report/`. **No compartas archivos sin ocultar correos, tokens y datos de pago.** Las pruebas automáticas de CI se ejecutan con datos simulados y **no verifican compras reales**. 
+Si la herramienta indica que falta una aplicación de Android, pulsa **Open Google Play** para abrir la ficha de Google One en el dispositivo. Instala o habilita la aplicación en Google Play, ábrela una vez y vuelve a ejecutar Step 1. Si Play Store está deshabilitada, actívala en los ajustes de Android. Si el emulador carece de Play Store, usa una imagen que incluya Google Play.
+
 ## Soporte comunitario y proyectos relacionados
 
 Si tienes problemas para instalar o utilizar ePlus AI Toolkit, puedes contactar e intercambiar consejos con la comunidad en la [publicación de soporte y debate de ePlus en Telegram](https://t.me/eplus_news/29). Para errores reproducibles, también puedes [abrir un Issue en GitHub](https://github.com/hoangsvit/google-ai/issues). **No compartas contraseñas, códigos OTP/2FA, tokens de ofertas o compras, registros sin anonimizar ni datos de tarjetas.** No es un canal de soporte oficial de Google.
