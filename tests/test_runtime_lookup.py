@@ -65,13 +65,13 @@ class RuntimeLookupTests(unittest.TestCase):
 
     def test_mumu_error_preserves_safe_guidance_without_result(self):
         from mumu_remote import MuMuError
-        with patch.object(module, "resolve_value", side_effect=MuMuError("Choose an existing instance.")), \
+        with patch.object(module, "resolve_value", side_effect=MuMuError("MuMu Manager not found. Install MuMu or configure MUMU_DIR.")), \
              patch.object(sys, "stdout", new_callable=io.StringIO) as output, \
              patch.object(sys, "stderr", new_callable=io.StringIO) as error:
             status = module.main(["start-mumu"])
         self.assertEqual(status, 1)
         self.assertEqual(output.getvalue(), "")
-        self.assertEqual("MUMU_RECOVERY:Choose an existing instance.\n", error.getvalue())
+        self.assertEqual("MUMU_RECOVERY:MuMu Manager not found. Install MuMu or configure MUMU_DIR.\n", error.getvalue())
 
     def test_account_lookup_requires_serial(self):
         with self.assertRaises(SystemExit):

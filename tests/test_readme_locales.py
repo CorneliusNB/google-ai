@@ -88,6 +88,7 @@ class ReadmeLocalesTests(unittest.TestCase):
         troubleshooting = content("docs/TROUBLESHOOTING.md")
         for label in ("Start MuMu", "-MumuInstance", "MUMU_DIR", "Retry never starts a VM"):
             self.assertIn(label, troubleshooting)
+        self.assertIn("CLI Step 5 requires separate numbered confirmation.", usage)
         for label in ("-StartMumu", "-NoStartMumu", "-MumuInstance", "No VM is created"):
             self.assertIn(label, usage)
 

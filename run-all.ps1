@@ -156,7 +156,7 @@ function Get-RuntimeValue([string[]]$LookupArgs) {
     }
     if ($lookupExit -ne 0) {
         if ($isMumuStartup) {
-            $recovery = $output | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^MUMU_RECOVERY:[A-Za-z0-9 .,;/-]+$' } | Select-Object -Last 1
+            $recovery = $output | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^MUMU_RECOVERY:[A-Za-z0-9_ .,;/-]+$' } | Select-Object -Last 1
             if ($recovery) {
                 Write-Host ($recovery.Substring("MUMU_RECOVERY:".Length)) -ForegroundColor Yellow
             }

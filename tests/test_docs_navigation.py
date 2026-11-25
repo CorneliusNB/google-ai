@@ -65,6 +65,8 @@ class DocumentationNavigationTests(unittest.TestCase):
         usage = (DOCS / "USAGE.md").read_text(encoding="utf-8")
         troubleshooting = (DOCS / "TROUBLESHOOTING.md").read_text(encoding="utf-8")
         self.assertIn("(TROUBLESHOOTING.md)", usage)
+        self.assertIn("CLI Step 5 requires separate numbered confirmation.", usage)
+        self.assertNotIn("an explicitly selected single checkout stage does not require", usage)
         self.assertIn("Start MuMu", troubleshooting)
         self.assertIn("Startup failures restore the popup controls", troubleshooting)
 

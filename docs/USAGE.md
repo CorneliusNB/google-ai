@@ -104,7 +104,7 @@ The standalone `setup_env.py` and [`tools/windows/setup-environment.bat`](../too
 .\run-all.ps1 -Step 5
 ```
 
-**Unlike the TUI, an explicitly selected single checkout stage does not require a second typed PowerShell approval.** The original Python engine may automatically press Subscribe after checking the Google Play screen. Do not execute these commands unless you intend to initiate a potentially billable operation and have reviewed its terms.
+**Unlike the TUI, explicitly selected CLI Steps 2–4 do not require a second typed PowerShell approval. CLI Step 5 requires separate numbered confirmation.** The original Python engine may automatically press Subscribe after checking the Google Play screen. Do not execute these commands unless you intend to initiate a potentially billable operation and have reviewed its terms.
 
 To use the original **CLI** guided sequence:
 

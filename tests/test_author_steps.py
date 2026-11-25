@@ -71,6 +71,15 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertIn('if ($report.status -eq "checkout_requested")', ps)
         self.assertIn('break', ps)
 
+    def test_mumu_recovery_filter_accepts_configuration_hint(self):
+        import re
+        ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
+        pattern = re.search(r"-match '([^']*MUMU_RECOVERY:[^']*)'", ps).group(1)
+        self.assertIsNotNone(re.fullmatch(pattern, "MUMU_RECOVERY:MuMu Manager not found. Install MuMu or configure MUMU_DIR."))
+        self.assertIsNone(re.fullmatch(pattern, "MUMU_RECOVERY:private@example.com"))
+        self.assertIsNone(re.fullmatch(pattern, "MUMU_RECOVERY:127.0.0.1:16384"))
+        self.assertIsNone(re.fullmatch(pattern, "Untrusted MUMU_DIR message"))
+
     def test_reconnect_keeps_exact_selected_transport(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         self.assertIn('$Serial -and $online -cnotcontains $Serial -and $Serial -match', ps)
