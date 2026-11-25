@@ -66,6 +66,10 @@ class MuMuTests(unittest.TestCase):
             self.assertEqual(mu.start_android("adb", vmindex=5), "127.0.0.1:16416")
             self.assertEqual(manager.call_args.args[1], ["control", "--vmindex", "5", "launch"])
 
+    def test_flat_stopped_instance_metadata_without_adb_port(self):
+        with patch.object(mu, "_manager", return_value=json.dumps({"vmindex": 7, "name": "stopped"})):
+            self.assertEqual(mu._instances(Path("manager"), 0), {7: {"vmindex": 7, "name": "stopped"}})
+
     def test_flat_metadata_requires_actual_instance_index(self):
         with patch.object(mu, "_manager", return_value=json.dumps({"adb_port": 1234, "vmindex": 7})):
             self.assertEqual(mu._instances(Path("manager"), 0), {7: {"adb_port": 1234, "vmindex": 7}})

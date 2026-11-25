@@ -483,6 +483,18 @@ def account_picker_options(accounts: list[str]) -> list[tuple[str, str]]:
             if hints.count(hint) == 1]
 
 
+def redact_diagnostic(line: str, serial: str | None = None, *, source: str = "") -> str:
+    """Redact account and device identifiers without mutating parser input."""
+    visible = re.sub(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
+                     "[account hidden]", line)
+    transport = re.search(r"\b(?:Connected ADB device:|Device)\s+([A-Za-z0-9._:/-]{1,90})\s*$", source or line)
+    if transport:
+        visible = visible.replace(transport.group(1), "[device hidden]")
+    if serial:
+        visible = visible.replace(serial, "[device hidden]")
+    return visible
+
+
 def report_summary(report: dict | None) -> str:
     if not report:
         return "No fresh report"

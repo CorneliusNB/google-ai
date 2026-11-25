@@ -71,7 +71,7 @@ class RuntimeLookupTests(unittest.TestCase):
             status = module.main(["start-mumu"])
         self.assertEqual(status, 1)
         self.assertEqual(output.getvalue(), "")
-        self.assertIn("Choose an existing instance.", error.getvalue())
+        self.assertEqual("MUMU_RECOVERY:Choose an existing instance.\n", error.getvalue())
 
     def test_account_lookup_requires_serial(self):
         with self.assertRaises(SystemExit):

@@ -74,7 +74,7 @@ def main(argv=None):
             try:
                 from mumu_remote import MuMuError
                 if isinstance(exc, MuMuError):
-                    print(str(exc), file=sys.stderr)
+                    print("MUMU_RECOVERY:" + str(exc), file=sys.stderr)
                     return 1
             except ImportError:
                 pass

@@ -58,7 +58,7 @@ def _instances(manager, deadline):
         data = json.loads(raw)
         if not isinstance(data, dict):
             raise ValueError
-        if "adb_port" in data:
+        if "adb_port" in data or "vmindex" in data or "index" in data:
             index = str(data.get("vmindex", data.get("index", "")))
             if not index.isdecimal():
                 raise ValueError
@@ -118,7 +118,9 @@ def start_android(adb_path: str, vmindex: int | None = None,
                     current = _instances(manager, deadline).get(vmindex, {})
                     if str(current.get("adb_port", "")) == port:
                         return serial
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, MuMuError):
+            # Manager metadata may be temporarily unavailable while Android boots.
+            # The shared deadline still bounds all polling attempts.
             pass
         except OSError:
             raise MuMuError("ADB could not run. Check Android platform-tools.") from None

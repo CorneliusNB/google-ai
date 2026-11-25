@@ -57,7 +57,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 # Python stdout is piped into Windows PowerShell in Run-Command. Without a
-# UTF-8 child stream, non-ASCII status symbols (e.g. ✓ / ✅) raise
+# UTF-8 child stream, non-ASCII status symbols (e.g. checkmarks) raise
 # UnicodeEncodeError on Windows locales such as cp1252.
 # Set the encoding BEFORE any Python subprocess, for both CLI and TUI paths.
 $env:PYTHONIOENCODING = "utf-8:backslashreplace"
@@ -139,9 +139,27 @@ function Run-Command([string]$Program, [string[]]$Arguments) {
     }
 }
 function Get-RuntimeValue([string[]]$LookupArgs) {
-    $output = @(& $Python "scripts/runtime-lookup.py" @LookupArgs)
-    if ($LASTEXITCODE -ne 0) {
-        if ($LookupArgs[0] -eq "start-mumu") {
+    $isMumuStartup = $LookupArgs[0] -eq "start-mumu"
+    if ($isMumuStartup) {
+        # Capture the helper's explicitly tagged, safe recovery message.
+        $savedPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = "Continue"
+            $output = @(& $Python "scripts/runtime-lookup.py" @LookupArgs 2>&1)
+            $lookupExit = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $savedPreference
+        }
+    } else {
+        $output = @(& $Python "scripts/runtime-lookup.py" @LookupArgs)
+        $lookupExit = $LASTEXITCODE
+    }
+    if ($lookupExit -ne 0) {
+        if ($isMumuStartup) {
+            $recovery = $output | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^MUMU_RECOVERY:[A-Za-z0-9 .,;/-]+$' } | Select-Object -Last 1
+            if ($recovery) {
+                Write-Host ($recovery.Substring("MUMU_RECOVERY:".Length)) -ForegroundColor Yellow
+            }
             Stop-Workflow "MuMu startup failed. Check the preceding recovery message or open the intended instance manually."
         }
         Stop-Workflow "Runtime lookup failed. Verify the Python and ADB environment."

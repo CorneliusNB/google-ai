@@ -316,6 +316,12 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(mask_email("ab@example.com"), "***@example.com")
         self.assertEqual(account_picker_options(["albert@example.com", "alxert@example.com"]), [])
 
+    def test_redacted_diagnostic_preserves_nonidentity_details(self):
+        from tui_core import redact_diagnostic
+        self.assertEqual(redact_diagnostic("Account alice@example.com"), "Account [account hidden]")
+        self.assertEqual(redact_diagnostic("Device emulator-5554"), "Device [device hidden]")
+        self.assertEqual(redact_diagnostic("ADB emulator-5554 ready", "emulator-5554"), "ADB [device hidden] ready")
+
     def test_account_mask(self):
         self.assertEqual(mask_email("example@gmail.com"), "ex***@gmail.com")
         self.assertEqual(mask_email("invalid"), "Not detected")
@@ -1164,6 +1170,32 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                         self.assertGreater(app.query_one("#status_panel").region.height, 3)
                         self.assertTrue(app.query_one("#quickstart").display)
                     launch.assert_not_called()
+
+    async def test_start_mumu_popup_restores_controls_on_failure(self):
+        from tui import ConnectionNotice, GoogleAITUI
+        from textual.widgets import Button, Static
+        from mumu_remote import MuMuError
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(110, 35)) as pilot:
+                notice = ConnectionNotice("Disconnected", "Retry the connection.")
+                with patch("tui.sys.platform", "win32"):
+                    app.push_screen(notice)
+                    await pilot.pause()
+                with patch("device_diagnostics.locate_adb", return_value="adb"), \
+                     patch("mumu_remote.connect_existing_instance", side_effect=MuMuError("Choose an existing instance.")):
+                    notice.start_mumu()
+                    for control in ("#connection_start_mumu", "#connection_retry", "#notice_close"):
+                        self.assertTrue(notice.query_one(control, Button).disabled)
+                    for _ in range(50):
+                        await pilot.pause(0.02)
+                        if notice._retry_started is None:
+                            break
+                self.assertIsNone(notice._retry_started)
+                for control in ("#connection_start_mumu", "#connection_retry", "#notice_close"):
+                    self.assertFalse(notice.query_one(control, Button).disabled)
+                self.assertIn("Choose an existing instance.", str(notice.query_one("#connection_instruction", Static).render()))
+                self.assertFalse(app._offer_check_ready)
 
     async def test_connection_popup_retry_shows_timer_and_recovers(self):
         from tui import ConnectionNotice, GoogleAITUI

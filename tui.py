@@ -31,7 +31,7 @@ from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Stati
 from sku_check_core import render_result
 from offer_discovery import (ExtraOffer, parse_step1,
                              merge_extra_offers, offer_step_label, offer_details)
-from tui_core import STAGES, Outcome, command_for_step, mask_email, account_picker_options, \
+from tui_core import STAGES, Outcome, command_for_step, mask_email, account_picker_options, redact_diagnostic, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
     readable_issue_line, report_summary, safe_launch_diagnostic, validate_step
 from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_connection, poll_connection
@@ -1764,14 +1764,7 @@ class GoogleAITUI(App[None]):
             return
         # Keep the original marker for the parser, but never print raw
         # EPLUS_ISSUE codes in the visible RichLog, even when Debug is open.
-        visible_line = readable_issue_line(line)
-        visible_line = re.sub(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
-                              "[account hidden]", visible_line)
-        transport = re.search(r"\b(?:Connected ADB device:|Device)\s+([A-Za-z0-9._:/-]{1,90})\s*$", line)
-        if transport:
-            visible_line = visible_line.replace(transport.group(1), "[device hidden]")
-        if self._checked_device:
-            visible_line = visible_line.replace(self._checked_device, "[device hidden]")
+        visible_line = redact_diagnostic(readable_issue_line(line), self._checked_device, source=line)
         self._last_output.append(visible_line)
         self._run_output.append(line)
         self._last_activity_at = time.monotonic()
