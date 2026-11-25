@@ -9,12 +9,15 @@ LOCALES = ("vi", "zh-CN", "ja", "ko", "es", "fr")
 MARKER = re.compile(r"<!-- Source README\.md git-blob: ([0-9a-f]{40}) -->")
 TECHNICAL = (
     "Check Device & Offers",
+    "Open Google Play",
     "Google Play", "MuMuPlayer", "Windows", "macOS", "ADB", "Frida",
     "tui_core.py", "macos_runner.py", "ultra0.py",
     "docs/README.md", "docs/MACOS-PREVIEW.md", "docs/INSTALLATION.md",
     "docs/SAFETY.md", "docs/PROJECT.md", "THIRD_PARTY_NOTICES.md",
     "legacy/windows/", "brew install android-platform-tools",
     "adb devices", "sh run-macos.sh", ".\\run-all.ps1",
+    ".\\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>",
+    "Remove account in Android", "Done managing",
     "docs/LINUX.md", "Ubuntu x86_64", "ADB_PATH", "python3-venv", "Android 16",
     "sh run-linux.sh --check", "sh run-linux.sh --list",
     "sh run-linux.sh --step 3", "sh run-linux.sh --sequence",

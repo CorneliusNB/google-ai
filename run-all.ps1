@@ -30,6 +30,8 @@
   .\run-all.ps1 -AllStages -Force                # Legacy flag; rejected for paid stages
 .EXAMPLE
   .\run-all.ps1 -AllStages -StartStep 3         # Resume without replaying Step 2
+.EXAMPLE
+  .\run-all.ps1 -ManageAndroidAccounts -Serial emulator-5554
 #>
 [CmdletBinding()]
 param(
@@ -51,6 +53,7 @@ param(
     [switch]$ListOnly,
     [switch]$Tui,
     [switch]$Cli,
+    [switch]$ManageAndroidAccounts,
     [switch]$Help
 )
 
@@ -212,6 +215,32 @@ function Confirm-Exact([string]$Prompt, [string]$Phrase) {
 if ($Help) {
     Get-Help $MyInvocation.MyCommand.Path -Detailed
     exit 0
+}
+if ($ManageAndroidAccounts) {
+    $extra = @($PSBoundParameters.Keys | Where-Object { $_ -notin @("ManageAndroidAccounts", "Serial") })
+    if ($extra.Count -or $Serial -cnotmatch '^[A-Za-z0-9._:/-]{1,90}$') {
+        Stop-Workflow "Use -ManageAndroidAccounts with only -Serial <exact-adb-serial>."
+    }
+    $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+    if (-not $pythonCommand) {
+        Stop-Workflow "Python not found. Install Python 3.10+ and retry."
+    }
+    $Python = $pythonCommand.Source
+    Push-Location $PSScriptRoot
+    try {
+        switch (Get-RuntimeValue -LookupArgs @("android-account-settings", "--serial=$Serial")) {
+            "opened" {
+                Write-Host "In MuMu, select the Google account, tap Remove account and confirm in Android."
+            }
+            "missing_adb" { Stop-Workflow "ADB was not found. Set ADB_PATH to an existing adb.exe and retry." }
+            "device_offline" { Stop-Workflow "The selected Android device is offline. Check the local adb devices list." }
+            "adb_error" { Stop-Workflow "ADB device listing failed. Check adb devices or run python setup_env.py and retry." }
+            default { Stop-Workflow "Open Android Settings in MuMu and select Accounts to remove the account manually." }
+        }
+    } finally {
+        Pop-Location
+    }
+    return
 }
 if ($AllStages -and $PSBoundParameters.ContainsKey("Step") -and $Step -ne 1) {
     Stop-Workflow "Choose either -AllStages or -Step 0..5, not both."

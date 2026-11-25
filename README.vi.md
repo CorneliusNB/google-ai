@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Tiếng Việt
 
-<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
+<!-- Source README.md git-blob: afc22139893546e8a4b9449722ededacfedd7f2c -->
 
 [English](README.md) · **Tiếng Việt** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md)
 
@@ -189,7 +189,11 @@ Khi một bước đang chạy, các nút **Check Device & Offers**, **Run** và
 
 Khung thao tác vừa nội dung; **Live Status** dùng phần chiều cao còn lại và đặt hoạt động mới nhất ở đầu. **Show technical details** mở nhật ký tự cuộn theo dòng mới. Nút chính và **Run this step** hiển thị bước đang chạy cùng số giây. Trên Windows, Step 0 có dấu ✓ sau khi kiểm tra môi trường hoàn tất trong luồng kiểm tra ưu đãi. Khi chưa có kết quả mới đã xác minh, phần chọn bước hiện nút xanh **Check Device & Offers — Step 1**.
 
+Trên Windows, chỉ kết nối phiên MuMu cần dùng qua ADB rồi mở **Choose account** rồi bấm **Remove account in Android**. Trong phần cài đặt Android, chọn tài khoản rồi xác nhận **Xóa tài khoản**. Android sẽ gỡ tài khoản và dữ liệu đã đồng bộ khỏi phiên đó. Các gói đăng ký được quản lý riêng trong Google Play. Quay lại giao diện toolkit, bấm **Done managing** rồi chạy Step 1 cho tài khoản bạn muốn dùng. Nếu dùng PowerShell, hãy đợi bước đang chạy kết thúc, đóng giao diện rồi chạy `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` với mã thiết bị từ `adb devices`.
+
 **Recent history** lưu lần bắt đầu, kết quả và thao tác **Verified in Google Play → Next** tại `logs/stage-history/`. Khi mở lại, giao diện khôi phục lịch sử gần nhất; chọn tài khoản sẽ xem lịch sử riêng. **↺** đánh dấu bước từng chạy. Lịch sử chưa chứng minh gói đã kích hoạt và không tự mở khóa thanh toán. Mở lại toolkit hoặc đổi tài khoản cần chạy Step 1 mới. Các lượt trước khi bổ sung lưu lịch sử không có dữ liệu khôi phục.
+
+Khi mở toolkit mà chưa có thiết bị Android, hoặc khi kết nối bị mất lúc đang chờ, thông báo sẽ tự hiện. Sau khi bạn đóng, thông báo chỉ hiện lại khi trạng thái kết nối thay đổi.
 
 Popup mất kết nối có **Retry connection**, hiển thị **Retrying…** cùng số giây; **Got it** đóng popup. Trên Windows, nút thử nối lại máy ảo cục bộ; khi bắt đầu bước mà ADB chưa có thiết bị, công cụ cũng thử nối lại. Trong lượt tra cứu, nếu ứng dụng chưa khởi động, công cụ thử mở lại một lần. Nếu vẫn lỗi, đóng MuMu, mở lại, đợi Android khởi động xong rồi chạy Step 1. Google One được khởi động lại trước khi truy vấn; Play Store tiếp tục chạy nếu đã sẵn sàng. **Reload toolkit** nạp lại giao diện bằng code cục bộ khi rảnh và tạo phiên mới.
 
@@ -252,6 +256,8 @@ Chỉ nhập mã thiết bị (serial) thực sự xuất hiện trong danh sác
 - **Lỗi bảo mật thanh toán (ví dụ OR-REH-04):** dừng các bước thanh toán, kiểm tra thông báo bảo mật chính thức.
 
 Nhật ký chạy được lưu trong `logs/`, còn báo cáo nằm trong `ultra0-report/`. **Không chia sẻ nhật ký hoặc báo cáo khi chưa che email, token và thông tin thanh toán**. CI chỉ thực hiện kiểm thử tĩnh và mô phỏng; không xác minh giao dịch mua hàng thật. **Quy trình thanh toán trên Mac/MuMu thực tế vẫn chưa được kiểm chứng**.
+
+Nếu toolkit báo thiếu ứng dụng Android, bấm **Open Google Play** để mở trang Google One trên thiết bị. Trong CH Play, chọn **Cài đặt** hoặc **Bật**, rồi mở Google One một lần và chạy lại Step 1. Nếu CH Play đang tắt, hãy bật trong Cài đặt Android. Nếu phiên giả lập thiếu CH Play, hãy dùng ảnh Android có sẵn Google Play.
 
 ## Hỗ trợ cộng đồng và dự án liên quan
 

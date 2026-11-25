@@ -1,4 +1,5 @@
 """Unit tests for automatic ADB serial selection (no real Android needed)."""
+import subprocess
 import unittest
 from unittest.mock import patch
 import device_selector as selector
@@ -11,6 +12,20 @@ BOOT_B = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 
 
 class SelectionTests(unittest.TestCase):
+    def test_adb_command_uses_requested_timeout(self):
+        with patch.object(selector.subprocess, "run") as run:
+            selector.adb_command("adb", "devices")
+            self.assertEqual(run.call_args.kwargs["timeout"], 8)
+            selector.adb_command("adb", "shell", "am", "start", timeout=20)
+            self.assertEqual(run.call_args.kwargs["timeout"], 20)
+            run.side_effect = subprocess.TimeoutExpired("adb", 20)
+            self.assertIsNone(selector.adb_command("adb", "devices", timeout=20))
+
+    def test_online_serials_keeps_legacy_empty_list_on_failure(self):
+        with patch.object(selector, "adb_command", return_value=None):
+            self.assertEqual(selector.online_serials("adb"), [])
+            self.assertIsNone(selector.online_serials("adb", distinguish_failure=True))
+
     def test_only_device(self):
         self.assertEqual(selector.auto_select_device("adb", serials=[C]), C)
 

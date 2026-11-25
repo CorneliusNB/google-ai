@@ -1,6 +1,6 @@
 # ePlus AI Toolkit — Français
 
-<!-- Source README.md git-blob: 7954de699c157a7f0ebbbe70f3c0df2a09e3c7f3 -->
+<!-- Source README.md git-blob: afc22139893546e8a4b9449722ededacfedd7f2c -->
 
 [English](README.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français**
 
@@ -187,7 +187,11 @@ La carte Device affiche la version d’Android, le SDK, l’ABI et la connexion 
 
 Le panneau d’actions s’adapte à son contenu et **Live Status** occupe la hauteur restante, avec l’activité la plus récente en tête. **Show technical details** ouvre un journal qui suit les nouvelles lignes. Le bouton principal et **Run this step** affichent l’étape en cours et les secondes écoulées. Sous Windows, Step 0 reçoit une coche lorsque la vérification de l’environnement intégrée à la recherche d’offres se termine. Sans vérification récente validée, le bouton vert **Check Device & Offers — Step 1** apparaît.
 
+Sous Windows, connectez uniquement l’instance MuMu voulue via ADB, puis ouvrez **Choose account**, puis sélectionnez **Remove account in Android**. Dans les paramètres Android, sélectionnez le compte et confirmez **Supprimer le compte**. Le compte et ses données synchronisées seront retirés de cette instance. Les abonnements se gèrent séparément dans Google Play. Revenez au tableau de bord, sélectionnez **Done managing**, puis lancez Step 1 pour le compte que vous souhaitez utiliser. Avec PowerShell, attendez la fin de l’étape en cours, fermez le tableau de bord, puis exécutez `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` avec le numéro de série affiché par `adb devices`.
+
 **Recent history** enregistre les démarrages, les résultats et l’action **Verified in Google Play → Next** dans `logs/stage-history/`. Au démarrage, le dernier historique est restauré; le choix d’un compte affiche son historique propre. **↺** indique une étape déjà tentée. L’historique ne confirme pas un abonnement et ne débloque pas les paiements. Après un redémarrage de l’outil ou un changement de compte, relancez Step 1. Les exécutions antérieures à cette fonction ne peuvent pas être restaurées.
+
+L’avis s’affiche si aucun appareil Android n’est connecté à l’ouverture de l’outil ou si la connexion est perdue pendant que le tableau de bord est au repos. Une fois fermé, il ne réapparaît que si l’état de la connexion change.
 
 La fenêtre de déconnexion propose **Retry connection**, qui affiche **Retrying…** et les secondes; **Got it** ferme la fenêtre. Sous Windows, l’outil tente de reconnecter l’émulateur local, également au lancement d’une étape sans appareil ADB connecté. Lors des consultations, une application qui ne démarre pas fait l’objet d’une seule tentative de redémarrage. Si elle échoue, fermez puis rouvrez MuMu, attendez le démarrage complet d’Android et relancez Step 1. Google One redémarre avant la consultation; Play Store reste ouvert s’il est déjà disponible. **Reload toolkit** relance l’interface au repos avec le code local et crée une nouvelle session.
 
@@ -245,6 +249,8 @@ Utilisez uniquement un identifiant de périphérique réellement affiché par AD
 - **Erreur de sécurité du paiement (ex. OR-REH-04) :** arrêtez les étapes de paiement et suivez les procédures officielles.
 
 Les journaux se trouvent dans `logs/` et les rapports dans `ultra0-report/`. **Ne partagez pas de données non masquées contenant comptes, jetons ou informations de paiement.** Les tests automatisés de la CI utilisent des simulations et **ne vérifient aucun achat réel**. La compatibilité de paiement sur Mac/MuMu réel n'a pas été vérifiée.
+
+Si l’outil signale qu’une application Android manque, sélectionnez **Open Google Play** pour ouvrir la fiche de Google One sur l’appareil. Installez ou activez l’application dans Google Play, ouvrez-la une fois, puis relancez Step 1. Si le Play Store est désactivé, réactivez-le dans les paramètres Android. Si l’émulateur ne dispose pas du Play Store, utilisez une image qui inclut Google Play.
 
 ## Assistance communautaire et projets associés
 

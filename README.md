@@ -4,7 +4,7 @@
 
 A terminal toolkit for **Windows, macOS and Linux** to inspect Google AI Pro offers through Android, ADB, Frida and Google Play. Windows uses a PowerShell/Python launcher; macOS and Linux use native shell launchers with a shared Python adapter.
 
-![ePlus AI Toolkit — full dashboard (110×35, Steps 0–5)](images/terminal-ui-overview.png)
+![ePlus AI Toolkit — startup dashboard (110×35)](images/terminal-ui-overview.png)
 
 > [!CAUTION]
 > **Unofficial project. Potential billing charges.** Steps **2–5** can open a real Google Play checkout and may automatically tap **Subscribe**. An offer appearing in a list, a displayed first-phase price of zero, or a message indicating that the Subscribe action was attempted does **not** establish eligibility, an active subscription, a free subscription, or a changed renewal date. Verify the exact account, today's charge, future pricing and renewal date directly in Google Play before any checkout.
@@ -159,9 +159,13 @@ The sidebar lists Steps 0–4 and the supported optional Step 5 when observed. A
 
 The Device card shows the Android release, SDK, CPU ABI and ADB transport when read; hover for full details. **Choose account**, beside the Account card, lists signed-in Android account candidates. Select the intended profile in both Play Store and Google One, then repeat Step 1. When Play Store exposes an explicit active-profile email, the toolkit can distinguish it from other signed-in accounts.
 
+On Windows, with only the intended MuMu instance connected over ADB, open **Choose account** and select **Remove account in Android**. Select the account in Android settings and confirm **Remove account**. This removes the account and its synced data from that instance. Google Play subscriptions are managed separately. Return to the dashboard, select **Done managing**, and run Step 1 for the account you intend to use. For PowerShell, close the dashboard after the current stage finishes and run `.\run-all.ps1 -ManageAndroidAccounts -Serial <exact-adb-serial>` with the serial from `adb devices`.
+
 The action panel fits its controls and **Live Status** uses the remaining height, with the latest activity first. **Show technical details** opens a log that follows new output. Both the main button and **Run this step** show the running step and elapsed seconds. On Windows, Step 0 receives a checkmark once its environment check completes within the offer-check flow. If a paid step lacks a fresh verified check, the green **Check Device & Offers — Step 1** button appears in step selection.
 
 **Recent history** saves stage starts, results and the user's **Verified in Google Play → Next** action locally under `logs/stage-history/`. Startup restores the latest saved history; selecting an account loads its own history. **↺** marks a previously attempted step. History alone cannot verify a subscription or unlock checkout. A fresh Step 1 check is required after reopening the toolkit or changing accounts. Runs before history recording was added are unavailable.
+
+The dashboard shows a connection notice if Android is unavailable at startup or disconnects while the dashboard is idle. Once dismissed, the notice only reappears after the connection state changes.
 
 **Retry connection** in the disconnected-device popup shows **Retrying…** and elapsed seconds. On Windows it tries the existing local emulator connection routine; Windows stages also attempt reconnection when no ADB device is online. **Got it** dismisses the popup. During read-only checks, a failed app startup gets one restart attempt. If recovery fails, close and reopen MuMu, wait for Android to boot and repeat Step 1. The engine restarts Google One before querying offers; Play Store stays running when already available. **Reload toolkit** restarts the idle dashboard with local code and begins a new session.
 
@@ -274,6 +278,8 @@ Only use a `-Serial` observed through ADB. `-Email` constrains the account expec
 Verify subscription, payment amount, currency and renewal terms under **[Google Play Subscriptions](https://play.google.com/store/account/subscriptions)**. For developer-facing status codes and advanced platform/Frida problems, see [Detailed setup and troubleshooting](docs/DETAILED-GUIDE.md).
 
 **Platform support:** Windows, macOS and Linux have separate launchers. Real macOS/MuMu checkout and Linux rooted-device end-to-end validation remain pending; see the [macOS guide](docs/MACOS-PREVIEW.md) and [Linux guide](docs/LINUX.md).
+
+If the toolkit reports a missing Android app, select **Open Google Play** to open the Google One listing on the device. Install or enable the app in Google Play, open it once, and rerun Step 1. If Play Store is disabled, enable it in Android Settings. If the emulator has no Play Store, use an image with Google Play included.
 
 ## Community support and related projects
 

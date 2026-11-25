@@ -11,18 +11,19 @@ GOOGLE_ONE = "com.google.android.apps.subscriptions.red"
 BOOT_UUID = re.compile(r"^[a-fA-F0-9]{8}-(?:[a-fA-F0-9]{4}-){3}[a-fA-F0-9]{12}$")
 
 
-def adb_command(adb, *args):
+def adb_command(adb, *args, timeout=8):
     try:
         return subprocess.run([str(adb), *args], capture_output=True,
-                              text=True, errors="replace", timeout=8)
+                              text=True, errors="replace", timeout=timeout)
     except (OSError, subprocess.TimeoutExpired):
         return None
 
 
-def online_serials(adb):
+def online_serials(adb, *, distinguish_failure=False):
+    """List online transports; opt in to None for an unsuccessful ADB listing."""
     result = adb_command(adb, "devices")
     if result is None or result.returncode != 0:
-        return []
+        return None if distinguish_failure else []
     online = []
     for line in result.stdout.splitlines()[1:]:
         fields = line.split()

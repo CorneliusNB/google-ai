@@ -373,6 +373,31 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
+    async def test_header_clock_shows_local_date_time_and_utc_offset(self):
+        from datetime import datetime, timedelta, timezone
+        from tui import GoogleAITUI, LocalClock
+
+        local_zone = timezone(timedelta(hours=7))
+        for size in ((58, 20), (90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                with patch("tui.datetime") as host_time:
+                    host_time.now.return_value.astimezone.return_value = datetime(
+                        2026, 11, 25, 23, 59, 59, tzinfo=local_zone,
+                    )
+                    async with app.run_test(size=size) as pilot:
+                        await pilot.pause()
+                        clock = app.query_one(LocalClock)
+                        self.assertEqual(str(clock.render()), "2026-11-25 23:59:59 UTC+07:00")
+                        self.assertEqual(clock.region.right, size[0])
+                        self.assertGreaterEqual(clock.region.width, len(str(clock.render())))
+                        self.assertLessEqual(app.query_one("HeaderTitle").region.right, clock.region.x)
+                        host_time.now.return_value.astimezone.return_value = datetime(
+                            2026, 11, 26, tzinfo=local_zone,
+                        )
+                        clock.update_time()
+                        self.assertEqual(str(clock.render()), "2026-11-26 00:00:00 UTC+07:00")
+
     async def test_mode_refresh_ignores_unmounted_widgets(self):
         from tui import GoogleAITUI
 
@@ -402,6 +427,87 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(app._selected_account, "second@example.com")
                 self.assertFalse(app._offer_check_ready)
                 self.assertIsNone(app._offer_ready_account)
+
+    async def test_account_picker_close_preserves_completed_lookup_status(self):
+        from textual.widgets import Static
+        from tui import AccountPicker, GoogleAITUI
+
+        cases = ((None, "Account list unavailable"), ([], "No Android accounts detected"),
+                 (["first@example.com"], "Account lookup complete"))
+        for accounts, expected in cases:
+            with self.subTest(expected=expected), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=(110, 35)) as pilot:
+                    app._set_status("Reading Android accounts...")
+                    app._account_candidates_loaded(accounts, "emulator-5554")
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, AccountPicker)
+                    self.assertTrue(await pilot.click("#account_cancel"))
+                    await pilot.pause()
+                    self.assertIn(expected, str(app.query_one("#state", Static).render()))
+                    self.assertFalse(app._accounts_loading)
+
+    async def test_manage_accounts_opens_settings_and_requires_fresh_offer_check(self):
+        from device_diagnostics import ConnectionStatus
+        from textual.widgets import Button
+        from tui import AccountPicker, GoogleAITUI, SetupNotice
+
+        for size in ((58, 20), (90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    serial = "emulator-5554"
+                    app._connection_state = ConnectionStatus("connected", (serial,))
+                    app._offer_check_ready = True
+                    app._offer_ready_device = serial
+                    app._selected_account = app._verified_account = app._offer_ready_account = "old@example.com"
+                    app.sequence = True
+                    self.assertFalse(app.query("#account_remove"))
+                    with patch.object(app, "_account_runtime_value", return_value="opened") as lookup:
+                        app._account_candidates_loaded(None, serial)
+                        await pilot.pause()
+                        self.assertIsInstance(app.screen, AccountPicker)
+                        self.assertFalse(app.screen.query("#account_accept"))
+                        self.assertTrue(await pilot.click("#account_remove"))
+                        await app.workers.wait_for_complete()
+                    await pilot.pause()
+                    lookup.assert_called_once_with("android-account-settings-connected", serial, timeout=35)
+                    self.assertIsInstance(app.screen, SetupNotice)
+                    self.assertEqual(str(app.screen.query_one("#notice_close", Button).label), "Done managing")
+                    self.assertTrue(app.query_one("#quickstart", Button).disabled)
+                    with patch.object(app, "run_stage") as run:
+                        app._start(1, False)
+                        run.assert_not_called()
+                    self.assertTrue(await pilot.click("#notice_close"))
+                    await pilot.pause()
+                    self.assertFalse(app.query_one("#quickstart", Button).disabled)
+                    self.assertFalse(app._offer_check_ready)
+                    self.assertIsNone(app._offer_ready_device)
+                    self.assertIsNone(app._offer_ready_account)
+                    self.assertIsNone(app._selected_account)
+                    self.assertIsNone(app._verified_account)
+                    self.assertFalse(app.sequence)
+
+    async def test_manage_accounts_explains_multiple_devices_and_rejects_running_stage(self):
+        from tui import GoogleAITUI, SetupNotice
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory))
+            async with app.run_test(size=(90, 20)) as pilot:
+                with patch.object(app, "_account_runtime_value", return_value="multiple_devices") as lookup:
+                    with patch.object(app, "busy", True):
+                        app._manage_android_accounts("")
+                        lookup.assert_not_called()
+                    app._account_candidates_loaded([])
+                    await pilot.pause()
+                    self.assertTrue(await pilot.click("#account_remove"))
+                    await app.workers.wait_for_complete()
+                await pilot.pause()
+                self.assertIsInstance(app.screen, SetupNotice)
+                self.assertIn("only the intended MuMu device", app.screen.instruction)
+                self.assertTrue(await pilot.click("#notice_close"))
+                await pilot.pause()
+                self.assertFalse(app._diagnosing)
 
     async def test_selected_account_must_match_read_only_check(self):
         from tui import GoogleAITUI
@@ -686,6 +792,34 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(app._offer_check_ready)
                 self.assertIn("connected", str(app.query_one("#device", Static).render()).lower())
 
+    async def test_startup_without_android_shows_notice_once_until_connection_changes(self):
+        from device_diagnostics import ConnectionStatus
+        from textual.widgets import Button
+        from tui import ConnectionNotice, GoogleAITUI
+
+        with tempfile.TemporaryDirectory() as directory:
+            app = GoogleAITUI(repo=Path(directory), startup_probe=True)
+            async with app.run_test(size=(90, 20)) as pilot:
+                disconnected = ConnectionStatus("disconnected")
+                app._connection_polled(disconnected, app._connection_generation, startup=True)
+                await pilot.pause()
+                self.assertIsInstance(app.screen, ConnectionNotice)
+                self.assertEqual(app.screen.notice_title, "Android is not connected")
+                self.assertFalse(app.screen.query_one("#connection_start_mumu", Button).disabled)
+                self.assertTrue(await pilot.click("#notice_close"))
+                await pilot.pause()
+
+                app._connection_polled(disconnected, app._connection_generation)
+                await pilot.pause()
+                self.assertNotIsInstance(app.screen, ConnectionNotice)
+
+                with patch.object(app, "discover_account_candidates"):
+                    app._connection_polled(ConnectionStatus("connected", ("emulator-5554",)))
+                app._connection_polled(disconnected, app._connection_generation)
+                await pilot.pause()
+                self.assertIsInstance(app.screen, ConnectionNotice)
+                self.assertFalse(app._offer_check_ready)
+
     async def test_connection_results_are_ignored_during_checkout(self):
         from tui import GoogleAITUI
         from device_diagnostics import ConnectionStatus
@@ -810,6 +944,31 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     )
                 popen.assert_not_called()
 
+    async def test_play_subscriptions_link_is_visible_and_opens_on_request(self):
+        from textual.widgets import Link
+        from tui import GoogleAITUI
+
+        url = "https://play.google.com/store/account/subscriptions"
+        for size in ((58, 20), (90, 20), (110, 35)):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                with patch.object(app, "open_url") as open_url:
+                    async with app.run_test(size=size) as pilot:
+                        await pilot.pause()
+                        link = app.query_one("#play_subscriptions", Link)
+                        support = app.query_one("#support_link", Link)
+                        self.assertEqual(link.url, url)
+                        self.assertGreaterEqual(link.region.x, support.region.right)
+                        self.assertLessEqual(link.region.right, size[0])
+                        self.assertGreaterEqual(link.region.width, len(link.text))
+                        open_url.assert_not_called()
+                        link.focus()
+                        await pilot.press("enter")
+                        open_url.assert_called_once_with(url)
+                        open_url.reset_mock()
+                        self.assertTrue(await pilot.click("#play_subscriptions"))
+                        open_url.assert_called_once_with(url)
+
     async def test_tui_loads_without_starting_any_checkout(self):
         from textual.widgets import Button, Select, Static
         from tui import GoogleAITUI
@@ -923,9 +1082,38 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(app._last_output)
                     self.assertFalse(app._run_output)
                     self.assertEqual(len(app.query_one("#debug_log", RichLog).lines), 0)
-                    self.assertIn("Not checked", str(app.query_one("#account", Static).render()))
+                    self.assertIn("Checking…", str(app.query_one("#account", Static).render()))
+                    self.assertNotIn("al***", str(app.query_one("#account", Static).render()))
                     self.assertIn("Auto-detect", str(app.query_one("#device", Static).render()))
                     self.assertFalse(app.query_one("#manual", Button).display)
+
+    async def test_step_one_keeps_masked_account_hint_and_drops_it_on_device_change(self):
+        from device_diagnostics import ConnectionStatus
+        from textual.widgets import Static
+        from tui import GoogleAITUI
+        from tui_core import mask_email
+
+        for device_changed in (False, True):
+            with self.subTest(device_changed=device_changed), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=(110, 35)) as pilot:
+                    serial = "emulator-5554"
+                    account = "fixture@example.com"
+                    app._connection_state = ConnectionStatus("connected", (serial,))
+                    app._display_account_candidates([account], serial)
+                    with patch.object(app, "run_stage") as run:
+                        self.assertTrue(await pilot.click("#quickstart"))
+                    run.assert_called_once_with(1)
+                    card = app.query_one("#account", Static)
+                    self.assertIn(mask_email(account), str(card.render()))
+                    self.assertIn("Checking", str(card.render()))
+                    self.assertNotIn(account, str(card.render()))
+                    self.assertIsNone(app._verified_account)
+                    app._received("Device " + ("emulator-5556" if device_changed else serial))
+                    app._finished(1, Outcome("listed", "Offers listed", "Review offers."), {"offers": []})
+                    self.assertEqual(mask_email(account) in str(card.render()), not device_changed)
+                    self.assertIn("Play unverified", str(card.render()))
+                    self.assertFalse(app._offer_check_ready)
 
     async def test_debug_reopen_includes_hidden_lines_without_duplicates(self):
         from textual.widgets import RichLog
@@ -1681,6 +1869,33 @@ class TextualSmokeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsInstance(app.screen, SetupNotice)
                 self.assertIn("ADB", app.screen.instruction)
                 await pilot.click("#notice_close")
+
+    async def test_missing_app_notice_opens_play_only_after_button_press(self):
+        from textual.widgets import Button, Static
+        from tui import GoogleAITUI, MissingAppNotice
+        from tui_core import cli_issue_outcome
+
+        for size, launch_result, expected in (
+            ((90, 20), "opened", "install or enable Google One"),
+            ((110, 35), "store_unavailable", "Google Play is missing or disabled"),
+        ):
+            with self.subTest(size=size), tempfile.TemporaryDirectory() as directory:
+                app = GoogleAITUI(repo=Path(directory))
+                async with app.run_test(size=size) as pilot:
+                    app._checked_device = "emulator-5554"
+                    with patch("tui.open_google_one_listing", return_value=launch_result) as open_listing:
+                        app._finished(1, cli_issue_outcome(["EPLUS_ISSUE:app_missing"], 1), None)
+                        await pilot.pause()
+                        self.assertIsInstance(app.screen, MissingAppNotice)
+                        open_listing.assert_not_called()
+                        self.assertTrue(await pilot.click("#open_google_play"))
+                        await app.workers.wait_for_complete()
+                    await pilot.pause()
+                    open_listing.assert_called_once_with("emulator-5554")
+                    self.assertIn(expected, str(app.screen.query_one("#app_notice_instruction", Static).render()))
+                    self.assertEqual(app.screen.query_one("#open_google_play", Button).disabled,
+                                     launch_result == "opened")
+                    self.assertTrue(await pilot.click("#notice_close"))
 
     async def test_next_checkout_action_is_visible_outside_advanced(self):
         from textual.widgets import Button
