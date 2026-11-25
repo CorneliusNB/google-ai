@@ -451,7 +451,7 @@ def mask_email(value: str) -> str:
     if not m:
         return "Not detected"
     name, domain = m.groups()
-    return f"{name[:2]}***@{domain}"
+    return f"{name[:2] if len(name) > 2 else ''}***@{domain}"
 
 
 def account_picker_label(value: str, index: int) -> str:
@@ -459,7 +459,27 @@ def account_picker_label(value: str, index: int) -> str:
     name, _, domain = value.partition("@")
     if len(name) >= 4 and domain:
         return f"{index}. {name[:2]}***{name[-1]}@{domain}"
-    return f"{index}. {mask_email(value)}"
+    return f"{index}. ***@{domain}" if domain else f"{index}. Not detected"
+
+
+def account_picker_options(accounts: list[str]) -> list[tuple[str, str]]:
+    """Disambiguate with a masked positional hint; omit indistinguishable aliases.
+
+    Never reveal every local-part character or an entire short local part.
+    The caller can ask the user to choose in Play Store instead.
+    """
+    hints = [account_picker_label(value, i + 1).split(". ", 1)[1]
+             for i, value in enumerate(accounts)]
+    for i, value in enumerate(accounts):
+        if hints.count(hints[i]) <= 1:
+            continue
+        name, _, domain = value.partition("@")
+        if len(name) >= 5:
+            # Reveal a different position rather than merely a different number.
+            hints[i] = f"{name[:2]}***{name[-2:]}@{domain}"
+    return [(f"{i + 1}. {hint}", value)
+            for i, (hint, value) in enumerate(zip(hints, accounts))
+            if hints.count(hint) == 1]
 
 
 def report_summary(report: dict | None) -> str:

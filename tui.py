@@ -31,7 +31,7 @@ from textual.widgets import Button, Footer, Header, Link, RichLog, Select, Stati
 from sku_check_core import render_result
 from offer_discovery import (ExtraOffer, parse_step1,
                              merge_extra_offers, offer_step_label, offer_details)
-from tui_core import STAGES, Outcome, command_for_step, mask_email, account_picker_label, \
+from tui_core import STAGES, Outcome, command_for_step, mask_email, account_picker_options, \
     needs_setup, offer_explorer_lines, outcome_for_stage, read_fresh_report, cli_issue_outcome, \
     readable_issue_line, report_summary, safe_launch_diagnostic, validate_step
 from device_diagnostics import ConnectionDiagnosis, ConnectionStatus, inspect_connection, poll_connection
@@ -155,17 +155,21 @@ class AccountPicker(ModalScreen[str | None]):
             yield Static("These are Android account candidates, NOT proof of which "
                          "account Google Play uses. Switch accounts inside Play Store "
                          "and run Check Device & Offers to verify.")
-            # Numbered masked labels; full values remain internal.
-            yield Select([(account_picker_label(email, i + 1), email)
-                          for i, email in enumerate(self.accounts)],
-                         value=self.accounts[0], allow_blank=False, id="account_choice")
+            options = account_picker_options(self.accounts)
+            if len(options) != len(self.accounts):
+                yield Static("Some account hints are indistinguishable. Select the intended profile in Google Play, then run Check Device & Offers.")
+            if options:
+                yield Select(options, value=options[0][1], allow_blank=False, id="account_choice")
             with Horizontal(id="account_picker_actions"):
                 yield Button("Cancel", id="account_cancel")
-                yield Button("Use selected account", id="account_accept", variant="primary")
+                yield Button("Use selected account", id="account_accept", variant="primary", disabled=not options)
 
     @on(Button.Pressed, "#account_picker_actions Button")
     def choose(self, event: Button.Pressed) -> None:
         if event.button.id != "account_accept":
+            self.dismiss(None)
+            return
+        if not self.query("#account_choice"):
             self.dismiss(None)
             return
         value = self.query_one("#account_choice", Select).value
@@ -219,16 +223,12 @@ class ConnectionNotice(SetupNotice):
         message = "MuMu startup could not complete. Open MuMu manually and check ADB."
         try:
             from device_diagnostics import locate_adb
-            from mumu_remote import MuMuError, start_android
+            from mumu_remote import MuMuError, connect_existing_instance
             try:
                 adb = locate_adb()
                 if not adb:
                     raise MuMuError("ADB not found. Run the environment setup first.")
-                serial = start_android(adb)
-                observed = poll_connection()
-                if observed.state != "connected" or observed.devices != (serial,):
-                    raise MuMuError("The started instance is not the only online device. Disconnect other devices or select explicitly.")
-                result, message = observed, ""
+                result, message = connect_existing_instance(adb, poll_connection), ""
             except MuMuError as error:
                 message = str(error)
         except Exception:

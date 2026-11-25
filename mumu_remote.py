@@ -70,6 +70,17 @@ def _instances(manager, deadline):
         raise MuMuError("MuMu instance metadata is invalid. Open MuMu manually.") from None
 
 
+def connect_existing_instance(adb_path: str, poll):
+    """Start a player, then verify that any additional transports are aliases."""
+    from device_selector import same_boot_transports
+    serial = start_android(adb_path)
+    observed = poll()
+    if observed.state != "connected" or not same_boot_transports(
+            adb_path, serial, observed.devices):
+        raise MuMuError("The started instance is not the only online device. Disconnect other devices or select explicitly.")
+    return observed
+
+
 def start_android(adb_path: str, vmindex: int | None = None,
                   mumu_dir: str | None = None, timeout_seconds: int = 180) -> str:
     """Launch an existing player, never create a VM or select unrelated ADB devices."""

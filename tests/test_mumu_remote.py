@@ -24,6 +24,22 @@ class MuMuTests(unittest.TestCase):
             manager.touch()
             self.assertEqual(mu.find_manager(directory), manager)
 
+    def test_started_device_aliases_are_accepted_but_distinct_devices_are_not(self):
+        from device_diagnostics import ConnectionStatus
+        serial = "127.0.0.1:16416"
+        observed = ConnectionStatus("connected", ("emulator-5554", serial))
+        for identities, succeeds in ((["boot-a", "boot-a"], True),
+                                      (["boot-a", "boot-b"], False),
+                                      (["", ""], False)):
+            with self.subTest(identities=identities), \
+                 patch.object(mu, "start_android", return_value=serial), \
+                 patch("device_selector.boot_uuid", side_effect=identities):
+                if succeeds:
+                    self.assertEqual(mu.connect_existing_instance("adb", lambda: observed), observed)
+                else:
+                    with self.assertRaises(mu.MuMuError):
+                        mu.connect_existing_instance("adb", lambda: observed)
+
     def test_manager_failure_is_safe(self):
         with patch.object(mu, "_run", return_value=subprocess.CompletedProcess([], 1, "", "private@example.com")):
             with self.assertRaisesRegex(mu.MuMuError, "^MuMu main launch failed"):

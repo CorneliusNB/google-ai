@@ -141,6 +141,9 @@ function Run-Command([string]$Program, [string[]]$Arguments) {
 function Get-RuntimeValue([string[]]$LookupArgs) {
     $output = @(& $Python "scripts/runtime-lookup.py" @LookupArgs)
     if ($LASTEXITCODE -ne 0) {
+        if ($LookupArgs[0] -eq "start-mumu") {
+            Stop-Workflow "MuMu startup failed. Check the preceding recovery message or open the intended instance manually."
+        }
         Stop-Workflow "Runtime lookup failed. Verify the Python and ADB environment."
     }
     $resultLine = $output | Where-Object { $_ -match '^RUNTIME_RESULT:[A-Za-z0-9+/=]*$' } | Select-Object -Last 1
@@ -270,6 +273,17 @@ try {
             if ($line -match '^\s*(\S+)\s+device\s*$') { $Matches[1] }
         }
     )
+    if ($Serial -and $online -cnotcontains $Serial -and $Serial -match '^127\.0\.0\.1:[0-9]+$') {
+        # Reconnect only the explicitly requested local emulator transport.
+        $null = & $Adb connect $Serial 2>$null
+        $deviceLines = @(& $Adb devices)
+        if ($LASTEXITCODE -ne 0) { Stop-Workflow "ADB device discovery failed after reconnect." }
+        $online = @(
+            foreach ($line in $deviceLines) {
+                if ($line -match '^\s*(\S+)\s+device\s*$') { $Matches[1] }
+            }
+        )
+    }
     if ($online.Count -eq 0 -and -not $Serial) {
         Show-Status "Connection" "Trying local emulator ADB ports..."
         $null = Get-RuntimeValue -LookupArgs @("connect-device")

@@ -71,6 +71,13 @@ class OriginalProStageTests(unittest.TestCase):
         self.assertIn('if ($report.status -eq "checkout_requested")', ps)
         self.assertIn('break', ps)
 
+    def test_reconnect_keeps_exact_selected_transport(self):
+        ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
+        self.assertIn('$Serial -and $online -cnotcontains $Serial -and $Serial -match', ps)
+        self.assertIn('$null = & $Adb connect $Serial 2>$null', ps)
+        self.assertIn('if ($online -cnotcontains $Serial)', ps)
+        self.assertIn('if ($online.Count -eq 0 -and -not $Serial)', ps)
+
     def test_no_checkout_by_default(self):
         ps = (ROOT / "run-all.ps1").read_text(encoding="utf-8")
         self.assertIn("[int]$Step = 1", ps)

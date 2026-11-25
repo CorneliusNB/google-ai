@@ -172,6 +172,12 @@ function Get-UserIssue {
                 Action = "Check authorized Android access and file permissions, then rerun the environment check. Review Google Play before retrying a paid step."
             }
         }
+        "mumu_start_failed" {
+            return [pscustomobject]@{
+                Title = "MuMu startup failed"
+                Action = "Check the preceding recovery message, existing instance selection and ADB debugging. Open the intended instance manually if needed."
+            }
+        }
         "environment_failed" {
             return [pscustomobject]@{
                 Title = "Android environment check did not finish"
@@ -279,6 +285,7 @@ function Get-UserIssue {
 
 function Get-FailureCode {
     param([string]$ErrorMessage)
+    if ($ErrorMessage -like "MuMu startup failed*") { return "mumu_start_failed" }
     if ($ErrorMessage -eq "Billing module setup failed") { return "billing_module_setup_failed" }
     if ($ErrorMessage -match '(?i)Python not found') { return "python_missing" }
     if ($ErrorMessage -match '(?i)adb\.exe was not found|ADB device discovery failed') { return "adb_missing" }

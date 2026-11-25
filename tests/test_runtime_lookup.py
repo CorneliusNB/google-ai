@@ -63,6 +63,16 @@ class RuntimeLookupTests(unittest.TestCase):
         self.assertEqual(json.loads(encoded), candidates)
         billing.assert_not_called()
 
+    def test_mumu_error_preserves_safe_guidance_without_result(self):
+        from mumu_remote import MuMuError
+        with patch.object(module, "resolve_value", side_effect=MuMuError("Choose an existing instance.")), \
+             patch.object(sys, "stdout", new_callable=io.StringIO) as output, \
+             patch.object(sys, "stderr", new_callable=io.StringIO) as error:
+            status = module.main(["start-mumu"])
+        self.assertEqual(status, 1)
+        self.assertEqual(output.getvalue(), "")
+        self.assertIn("Choose an existing instance.", error.getvalue())
+
     def test_account_lookup_requires_serial(self):
         with self.assertRaises(SystemExit):
             module.main(["play-account"])

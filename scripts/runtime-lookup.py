@@ -70,6 +70,14 @@ def main(argv=None):
         value = (resolve_value(args.command, args.serial, args.vmindex)
                  if args.command == "start-mumu" else resolve_value(args.command, args.serial))
     except (Exception, SystemExit) as exc:
+        if args.command == "start-mumu":
+            try:
+                from mumu_remote import MuMuError
+                if isinstance(exc, MuMuError):
+                    print(str(exc), file=sys.stderr)
+                    return 1
+            except ImportError:
+                pass
         print("Runtime lookup failed ({0}); run python setup_env.py for ADB diagnostics.".format(
             type(exc).__name__), file=sys.stderr)
         return 1

@@ -307,6 +307,15 @@ class CoreTests(unittest.TestCase):
         self.assertNotIn("alice@example.com", first)
         self.assertNotIn("alicia@example.com", second)
 
+    def test_colliding_picker_hints_and_short_local_parts(self):
+        from tui_core import account_picker_options
+        options = account_picker_options(["albert@example.com", "allent@example.com"])
+        self.assertEqual(len(options), 2)
+        self.assertNotEqual(options[0][0].split(". ", 1)[1], options[1][0].split(". ", 1)[1])
+        self.assertEqual(account_picker_options(["a@example.com", "ab@example.com"]), [])
+        self.assertEqual(mask_email("ab@example.com"), "***@example.com")
+        self.assertEqual(account_picker_options(["albert@example.com", "alxert@example.com"]), [])
+
     def test_account_mask(self):
         self.assertEqual(mask_email("example@gmail.com"), "ex***@gmail.com")
         self.assertEqual(mask_email("invalid"), "Not detected")
