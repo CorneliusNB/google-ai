@@ -62,6 +62,19 @@ class BillingModulePermissionTests(unittest.TestCase):
 
 
 class BillingModuleMessageTests(unittest.TestCase):
+    def test_native_adapters_preserve_setup_failure(self):
+        import macos_runner as adapter
+        for env in ({}, {adapter.LINUX_WORKDIR: "/private"}):
+            with self.subTest(linux=bool(env)):
+                with patch.object(adapter.subprocess, "Popen") as popen, \
+                     patch.object(ultra0.sys, "stdout", io.StringIO()) as output:
+                    child = popen.return_value.__enter__.return_value
+                    child.stdout = iter(["EPLUS_ISSUE:billing_module_setup_failed\n"])
+                    child.wait.return_value = 1
+                    with self.assertRaisesRegex(RuntimeError, "^Billing module setup failed$"):
+                        adapter.run_engine(["python"], env)
+                self.assertNotIn("Android stage failed", output.getvalue())
+
     def test_dashboard_classifies_setup_failure(self):
         from tui_core import cli_issue_outcome, runtime_error_outcome
         for outcome in (
